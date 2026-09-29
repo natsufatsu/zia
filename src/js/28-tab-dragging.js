@@ -1848,6 +1848,20 @@
       for (const home of document.querySelectorAll("zen-folder[zia-lent]")) {
         home.ziaLentUntil = Date.now() + 800;
         home.removeAttribute("zia-lent");
+        // Held at the height it had through the drag as the tab leaves it,
+        // then eased down to its own once Zen has laid it out again: its
+        // room went in one step, a snap
+        const held = home.getBoundingClientRect().height;
+        if (held > 0) {
+          home.style.setProperty("height", `${held}px`, "important");
+          setTimeout(() => {
+            home.style.removeProperty("height");
+            const own = home.getBoundingClientRect().height;
+            if (home.isConnected && Math.abs(own - held) >= 0.5) {
+              home.animate([{ height: `${held}px` }, { height: `${own}px` }], { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" });
+            }
+          }, 60);
+        }
       }
     };
 
@@ -2793,7 +2807,12 @@
       const overTiles = !!event.target?.closest?.("#zen-essentials") || inBox(essentials, point) || overAnyTile(point);
       // a row only once the pointer is below the essentials altogether, so
       // a drag along their last row stays a tile
-      const asTab = !overTiles && inBox(document.getElementById("navigator-toolbox"), point) && point.y > essentialsBottom() + 8;
+      // (the essentials' bottom as the drag began: out over the list, its
+      // cell goes and the grid can lose a row, and measured afresh the line
+      // moved up past the pointer and back, so it flipped between tile and
+      // row, the others closing up and opening again)
+      state.bottom ??= essentialsBottom();
+      const asTab = !overTiles && inBox(document.getElementById("navigator-toolbox"), point) && point.y > state.bottom + 8;
       const copy = state.copy;
       if (asTab !== state.asTab) {
         state.asTab = asTab;
