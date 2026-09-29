@@ -9383,8 +9383,6 @@
       if (!node) {
         return;
       }
-      // (lifted by a closed folder's room its tab no longer needs: lendOut)
-      y += (!above && drag?.lentLift?.get(node)) || 0;
       node.style.setProperty("--zia-drag-y", `${Math.round(y)}px`);
       slotFolderOf(node)?.style.setProperty("--zia-slot-y", `${Math.round(y)}px`);
       node.style.removeProperty("top");
@@ -11033,11 +11031,10 @@
       dnd._landDragImageOnElements = quiet;
     };
 
-    // A closed folder whose one showing tab is dragged out of it goes to its
-    // closed height as the drag starts: it kept the room below its name it
-    // has for the open tab's glow until the drop, settling at its name and a
-    // bit more part way through the drag. Its box is drawn that height (its
-    // room stays till the drop, as the dragged tab's own spot does).
+    // A closed folder whose one showing tab is dragged out of it is marked,
+    // so the room it kept for that tab closes smoothly once the tab lands
+    // (06-tab-animations: Zen's easing, not the spring, whose few-pixel
+    // steps showed as a stutter on so short a distance)
     const lendOut = (row) => {
       const home = row?.parentElement?.closest?.("zen-folder");
       if (!home || !isCollapsed(home) || !home.hasAttribute("has-active")) {
@@ -11047,53 +11044,12 @@
       if (showing.some((t) => t !== row && !row.contains?.(t))) {
         return;
       }
-      const label = home.querySelector(":scope > .tab-group-label-container");
-      if (!label) {
-        return;
-      }
-      const style = getComputedStyle(home);
-      const gap = parseFloat(style.getPropertyValue("--tab-margin-block")) || 0;
-      const extra = parseFloat(style.getPropertyValue("--zia-folder-bottom-extra")) || 0;
-      const inset = home.getBoundingClientRect().bottom - label.getBoundingClientRect().bottom + gap - extra;
-      home.style.setProperty("--zia-lent-inset", `${Math.round(inset * 2) / 2}px`);
       home.setAttribute("zia-lent", "true");
-      // Its room below its name, less the dragged tab's own slot (which the
-      // rows below fill as it passes them, as for any tab): everything below
-      // is lifted by that for the drag, so no empty band shows under the
-      // folder (and the separator doesn't sit apart from it)
-      const spare = home.getBoundingClientRect().bottom - label.getBoundingClientRect().bottom - (drag?.pitch || 0);
-      if (!drag || !(spare > 0.5) || spare > 60) {
-        return;
-      }
-      const bottom = home.getBoundingClientRect().bottom - 1;
-      const lift = new Map();
-      for (const r of drag.rows) {
-        if (notARow(r) || home.contains(r.node) || r.top < bottom) {
-          continue;
-        }
-        r.top -= spare;
-        r.mid -= spare;
-        lift.set(r.node, -spare);
-      }
-      const sep = currentSeparator();
-      if (sep && drag.sepTop != null && drag.sepTop >= bottom) {
-        drag.sepTop -= spare;
-        lift.set(sep, -spare);
-      }
-      const button = newTabButton();
-      if (button && button.getBoundingClientRect().top >= bottom) {
-        lift.set(button, -spare);
-      }
-      drag.lentLift = lift;
-      for (const node of lift.keys()) {
-        place(node, 0, false);
-      }
     };
     const unlend = () => {
       for (const home of document.querySelectorAll("zen-folder[zia-lent]")) {
         home.ziaLentUntil = Date.now() + 800;
         home.removeAttribute("zia-lent");
-        home.style.removeProperty("--zia-lent-inset");
       }
     };
 
@@ -12005,6 +11961,26 @@
       }
     };
 
+    // The essentials slide from where they were to where a change puts them
+    const slideTiles = (change) => {
+      const grid = window.gZenWorkspaces?.getCurrentEssentialsContainer?.();
+      const tiles = grid ? [...grid.querySelectorAll(":scope > .tabbrowser-tab")].filter((t) => !t.hasAttribute("zia-essential-proxy")) : [];
+      const was = new Map(tiles.map((t) => [t, t.getBoundingClientRect()]));
+      change();
+      for (const t of tiles) {
+        const from = was.get(t);
+        const to = t.getBoundingClientRect();
+        if (!from.width || !to.width) {
+          continue;
+        }
+        const dx = from.left - to.left;
+        const dy = from.top - to.top;
+        if (Math.abs(dx) >= 0.5 || Math.abs(dy) >= 0.5) {
+          t.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 180, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" });
+        }
+      }
+    };
+
     const onEssentialOver = (event) => {
       const state = essentialDrag;
       if (!state?.copy?.isConnected) {
@@ -12030,6 +12006,9 @@
             .join(", "),
           "important"
         );
+        // (the other essentials close up behind it once it's out over the
+        // list, sliding, and open again if it comes back: it left a gap)
+        slideTiles(() => state.tab.toggleAttribute("zia-essential-out", asTab));
         if (asTab) {
           const current = copy.getBoundingClientRect();
           moveCopyTo(copy, document.getElementById("tabbrowser-tabs") || root);
@@ -12122,6 +12101,7 @@
       const reveal = (now = false) => {
         state.tab.style.visibility = "";
         state.tab.removeAttribute("zia-essential-dragged");
+        state.tab.removeAttribute("zia-essential-out");
         // (dropped into the list, the tab's already showing in its place:
         // the copy goes with it, not a frame later)
         if (now === true) {

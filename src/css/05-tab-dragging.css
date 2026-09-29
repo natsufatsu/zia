@@ -155,6 +155,11 @@ zen-essentials-promo {
   opacity: 0 !important;
 }
 
+/* ...and out over the list, it gives up its cell: the others close up */
+.tabbrowser-tab[zen-essential][zia-essential-dragged][zia-essential-out] {
+  display: none !important;
+}
+
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter),
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter)::before,
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter)::after {

@@ -1376,6 +1376,11 @@ zen-essentials-promo {
   opacity: 0 !important;
 }
 
+/* ...and out over the list, it gives up its cell: the others close up */
+.tabbrowser-tab[zen-essential][zia-essential-dragged][zia-essential-out] {
+  display: none !important;
+}
+
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter),
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter)::before,
 :is(#zen-sidebar-splitter, #sidebar-splitter, .zen-sidebar-splitter)::after {
@@ -2302,15 +2307,6 @@ zen-folder[collapsed][zia-was-active] > .tab-group-container > .zen-tab-group-st
 zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab[selected]))::before,
 zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab[selected]))::after {
   opacity: 0 !important;
-}
-
-/* A closed folder whose one showing tab is being dragged out of it is drawn
-   at its closed height, not with the room it keeps below its name for that
-   tab's glow (zia.uc.js) */
-:root[zen-sidebar-expanded="true"] zen-folder[collapsed][zia-lent]::before,
-:root[zen-sidebar-expanded="true"] zen-folder[collapsed][zia-lent]::after {
-  bottom: var(--zia-lent-inset) !important;
-  transition: bottom 120ms ease-out !important;
 }
 #zia-tab-card,
 #zia-folder-card {
