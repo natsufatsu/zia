@@ -1853,22 +1853,38 @@
       const homes = lentHomes;
       lentHomes = [];
       for (const home of homes) {
-        if (!home.isConnected || home.ziaBoxBottom == null) {
+        const held = home.ziaHeldHeight;
+        const boxBottom = home.ziaBoxBottom;
+        home.ziaHeldHeight = home.ziaBoxBottom = null;
+        if (!home.isConnected || !(held > 0) || boxBottom == null) {
           continue;
         }
-        const top = home.getBoundingClientRect().top;
-        const inset = parseFloat(getComputedStyle(home, "::before").bottom) || 0;
-        const held = home.ziaBoxBottom + inset - top;
-        home.ziaBoxBottom = null;
-        if (!(held > 0)) {
-          continue;
-        }
+        // its whole height (what's below stays put) and its box's bottom
+        // where it was (the box doesn't grow): as the tab leaves, the
+        // folder's padding and box inset change, and held by either alone,
+        // the other moved (the box opening a little, or the folders below
+        // snapping a few pixels)
         home.style.setProperty("height", `${held}px`, "important");
+        const inset = home.getBoundingClientRect().top + held - boxBottom;
+        home.style.setProperty("--zia-hold-inset", `${inset}px`);
+        home.setAttribute("zia-holding", "true");
         setTimeout(() => {
           home.style.removeProperty("height");
+          home.removeAttribute("zia-holding");
+          home.style.removeProperty("--zia-hold-inset");
+          if (!home.isConnected) {
+            return;
+          }
           const own = home.getBoundingClientRect().height;
-          if (home.isConnected && Math.abs(own - held) >= 0.5) {
-            home.animate([{ height: `${held}px` }, { height: `${own}px` }], { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" });
+          const ownInset = parseFloat(getComputedStyle(home, "::before").bottom) || 0;
+          const timing = { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" };
+          if (Math.abs(own - held) >= 0.5) {
+            home.animate([{ height: `${held}px` }, { height: `${own}px` }], timing);
+          }
+          if (Math.abs(ownInset - inset) >= 0.5) {
+            for (const pseudoElement of ["::before", "::after"]) {
+              home.animate([{ bottom: `${inset}px` }, { bottom: `${ownInset}px` }], { ...timing, pseudoElement });
+            }
           }
         }, 60);
       }
@@ -1881,6 +1897,7 @@
         // where its box ended through the drag (its visible bottom), for
         // holdLent once the tab has left it
         home.ziaBoxBottom = home.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(home, "::before").bottom) || 0);
+        home.ziaHeldHeight = home.getBoundingClientRect().height;
         lentHomes.push(home);
       }
     };

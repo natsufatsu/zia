@@ -737,3 +737,10 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
 zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab[selected]))::after {
   opacity: 0 !important;
 }
+
+/* A folder whose tab was just dragged out, held while it eases shut: its
+   box keeps its bottom where it was (zia.uc.js) */
+:root[zen-sidebar-expanded="true"] zen-folder[zia-holding]::before,
+:root[zen-sidebar-expanded="true"] zen-folder[zia-holding]::after {
+  bottom: var(--zia-hold-inset) !important;
+}
