@@ -1853,11 +1853,17 @@
       const homes = lentHomes;
       lentHomes = [];
       for (const home of homes) {
-        const held = home.ziaHeldHeight;
+        let held = home.ziaHeldHeight;
         const boxBottom = home.ziaBoxBottom;
-        home.ziaHeldHeight = home.ziaBoxBottom = null;
+        const below = home.ziaBelow;
+        home.ziaHeldHeight = home.ziaBoxBottom = home.ziaBelow = null;
         if (!home.isConnected || !(held > 0) || boxBottom == null) {
           continue;
+        }
+        // held so what's below stays where it was seen
+        if (below?.node?.isConnected && !below.node.hasAttribute("zia-landing")) {
+          const height = home.getBoundingClientRect().height;
+          held = Math.max(0, height + below.top - below.node.getBoundingClientRect().top);
         }
         // its whole height (what's below stays put) and its box's bottom
         // where it was (the box doesn't grow): as the tab leaves, the
@@ -1890,6 +1896,22 @@
       }
     };
 
+    // What shows next below a folder (for holdLent: where it was seen)
+    const shownAfter = (home) => {
+      const strip = document.getElementById("tabbrowser-tabs");
+      for (let at = home; at && at !== strip && strip?.contains(at); at = at.parentElement) {
+        for (let next = at.nextElementSibling; next; next = next.nextElementSibling) {
+          if (next.hasAttribute("zia-landing") || next.hasAttribute("zia-dragging")) {
+            continue;
+          }
+          if (next.getBoundingClientRect().height > 0) {
+            return next;
+          }
+        }
+      }
+      return null;
+    };
+
     const unlend = () => {
       for (const home of document.querySelectorAll("zen-folder[zia-lent]")) {
         home.ziaLentUntil = Date.now() + 800;
@@ -1898,6 +1920,11 @@
         // holdLent once the tab has left it
         home.ziaBoxBottom = home.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(home, "::before").bottom) || 0);
         home.ziaHeldHeight = home.getBoundingClientRect().height;
+        // and where what's below it was seen: the tab's room is still in
+        // the folder here, but the rows around it were shifted to show it
+        // gone, so held by its height, what's below dropped a row first
+        const below = shownAfter(home);
+        home.ziaBelow = below ? { node: below, top: below.getBoundingClientRect().top } : null;
         lentHomes.push(home);
       }
     };
