@@ -1844,24 +1844,44 @@
       }
       home.setAttribute("zia-lent", "true");
     };
+    // As the tab leaves it, the folder's box is held where it ended through
+    // the drag, then eased to its own height: its room went in one step (a
+    // snap), and held by its whole height it showed more first (part of that
+    // is hidden under its box's inset), opening a little before closing
+    let lentHomes = [];
+    const holdLent = () => {
+      const homes = lentHomes;
+      lentHomes = [];
+      for (const home of homes) {
+        if (!home.isConnected || home.ziaBoxBottom == null) {
+          continue;
+        }
+        const top = home.getBoundingClientRect().top;
+        const inset = parseFloat(getComputedStyle(home, "::before").bottom) || 0;
+        const held = home.ziaBoxBottom + inset - top;
+        home.ziaBoxBottom = null;
+        if (!(held > 0)) {
+          continue;
+        }
+        home.style.setProperty("height", `${held}px`, "important");
+        setTimeout(() => {
+          home.style.removeProperty("height");
+          const own = home.getBoundingClientRect().height;
+          if (home.isConnected && Math.abs(own - held) >= 0.5) {
+            home.animate([{ height: `${held}px` }, { height: `${own}px` }], { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" });
+          }
+        }, 60);
+      }
+    };
+
     const unlend = () => {
       for (const home of document.querySelectorAll("zen-folder[zia-lent]")) {
         home.ziaLentUntil = Date.now() + 800;
         home.removeAttribute("zia-lent");
-        // Held at the height it had through the drag as the tab leaves it,
-        // then eased down to its own once Zen has laid it out again: its
-        // room went in one step, a snap
-        const held = home.getBoundingClientRect().height;
-        if (held > 0) {
-          home.style.setProperty("height", `${held}px`, "important");
-          setTimeout(() => {
-            home.style.removeProperty("height");
-            const own = home.getBoundingClientRect().height;
-            if (home.isConnected && Math.abs(own - held) >= 0.5) {
-              home.animate([{ height: `${held}px` }, { height: `${own}px` }], { duration: 200, easing: "cubic-bezier(0.25, 1, 0.5, 1)" });
-            }
-          }, 60);
-        }
+        // where its box ended through the drag (its visible bottom), for
+        // holdLent once the tab has left it
+        home.ziaBoxBottom = home.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(home, "::before").bottom) || 0);
+        lentHomes.push(home);
       }
     };
 
@@ -3526,6 +3546,7 @@
         finishNow = null;
         run();
       }
+      holdLent();
     };
     window.addEventListener("drop", settle, true);
     window.addEventListener("dragstart", () => {
