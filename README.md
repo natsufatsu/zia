@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.10**.
+Current version: **2.80.11**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -46,6 +46,13 @@ while Cmd/Ctrl is held and disappear on release; the optional always-show
 setting still works. Number selection, highlighting and badge placement on
 essentials and collapsed sidebar tabs are retained.
 
+Version 2.80.11 restores ordinary and split-tab hover cards, reload hover
+animation and the LIVE display for YouTube streams. Split dragging tracks the
+mouse press instead of recent selection timing: dragging an already-selected
+tab consistently adds a pane, while pressing a background tab to drag it
+keeps the previous page as its split partner. Workspace icons and names use
+the same centered line height, including on Windows.
+
 ## Install or update
 
 1. Enable unofficial JavaScript mods in Sine.
@@ -71,10 +78,12 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 - No glow box or animated media badge on playing essential tabs.
 - Actual audio playback, player artwork, live opacity and expanded layout.
 - Two split-pane toolbars and stable player workspace color across pane focus.
+- Ordinary/split tab hover cards, reload hover/reset and live-media styles.
+- Workspace SVG/text-icon alignment and current/background split-drag targeting.
 - Quick Save Image downloads a real image; no mod errors in these checks.
 
 Run `node tests/split-drag-updates.cjs` for drag scheduling, release coordinates,
-preview restoration and cancellation checks. `node tests/startup-work.cjs`
+preview restoration, cancellation and mouse-press targeting checks. `node tests/startup-work.cjs`
 checks startup scheduling, event bursts and selected-row decoration. The source build check is
 `scripts/build.sh --check` (run through Bash).
 Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated

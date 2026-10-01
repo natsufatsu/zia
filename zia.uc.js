@@ -1230,6 +1230,20 @@
   const RELOAD_HOVER_CUT = 20;
   const RELOAD_HOVER_MS = 380;
 
+  // Shared by the reload hover animation; keep it with its remaining caller.
+  const cubicBezier = (x1, y1, x2, y2) => (t) => {
+    let u = t;
+    for (let i = 0; i < 8; i++) {
+      const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+      const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+      if (Math.abs(x) < 1e-5 || !dx) {
+        break;
+      }
+      u = Math.min(1, Math.max(0, u - x / dx));
+    }
+    return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+  };
+
   function springReloadHover() {
     const button = document.getElementById("reload-button");
     if (!button) {
@@ -3052,8 +3066,7 @@
     zones: {},
     tab: null,
     target: null,
-    lastSelect: null,
-    dragStartedAt: 0,
+    press: null,
     side: null,
     bounds: null,
     renderedSide: null,
@@ -3073,18 +3086,13 @@
     }
   }
 
-  const PRESS_SELECT_MS = 1500;
-
   function splitTargetFor(tab) {
-    const last = splitDrop.lastSelect;
-    const selectedByThisDrag =
-      last &&
-      last.tab === tab &&
-      gBrowser.selectedTab === tab &&
-      splitDrop.dragStartedAt - last.time < PRESS_SELECT_MS &&
-      splitDrop.dragStartedAt >= last.time;
-    const previous = last?.previous;
-    if (selectedByThisDrag && previous && !previous.closing && previous.isConnected && !previous.hidden) {
+    // Native mousedown can select a background tab before its drag starts.
+    // Only use the previous tab when that selection belongs to this press.
+    const press = splitDrop.press;
+    const previous = press?.selected;
+    if (press?.tab === tab && previous !== tab && gBrowser.selectedTab === tab &&
+        previous && !previous.closing && previous.isConnected && !previous.hidden) {
       return previous;
     }
     return gBrowser.selectedTab;
@@ -3374,18 +3382,28 @@
       },
       true
     );
-    window.addEventListener("dragend", hideSplitDrop, true);
-
-    gBrowser.tabContainer.addEventListener("TabSelect", (event) => {
-      splitDrop.lastSelect = { tab: event.target, previous: event.detail?.previousTab || null, time: Date.now() };
-    });
-    window.addEventListener("dragstart", () => (splitDrop.dragStartedAt = Date.now()), true);
+    window.addEventListener("mousedown", (event) => {
+      const tab = event.button === 0 ? event.target?.closest?.(".tabbrowser-tab") : null;
+      splitDrop.press = tab ? { tab, selected: gBrowser.selectedTab } : null;
+    }, true);
+    const clearPress = () => { splitDrop.press = null; };
+    window.addEventListener("mouseup", clearPress, true);
+    window.addEventListener("dragend", (event) => {
+      hideSplitDrop(event);
+      clearPress();
+    }, true);
+    window.addEventListener("blur", (event) => {
+      // A native tab switch also blurs the chrome window when it focuses
+      // the page. That still belongs to this press in the active window.
+      if (event.target === window && Services.focus.activeWindow !== window) clearPress();
+    }, true);
     window.addEventListener(
       "drop",
       (event) => {
         if (!event.target?.closest?.("#zia-split-drop")) {
           hideSplitDrop(event);
         }
+        clearPress();
       },
       true
     );
@@ -6150,10 +6168,13 @@
       icon: "card-pin",
       label: "Add to Essentials",
 
-      // a split goes in whole, as a split essential: Zen can't make one of
-      // its tabs an essential (it left the other stranded, without a title)
-      run: (tab) => (inSplit(tab) ? addSplitToEssentials(tab) : gZenPinnedTabManager?.addToEssentials(tab)),
-      hidden: (tab) => tab.hasAttribute("zen-essential") || tab.pinned || (inSplit(tab) && !canBecomeSplitEssential(tab)),
+      // Zen cannot promote a single pane without stranding the other tab.
+      run: (tab) => {
+        if (!inSplit(tab)) {
+          gZenPinnedTabManager?.addToEssentials(tab);
+        }
+      },
+      hidden: (tab) => tab.hasAttribute("zen-essential") || tab.pinned || inSplit(tab),
     },
     {
       name: "unpin",
@@ -6321,7 +6342,6 @@
     });
     update();
   }
-
   function lastUsedOtherTab(tab) {
     let best = null;
     for (const other of gBrowser.visibleTabs) {
@@ -6402,8 +6422,7 @@
   }
 
   function fillTabCard(card, tab) {
-    // a split essential's card is about the half you're in
-    const shown = splitCardSource(tab) || tab;
+    const shown = tab;
     const isNew = tabCardKind(shown) === "new";
     card.querySelector(".zia-tab-card-title").textContent = shown.label || "New Tab";
     const sub = card.querySelector(".zia-tab-card-sub");

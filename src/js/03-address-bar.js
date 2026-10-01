@@ -451,6 +451,20 @@
   const RELOAD_HOVER_CUT = 20;
   const RELOAD_HOVER_MS = 380;
 
+  // Shared by the reload hover animation; keep it with its remaining caller.
+  const cubicBezier = (x1, y1, x2, y2) => (t) => {
+    let u = t;
+    for (let i = 0; i < 8; i++) {
+      const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+      const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+      if (Math.abs(x) < 1e-5 || !dx) {
+        break;
+      }
+      u = Math.min(1, Math.max(0, u - x / dx));
+    }
+    return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+  };
+
   function springReloadHover() {
     const button = document.getElementById("reload-button");
     if (!button) {

@@ -13,10 +13,13 @@
       icon: "card-pin",
       label: "Add to Essentials",
 
-      // a split goes in whole, as a split essential: Zen can't make one of
-      // its tabs an essential (it left the other stranded, without a title)
-      run: (tab) => (inSplit(tab) ? addSplitToEssentials(tab) : gZenPinnedTabManager?.addToEssentials(tab)),
-      hidden: (tab) => tab.hasAttribute("zen-essential") || tab.pinned || (inSplit(tab) && !canBecomeSplitEssential(tab)),
+      // Zen cannot promote a single pane without stranding the other tab.
+      run: (tab) => {
+        if (!inSplit(tab)) {
+          gZenPinnedTabManager?.addToEssentials(tab);
+        }
+      },
+      hidden: (tab) => tab.hasAttribute("zen-essential") || tab.pinned || inSplit(tab),
     },
     {
       name: "unpin",
@@ -184,4 +187,3 @@
     });
     update();
   }
-

@@ -133,6 +133,7 @@
   border-radius: 10px;
   corner-shape: round;
   font-weight: 600;
+  line-height: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -141,8 +142,14 @@
 
 #zia-space-label[zia-has-icon]::before {
   content: attr(zia-icon);
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
   font-size: 16px;
-  line-height: 1;
+  line-height: 16px;
   margin-inline-end: var(--zia-space-icon-gap);
 }
 
@@ -164,11 +171,15 @@
   color: inherit;
 }
 
-/* Windows' font sits its text lower in the line than macOS's, which left
-   the space's icon riding high beside the name; it's brought level. */
+/* The name and either icon use the same centered line box. */
+#zia-space-label > .zia-space-name {
+  line-height: 16px;
+}
+
+/* Windows text glyphs sit just below the center of their line box. */
 @media (-moz-platform: windows) {
-  #zia-space-label:is([zia-has-icon])::before,
-  #zia-space-label > .zia-space-svg {
-    translate: 0 2px;
+  #zia-space-label[zia-has-icon]::before,
+  #zia-space-label > .zia-space-svg svg {
+    translate: 0 1px;
   }
 }

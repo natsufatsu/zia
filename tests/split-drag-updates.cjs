@@ -11,6 +11,7 @@ const timers = [];
 const elements = new Map();
 let nextFrame = 0, writes = 0, toggles = 0, reads = 0;
 const images = [], splits = [];
+const listeners = new Map();
 function element() {
   const attrs = new Map(), styles = new Map();
   return {
@@ -45,21 +46,30 @@ const context = vm.createContext({
     createXULElement: element,
     getElementById: id => elements.get(id),
   },
-  window: { innerWidth: 1300, gZenViewSplitter: { splitTabs: (...args) => splits.push(args) } },
+  window: {
+    innerWidth: 1300,
+    gZenViewSplitter: { splitTabs: (...args) => splits.push(args) },
+    addEventListener(type, callback) {
+      const list = listeners.get(type) || [];
+      list.push(callback);
+      listeners.set(type, list);
+    },
+  },
   gBrowser: {
     selectedTab: target,
     tabbox: { getBoundingClientRect() { reads++; return box; } },
     tabContainer: { tabDragAndDrop: { originalDragImageArgs: original, clearDragOverVisuals() {} } },
   },
-  Services: { zen: { playHapticFeedback() {} } },
+  Services: { zen: { playHapticFeedback() {} }, focus: { activeWindow: null } },
   requestAnimationFrame(fn) { const id = ++nextFrame; frames.set(id, fn); return id; },
   cancelAnimationFrame: id => frames.delete(id),
   setTimeout: fn => timers.push(fn),
   console,
 });
 vm.runInContext(source.slice(0, source.indexOf("  function start() {")) +
-  "\n globalThis.api = { splitDrop, showSplitDrop, followDrag, hideSplitDrop, onSplitDrop };\n})();", context);
+  "\n globalThis.api = { splitDrop, showSplitDrop, followDrag, hideSplitDrop, onSplitDrop, splitTargetFor, watchSplitDrop };\n})();", context);
 const api = context.api;
+context.Services.focus.activeWindow = context.window;
 function paint() {
   const callbacks = [...frames.values()];
   frames.clear();
@@ -115,4 +125,31 @@ const afterCancel = writes;
 paint();
 assert.equal(writes, afterCancel, "Canceled frames cannot move a hidden panel");
 assert.equal(api.splitDrop.frame, null);
-console.log("Passed: burst coalescing, unchanged positions, native preview lifecycle, release targeting, center cancellation and cleanup.");
+
+// Tab selection belongs to a mouse press, regardless of how long it lasts.
+api.watchSplitDrop();
+function dispatch(type, event = {}) {
+  for (const listener of listeners.get(type) || []) listener(event);
+}
+const pressOn = tab => dispatch("mousedown", { button: 0, target: { closest: () => tab } });
+context.gBrowser.selectedTab = target;
+pressOn(tab);
+context.gBrowser.selectedTab = tab; // Native mousedown selected a background tab.
+dispatch("blur", { target: context.window });
+assert.equal(api.splitTargetFor(tab), target, "A background-tab drag retains the pre-press target");
+dispatch("mouseup");
+assert.equal(api.splitTargetFor(tab), tab, "A completed click cannot affect a later drag");
+pressOn(tab);
+assert.equal(api.splitTargetFor(tab), tab, "An already-selected tab creates a new pane even just after selection");
+dispatch("dragend");
+assert.equal(api.splitDrop.press, null, "Canceled drags clear their selection snapshot");
+context.gBrowser.selectedTab = target;
+pressOn(tab);
+context.gBrowser.selectedTab = tab;
+target.closing = true;
+assert.equal(api.splitTargetFor(tab), tab, "Closed previous tabs cannot become split targets");
+target.closing = false;
+context.Services.focus.activeWindow = null;
+dispatch("blur", { target: context.window });
+assert.equal(api.splitDrop.press, null, "Leaving the window clears a pending press");
+console.log("Passed: burst coalescing, native preview lifecycle, release targeting, center cancellation, cleanup and press-based split selection.");

@@ -2,14 +2,15 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.9, commit `d21f54884a130cd2aabfa51f25c4988d5d67cba2`.
+- Previous variant: 2.80.10, commit `f88196f2f246ad3913f4e007f425e5e54c68d591`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.10.
+- Current variant: 2.80.11.
 
 ## Player
 
-The player's CSS matches the standalone mod, with resource paths adapted to
-`zia/icons/workspace-player/` and the original feature toggle retained.
+The player's CSS uses the standalone layout, with resource paths adapted to
+`zia/icons/workspace-player/` and the original feature toggle retained. Its
+live-media selectors also recognize the original YouTube `zia-live` marker.
 Workspace/opacity helpers use the standalone implementation. Original media
 metadata, artwork, playback, sound bars and PiP integration remain.
 
@@ -38,8 +39,11 @@ Quick Save Image can remain enabled.
 
 ## Standalone split-drop behavior
 
-The exact Zia Split Tabs 1.0.7 script is embedded in its own scope inside
+The Zia Split Tabs 1.0.7 script is embedded in its own scope inside
 `src/js/09-split-drop-cards.js` and started through Zia's normal safe startup.
+Its selection-timing heuristic is replaced by a snapshot of the selected tab
+at the beginning of the mouse press. Completed clicks cannot affect the next
+drag, and a background-tab press keeps its partner regardless of hold duration.
 Its drop-target CSS is prepended to `src/css/10-split-drop-cards.css`; existing
 pane and sidebar split styling is retained. No standalone actors are needed:
 this implementation uses Zen's native preview structure, without screenshots
@@ -119,6 +123,24 @@ press/release, selection on modifier release, other-shortcut cancellation and
 the always-show preference. The release-visibility case fails on 2.80.9 and
 passes on 2.80.10. The static preservation check also requires the exact original
 CSS block so future split-essential cleanup cannot remove it again.
+
+### Audit fixes (2.80.11)
+
+Tab hover cards use their own tab directly after removal of split-essential
+helpers. Split panes hide the unsupported Add to Essentials action; ordinary
+tabs retain it. Reload hover keeps its easing helper in the address-bar module.
+YouTube live cards hide their seeking controls and show LIVE, while recorded
+media retains seeking. Workspace text, SVGs and text icons use centered 16px
+line boxes. Windows glyphs receive a 1px optical correction, replacing the
+previous 2px offset; the SVG wrapper remains centered beside the text.
+
+`python tools/check_urlbar_live.py --full-zia --inspect --regression-check`
+checks ordinary/split hover rendering and actions, reload hover/reset, live
+and recorded media styles, sharing visibility, and workspace alignment at
+two text sizes. Live styles are tested with the actor's marker on a test card,
+without relying on an external stream. Full split checks include immediate
+current-tab dragging and a background-tab press held longer than 1.5 seconds.
+The inherited tab-number highlight/reorder edge case is unchanged.
 
 ### Feature preservation
 
