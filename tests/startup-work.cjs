@@ -84,15 +84,30 @@ function clock() {
   const first = row(), second = row(), hidden = row(false);
   const rows = [hidden, first, second, ...Array.from({length: 997}, () => row())];
   const browser = {selectedTab: first, tabContainer: {addEventListener(type, fn) { events.set(type, fn); }}};
-  let observe, disconnected = false, removedPref = false;
+  let observe, visibilityChanged, disconnected = false, visibilityDisconnected = false;
+  const rootAttrs = new Map(), prefCallbacks = new Map(), removedPrefs = new Set();
+  let hideTabbar = true;
+  const root = {getAttribute: name => rootAttrs.get(name) ?? null};
   const context = vm.createContext({
-    ...time.globals, gBrowser: browser,
+    ...time.globals, gBrowser: browser, root,
     window: {...time.globals.window, gZenWorkspaces: {pinnedTabsContainer: {querySelectorAll: () => rows}}},
     MutationObserver: class {
-      constructor(fn) { observe = fn; }
-      observe() {} disconnect() { disconnected = true; }
+      constructor(fn) { this.fn = fn; }
+      observe(target) {
+        this.target = target;
+        if (target === root) visibilityChanged = this.fn;
+        else observe = this.fn;
+      }
+      disconnect() {
+        if (this.target === root) visibilityDisconnected = true;
+        else disconnected = true;
+      }
     },
-    Services: {prefs: {addObserver() {}, removeObserver() { removedPref = true; }}},
+    Services: {prefs: {
+      getBoolPref: () => hideTabbar,
+      addObserver(name, fn) { prefCallbacks.set(name, fn); },
+      removeObserver(name) { removedPrefs.add(name); },
+    }},
     setInterval() { assert.fail('sidebar scans must not poll while idle'); },
   });
   vm.runInContext(source.slice(source.indexOf('  function watchEdgeGlow'), source.indexOf('  function start()')), context);
@@ -135,10 +150,48 @@ function clock() {
   events.get('TabSelect')();
   time.fire(time.frames);
   assert.ok(!split.hasAttribute('zia-no-glow'));
+
+  // Thousands of hidden rows must not be queried or measured. A selection
+  // made while hidden gets its correct decoration on reveal, without a
+  // tab event; toolbar-only compact mode continues decorating its sidebar.
+  browser.selectedTab = first;
+  rootAttrs.set('zen-compact-mode', 'true');
+  const hiddenReads = reads, hiddenWrites = writes;
+  context.window.gZenWorkspaces.pinnedTabsContainer.querySelectorAll = () => {
+    assert.fail('hidden compact sidebar must not scan its rows');
+  };
+  visibilityChanged();
+  time.fire(time.frames);
+  events.get('TabSelect')();
+  time.fire(time.frames);
+  time.fire(time.timers);
+  time.fire(time.frames);
+  assert.equal(reads, hiddenReads);
+  assert.equal(writes, hiddenWrites);
+
+  context.window.gZenWorkspaces.pinnedTabsContainer.querySelectorAll = () => rows;
+  rootAttrs.set('zia-panel-open', 'true');
+  visibilityChanged();
+  time.fire(time.frames);
+  assert.ok(first.hasAttribute('zia-no-glow'), 'revealing must refresh the selected row');
+  rootAttrs.delete('zia-panel-open');
+  hideTabbar = false;
+  browser.selectedTab = second;
+  prefCallbacks.get('zen.view.compact.hide-tabbar')();
+  time.fire(time.frames);
+  assert.ok(!first.hasAttribute('zia-no-glow'), 'toolbar-only compact mode must update');
+  assert.ok(split.hasAttribute('zia-no-glow'));
+  hideTabbar = true;
+  rootAttrs.delete('zen-compact-mode');
+  browser.selectedTab = first;
+  visibilityChanged();
+  time.fire(time.frames);
+  assert.ok(first.hasAttribute('zia-no-glow'), 'leaving compact mode must update');
   time.emit('unload');
   assert.equal(time.frames.size, 0);
   assert.equal(time.timers.size, 0);
-  assert.ok(disconnected && removedPref);
+  assert.ok(disconnected && visibilityDisconnected);
+  assert.ok(removedPrefs.has('zen.workspaces.active') && removedPrefs.has('zen.view.compact.hide-tabbar'));
 }
 
 console.log('Passed: startup yields to peers, idle work is bounded/cancelable, tab bursts coalesce, first-row/split decoration is retained, idle polling and redundant writes are absent.');

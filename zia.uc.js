@@ -8649,6 +8649,13 @@
     };
     const update = () => {
       pending = 0;
+      // A hidden compact sidebar has no visible first row to decorate.
+      // Keep the last mark and refresh it when the sidebar is revealed.
+      if (root.getAttribute("zen-compact-mode") === "true" &&
+          Services.prefs.getBoolPref("zen.view.compact.hide-tabbar", false) &&
+          root.getAttribute("zia-panel-open") !== "true") {
+        return;
+      }
       if (!gBrowser?.selectedTab) {
         return;
       }
@@ -8738,12 +8745,19 @@
       childList: true, subtree: true, attributes: true,
       attributeFilter: ["hidden", "collapsed", "split-view-group"],
     });
+    const visibility = new MutationObserver(schedule);
+    visibility.observe(root, {
+      attributes: true, attributeFilter: ["zia-panel-open", "zen-compact-mode"],
+    });
     Services.prefs.addObserver("zen.workspaces.active", soon);
+    Services.prefs.addObserver("zen.view.compact.hide-tabbar", schedule);
     window.addEventListener("unload", () => {
       cancelAnimationFrame(pending);
       clearTimeout(settled);
       changes.disconnect();
+      visibility.disconnect();
       Services.prefs.removeObserver("zen.workspaces.active", soon);
+      Services.prefs.removeObserver("zen.view.compact.hide-tabbar", schedule);
     }, { once: true });
     soon();
   }
