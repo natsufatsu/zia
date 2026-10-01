@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.10, commit `f88196f2f246ad3913f4e007f425e5e54c68d591`.
+- Previous variant: 2.80.11, commit `75bff50a9f771cd7cd6e510980efd0095185a260`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.11.
+- Current variant: 2.80.12.
 
 ## Player
 
@@ -13,6 +13,8 @@ The player's CSS uses the standalone layout, with resource paths adapted to
 live-media selectors also recognize the original YouTube `zia-live` marker.
 Workspace/opacity helpers use the standalone implementation. Original media
 metadata, artwork, playback, sound bars and PiP integration remain.
+Paused cards use the shrinking-dot image from the standalone player instead
+of the original stationary bars. Sidebar sound-bar rendering is unchanged.
 
 ## Native groups and dragging
 
@@ -141,6 +143,20 @@ two text sizes. Live styles are tested with the actor's marker on a test card,
 without relying on an external stream. Full split checks include immediate
 current-tab dragging and a background-tab press held longer than 1.5 seconds.
 The inherited tab-number highlight/reorder edge case is unchanged.
+
+### Paused waveform (2.80.12)
+
+The player uses the existing animated dots for its paused state. Its native
+playback-state observer refreshes the image on pause/resume, so each pause
+starts the collapse again. Muted media retains dots, while ordinary playback
+uses the moving waveform. Artwork colors and reduced-motion behavior remain.
+The fallback paused icon also collapses while artwork colors are loading.
+
+`python tools/check_urlbar_live.py --full-zia` sends actual Zen player commands
+to locally playing audio, checks two pause/resume cycles and mute transitions,
+and renders the selected paused SVG to verify four centered 2px dots after the
+collapse animation. The preservation check allows only this one player-state
+assignment to differ from the previously retained upstream logic.
 
 ### Feature preservation
 

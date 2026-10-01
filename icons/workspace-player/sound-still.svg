@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="context-fill">
+  <style>
+    rect { animation: shrink 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    @keyframes shrink { to { height: 2px; y: 7px; } }
+    @media (prefers-reduced-motion: reduce) {
+      rect { animation-duration: 1ms; }
+    }
+  </style>
   <rect x="1.6" y="4.5" width="2" height="7" rx="1"/>
   <rect x="5.2" y="2.5" width="2" height="11" rx="1"/>
   <rect x="8.8" y="3.5" width="2" height="9" rx="1"/>

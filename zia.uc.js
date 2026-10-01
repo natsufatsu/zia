@@ -2352,7 +2352,7 @@
   function applyCardSoundBars(element) {
     const fresh = freshSoundBars(element.__ziaColors ?? null);
     element.style.setProperty("--zia-sound-wave", fresh.wave);
-    element.style.setProperty("--zia-sound-still", fresh.still);
+    element.style.setProperty("--zia-sound-still", fresh.dots);
     element.style.setProperty("--zia-sound-muted", fresh.dots);
   }
 
