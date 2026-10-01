@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.8**.
+Current version: **2.80.9**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -35,6 +35,11 @@ to the other Sine scripts before initializing and sets up optional panels,
 icon menus and hover cards in short idle slices. Tab decoration updates share
 one animation frame and one final check after transitions settle; they stop
 at the first visible row and no longer scan every tab every second.
+
+Version 2.80.9 keeps the workspace indicator inside the sidebar in compact
+mode. It stays hidden while the sidebar is closed and reappears when you reveal
+the sidebar, including after a toolbar layout update. Startup optimizations
+from 2.80.8 are retained.
 
 ## Install or update
 

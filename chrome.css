@@ -3484,6 +3484,14 @@ tooltip[default="true"] {
   margin-block-start: calc(var(--zia-top-row-space) - 8px) !important;
 }
 
+/* The workspace label belongs to the flyout sidebar. Hide it explicitly
+   while that sidebar is closed, including during toolbar layout updates. */
+@media -moz-pref("zen.view.compact.hide-tabbar") {
+  :root[zen-compact-mode="true"]:not([zia-panel-open="true"]) #zia-workspace-slot {
+    display: none !important;
+  }
+}
+
 :root[zen-compact-mode="true"]:not([zen-single-toolbar="true"]) #navigator-toolbox:not([animate="true"]) {
   margin-top: 0 !important;
   top: calc(var(--zen-compact-float, 6px) / 2) !important;

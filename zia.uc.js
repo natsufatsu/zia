@@ -5811,6 +5811,9 @@
     if (!navBar) {
       return;
     }
+    const toolbox = document.getElementById("navigator-toolbox");
+    const titlebar = document.getElementById("titlebar");
+    const topButtons = document.getElementById("zen-sidebar-top-buttons");
 
     function inCompactMode() {
       return root.getAttribute("zen-compact-mode") === "true";
@@ -5824,13 +5827,15 @@
       if (!inCompactMode()) {
         return;
       }
-      const titlebar = document.getElementById("titlebar");
-      const topButtons = document.getElementById("zen-sidebar-top-buttons");
-      if (!titlebar || !topButtons) {
+      if (!titlebar || !topButtons || !toolbox) {
         return;
       }
-      if (topButtons.parentElement !== titlebar) {
-        titlebar.prepend(topButtons);
+      // Zen can move the titlebar into the address-bar row during a later
+      // layout update. The workspace label and sidebar buttons stay with
+      // the flyout sidebar instead of following that titlebar.
+      const home = toolbox.contains(titlebar) ? titlebar : toolbox;
+      if (topButtons.parentElement !== home) {
+        home.prepend(topButtons);
       }
       // Windows' minimise, maximise and close stay top right, where Zen puts
       // them; only macOS's traffic lights join the sidebar's top row.
@@ -5843,10 +5848,21 @@
       }
     }
 
-    const watcher = new MutationObserver(() => moveTopRow());
-    watcher.observe(navBar, { childList: true });
+    const watcher = new MutationObserver((records) => {
+      if (records.some((record) =>
+        record.target === navBar || record.target === toolbox || record.target === titlebar ||
+        [...record.addedNodes, ...record.removedNodes].some((node) =>
+          node === titlebar || node === topButtons || node.contains?.(titlebar) || node.contains?.(topButtons)
+        )
+      )) {
+        moveTopRow();
+      }
+    });
+    watcher.observe(navBar, { childList: true, subtree: true });
+    if (toolbox) watcher.observe(toolbox, { childList: true });
+    if (titlebar) watcher.observe(titlebar, { childList: true });
+    window.addEventListener("unload", () => watcher.disconnect(), { once: true });
 
-    const toolbox = document.getElementById("navigator-toolbox");
     const SIDEBAR_SHOWN_ATTRS = ["zen-has-hover", "zen-user-show", "zen-has-empty-tab", "flash-popup", "has-popup-menu", "movingtab", "zen-compact-mode-active"];
 
     function syncPanelOpen() {
@@ -5931,7 +5947,6 @@
     moveTopRow();
     syncPanelOpen();
   }
-
   // Native Zen group and drag behavior is used in this variant.
   // Native Zen group and drag behavior is used in this variant.
   // Native Zen group and drag behavior is used in this variant.

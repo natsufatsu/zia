@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.7, commit `4837e8e8cae68efcb2db2bd70eb03cc8a3981c42`.
+- Previous variant: 2.80.8, commit `ae99883dfa15827ea127fc1f3b4c66a89b579f83`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.8.
+- Current variant: 2.80.9.
 
 ## Player
 
@@ -56,7 +56,7 @@ using this package.
 
 ## Validation
 
-### Startup work
+### Startup work (2.80.8)
 
 The main startup routine yields one event-loop turn so Sine can load its other
 scripts first. Core URL bar, site color, player, split handlers and actors still
@@ -85,6 +85,23 @@ layout reads in 2.80.7 and 12 in 2.80.8. Warm sequential script execution,
 with Sine's `ignoreCache: true`, measured 43.5ms before and 12.3ms after;
 cold execution measured 92.4ms and 52.2ms. These are individual local runs
 with profiling instrumentation, not a promised browser launch speedup.
+
+### Compact sidebar indicator (2.80.9)
+
+The compact-mode top row is placed under the titlebar only when the titlebar
+is inside the sidebar. If a toolbar layout update moves that titlebar into
+the address-bar row, the sidebar's top buttons remain inside the sidebar.
+Filtered mutation notifications detect these layout changes without polling.
+A scoped compact-mode rule also hides the workspace slot while the flyout
+sidebar is closed. Revealing the sidebar restores the indicator; normal and
+toolbar-only compact modes retain their workspace indicator.
+
+`python tools/check_urlbar_live.py --full-zia --compact-startup --workspace-check`
+checks initial compact startup, sidebar reveal/hide, normal mode, mode toggles,
+toolbar-only mode and a simulated later titlebar reparenting in an isolated
+Zen 1.22.3b profile. The reparenting case fails on 2.80.8 and passes on 2.80.9.
+It represents a layout change, rather than a reproduction of every installed
+side mod. The 2.80.8 startup module remains byte-for-byte unchanged.
 
 ### Feature preservation
 
