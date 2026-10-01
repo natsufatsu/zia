@@ -6,92 +6,6 @@
     }
   }
 
-  let zenHaptic = null;
-
-  // Zen buzzes on its own drag events, which would double up with Zia's taps,
-  // so its haptics are switched off for the length of a drag. That's a saved
-  // pref, so Zia marks when it's done so (MUTE_MARK) and undoes its own change
-  // rather than writing one: a drag that never finishes cleanly (Zen quit
-  // mid-drag, a cancelled drop) is put right shortly after the pointer is
-  // released, or on the next launch at the latest.
-  const HAPTIC_PREF = "zen.haptic-feedback.enabled";
-  const MUTE_MARK = "zia.haptics.muted";
-  const REPAIRED_MARK = "zia.haptics.repaired";
-  let hapticsWereOn = null;
-  let hapticsHadUserValue = false;
-  function restoreHaptics(hadUserValue) {
-    if (hadUserValue) {
-      Services.prefs.setBoolPref(HAPTIC_PREF, true);
-    } else {
-      Services.prefs.clearUserPref(HAPTIC_PREF);
-      if (!Services.prefs.getBoolPref(HAPTIC_PREF, true)) {
-        Services.prefs.setBoolPref(HAPTIC_PREF, true);
-      }
-    }
-    Services.prefs.clearUserPref(MUTE_MARK);
-  }
-  function muteZenHaptics(muted) {
-    try {
-      if (muted && hapticsWereOn === null) {
-        hapticsWereOn = Services.prefs.getBoolPref(HAPTIC_PREF, true);
-        hapticsHadUserValue = Services.prefs.prefHasUserValue(HAPTIC_PREF);
-        if (hapticsWereOn) {
-          Services.prefs.setBoolPref(MUTE_MARK, true);
-          Services.prefs.setBoolPref(HAPTIC_PREF, false);
-        }
-      } else if (!muted && hapticsWereOn !== null) {
-        const was = hapticsWereOn;
-        hapticsWereOn = null;
-        if (was) {
-          restoreHaptics(hapticsHadUserValue);
-        }
-      }
-    } catch (err) {
-      noteError("start: muteZenHaptics", err);
-    }
-  }
-
-  function watchHapticsMute() {
-    // Left muted by a drag that didn't finish (or a quit mid-drag)
-    try {
-      if (Services.prefs.getBoolPref(MUTE_MARK, false) && hapticsWereOn === null) {
-        restoreHaptics(false);
-      }
-      // Before 2.40.1 the mute wasn't marked, so a drag that didn't finish left
-      // haptics off with no trace. Put them back once. Anyone who turns them
-      // off again afterwards is left alone.
-      if (!Services.prefs.getBoolPref(REPAIRED_MARK, false)) {
-        Services.prefs.setBoolPref(REPAIRED_MARK, true);
-        if (hapticsWereOn === null && !Services.prefs.getBoolPref(HAPTIC_PREF, true)) {
-          restoreHaptics(false);
-        }
-      }
-    } catch (err) {
-      noteError("start: watchHapticsMute", err);
-    }
-    let timer = 0;
-    const settle = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        const dragging =
-          root.hasAttribute("zia-dragging-tab") || !!document.querySelector(".tabbrowser-tab[zia-essential-dragged]");
-        if (hapticsWereOn !== null && !dragging) {
-          muteZenHaptics(false);
-        }
-      }, 800);
-    };
-    for (const type of ["dragend", "drop", "mouseup"]) {
-      window.addEventListener(type, settle, true);
-    }
-  }
-
-  function quietZenHaptics() {
-    const service = Services.zen;
-    if (typeof service?.playHapticFeedback === "function") {
-      zenHaptic = () => service.playHapticFeedback();
-    }
-  }
-
   function canUnload(tab) {
     return tab?.linkedBrowser?.isRemoteBrowser !== false;
   }
@@ -241,6 +155,7 @@
   function start() {
     const urlbar = gURLBar.textbox || document.getElementById("urlbar");
 
+    safely("restoreNativeTabs", restoreNativeTabs);
     safely("applyZenDefaults", applyZenDefaults);
     safely("setupIconPack", setupIconPack);
     safely("watchOptions", watchOptions);
@@ -251,16 +166,7 @@
     safely("createWorkspaceSlot", createWorkspaceSlot);
     safely("watchTabAnimations", watchTabAnimations);
     safely("closeSplitTabsInPlace", closeSplitTabsInPlace);
-    safely("moveTabsLikeDia", moveTabsLikeDia);
     safely("hideTabListScrollbars", hideTabListScrollbars);
-    safely("addFolderBounce", addFolderBounce);
-    safely("keepFolderNamesInCollapsedSpaces", keepFolderNamesInCollapsedSpaces);
-    safely("tuckAwayUnopenedPins", tuckAwayUnopenedPins);
-    safely("revealOpenSubfolders", revealOpenSubfolders);
-    safely("keepSeparatorWhenPinsTuck", keepSeparatorWhenPinsTuck);
-    safely("keepTabsHiddenAfterActiveLeaves", keepTabsHiddenAfterActiveLeaves);
-    safely("openKeptFolderNames", openKeptFolderNames);
-    safely("allowEmojiFolderIcons", allowEmojiFolderIcons);
     safely("hideWwwInUrlbar", hideWwwInUrlbar);
     safely("watchRightEdges", watchRightEdges);
     ifOn("media-player", "watchMediaOpacity", watchMediaOpacity);
@@ -269,7 +175,6 @@
     safely("keepMediaCardsInPlace", keepMediaCardsInPlace);
     safely("watchTabSoundBars", watchTabSoundBars);
     safely("watchSelectedTabGlow", watchSelectedTabGlow);
-    safely("watchSplitDrop", watchSplitDrop);
     safely("watchSplitPanes", watchSplitPanes);
     ifOn("find-bar", "watchFindBars", watchFindBars);
     safely("watchSpaceColor", watchSpaceColor);
@@ -290,14 +195,7 @@
     ifOn("icon-picker", "addIconPicker", addIconPicker);
     safely("watchCompactTopRow", watchCompactTopRow);
     safely("watchOldIcons", watchOldIcons);
-    safely("watchNewFolders", watchNewFolders);
-    safely("watchFolderColors", watchFolderColors);
-    safely("addFolderColorPicker", addFolderColorPicker);
-    safely("watchGroupColors", watchGroupColors);
-    safely("watchFolderCloseButtons", watchFolderCloseButtons);
-    safely("watchEmptyFolders", watchEmptyFolders);
     safely("watchEssentialRows", watchEssentialRows);
-    safely("watchSplitEssentials", watchSplitEssentials);
     safely("watchSidebarPaint", watchSidebarPaint);
     safely("watchWindowButtonsSide", watchWindowButtonsSide);
     safely("addTabHoverCards", addTabHoverCards);
@@ -422,8 +320,6 @@
     safely("keepSidebarUnscrolledSideways", keepSidebarUnscrolledSideways);
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
-    safely("quietZenHaptics", quietZenHaptics);
-    safely("watchHapticsMute", watchHapticsMute);
     safely("watchUnloadable", watchUnloadable);
     safely("revertTypedTextOnLeave", () => revertTypedTextOnLeave(urlbar));
     safely("neverShowScheme", neverShowScheme);

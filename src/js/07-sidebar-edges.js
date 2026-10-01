@@ -65,7 +65,6 @@
       root.style.removeProperty("--zia-tab-right-fix");
       root.style.removeProperty("--zia-folder-right-fix");
       root.style.removeProperty("--zia-folder-left-fix");
-      alignFolderBottoms(gZenWorkspaces?.activeWorkspaceElement || sidebar);
       return;
     }
 
@@ -79,7 +78,7 @@
     let suspicious = false;
 
     const tab = [...space.querySelectorAll(".tabbrowser-tab:not([zen-essential])")].find(
-      (t) => !t.closest(FOLDER_SELECTOR) && visibleRect(t.querySelector(".tab-background"))
+      (t) => !t.closest("zen-folder, tab-group:not([split-view-group])") && visibleRect(t.querySelector(".tab-background"))
     );
     // (a tab still opening is measured once it's in place: measured as it
     // came in, the tabs kept a wrong right edge until the sidebar was
@@ -99,66 +98,11 @@
       }
     }
 
-    const folder = [...space.querySelectorAll(FOLDER_SELECTOR)].find((f) => !f.parentElement?.closest(FOLDER_SELECTOR) && visibleRect(f));
-    if (folder) {
-      const rect = visibleRect(folder);
-      const rightFix = rect.right - essentialsRight;
-      const leftFix = essentialsLeft - rect.left;
-      if (Math.abs(rightFix) <= EDGE_MAX_FIX && Math.abs(leftFix) <= EDGE_MAX_FIX) {
-        root.style.setProperty("--zia-folder-right-fix", halfPx(rightFix));
-        root.style.setProperty("--zia-folder-left-fix", halfPx(leftFix));
-      } else {
-        suspicious = true;
-      }
-    }
-
-    if (!alignFolderBottoms(space)) {
-      suspicious = true;
-    }
-
     if (suspicious) {
       retryEdgeAlignSoon();
     } else {
       edgeRetries = 0;
     }
-  }
-
-  function alignFolderBottoms(space) {
-    let ok = true;
-    for (const folder of space.querySelectorAll(FOLDER_SELECTOR)) {
-      const rect = visibleRect(folder);
-      const open = folder.hasAttribute("collapsed") === false;
-      const container = folder.querySelector(":scope > .tab-group-container");
-      let last = null;
-      if (rect && open && container) {
-        const items = [...container.children].filter(
-          (el) => (isFolder(el) || el.classList.contains("tabbrowser-tab")) && visibleRect(el)
-        );
-        last = items[items.length - 1];
-      }
-      const current = parseFloat(folder.style.getPropertyValue("--zia-folder-bottom-extra")) || 0;
-      if (!isFolder(last)) {
-        if (current) {
-          folder.style.removeProperty("--zia-folder-bottom-extra");
-        }
-        continue;
-      }
-      const gap = parseFloat(getComputedStyle(folder).getPropertyValue("--zia-folder-inner-gap")) || 5;
-      const innerInset = parseFloat(getComputedStyle(last, "::before").bottom) || 0;
-      const innerBoxBottom = last.getBoundingClientRect().bottom - innerInset;
-      const outerInset = parseFloat(getComputedStyle(folder, "::before").bottom) || 0;
-      const baseInset = outerInset + current;
-      const wantedInset = rect.bottom - (innerBoxBottom + gap);
-      const extra = Math.round((baseInset - wantedInset) * 2) / 2;
-      if (Math.abs(extra) > EDGE_MAX_FIX) {
-        ok = false;
-        continue;
-      }
-      if (extra !== current) {
-        folder.style.setProperty("--zia-folder-bottom-extra", `${extra}px`);
-      }
-    }
-    return ok;
   }
 
   function scheduleEdgeAlign(isRetry = false) {
@@ -243,4 +187,3 @@
     }).observe(toolbox, { childList: true, subtree: true });
     apply();
   }
-

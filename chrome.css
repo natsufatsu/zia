@@ -1185,379 +1185,9 @@
     transition: filter 0.15s ease;
   }
 
-  :root:not(#zia-none) :is(zen-folder, tab-group:not([split-view-group])):has(.tabbrowser-tab[pending]):not(:has(.tabbrowser-tab:not([pending]))) > .tab-group-label-container {
-    filter: opacity(0.6);
-    transition: filter 0.15s ease;
-  }
+
 }
-
-/* Split essentials (zia.uc.js): the tile holds both sites, each in a small
-   half of its own, the half you're in lit; the split it opens is hidden
-   from the tab list. */
-.tabbrowser-tab[zia-split-of],
-tab-group[split-view-group]:has(.tabbrowser-tab[zia-split-of]) {
-  display: none !important;
-}
-
-/* no wider than the other essentials, whatever its halves want */
-.tabbrowser-tab[zen-essential][zia-split-tile] {
-  min-width: 0 !important;
-}
-
-.tabbrowser-tab[zen-essential][zia-split-tile] > .tab-stack {
-  min-width: 0 !important;
-  overflow: hidden;
-}
-
-.tabbrowser-tab[zen-essential][zia-split-tile] > .tab-stack > .tab-content {
-  position: relative;
-  z-index: 1;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  overflow: hidden;
-  display: flex !important;
-  align-items: stretch !important;
-  justify-content: center !important;
-  gap: 5px !important;
-  width: 100% !important;
-  height: 100% !important;
-  padding: 8px !important;
-  margin: 0 !important;
-
-  & > .tab-icon-stack {
-    display: none !important;
-  }
-
-  & > .zia-split-half {
-    flex: 0 1 auto !important;
-    min-width: 0 !important;
-    max-width: calc(50% - 3px) !important;
-    height: 100% !important;
-    aspect-ratio: 4 / 5;
-    display: grid !important;
-    place-items: center !important;
-    border-radius: var(--zia-essential-radius, 12px);
-    corner-shape: round;
-    background-color: rgba(0, 0, 0, 0.18);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
-  & > .zia-split-half > image {
-    width: 16px;
-    height: 16px;
-  }
-
-  & > .zia-split-half > .zia-split-title {
-    display: none;
-  }
-}
-
-/* a stand-in, not an essential's size: halves as tall as the real ones
-   (zia.uc.js), centred */
-.tabbrowser-tab[zen-essential][zia-split-tile][zia-essential-proxy] > .tab-stack > .tab-content {
-  padding-block: 0 !important;
-  align-items: center !important;
-
-  & > .zia-split-half {
-    height: var(--zia-split-half-height, calc(100% - 16px)) !important;
-  }
-}
-
-.tabbrowser-tab[zen-essential][zia-split-tile][zia-essential-proxy][style*="--zia-split-half-width"] > .tab-stack > .tab-content > .zia-split-half {
-  flex: none !important;
-  width: var(--zia-split-half-width) !important;
-  max-width: none !important;
-  aspect-ratio: auto !important;
-}
-
-.tabbrowser-tab[zen-essential][zia-split-tile][zia-split-focus="a"] > .tab-stack > .tab-content > .zia-split-half[side="a"],
-.tabbrowser-tab[zen-essential][zia-split-tile][zia-split-focus="b"] > .tab-stack > .tab-content > .zia-split-half[side="b"] {
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
-}
-
-/* Dragged off the essentials, the tile turns into the split's row: both
-   sites, icon and title, side by side */
-.tabbrowser-tab[zia-split-tile]:not([zen-essential]) > .tab-stack > .tab-content {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-
-  & > :not(.zia-split-half) {
-    display: none !important;
-  }
-
-  & > .zia-split-half {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  & > .zia-split-half > image {
-    width: 16px;
-    height: 16px;
-    flex: none;
-  }
-
-  & > .zia-split-half > .zia-split-title {
-    margin: 0;
-    min-width: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    font-size: var(--zia-text-size, 13px);
-  }
-}
-
-/* The glow and tint: the half you're in, over the whole tile */
-@media -moz-pref("zen.theme.essentials-favicon-bg") {
-  .tabbrowser-tab[zen-essential][zia-split-tile][visuallyselected] > .tab-stack > .tab-background::after {
-    background-image: var(--zia-split-glow, var(--zen-essential-tab-icon)) !important;
-  }
-}
-
-/* Tab numbers (zia.uc.js): hold Cmd/Ctrl and a small key at the end of each
-   tab, and in the corner of each essential, shows the number Cmd/Ctrl+1–9
-   takes you to, like the shortcuts in a macOS menu. Optionally always shown. */
-.tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-  display: none;
-  flex: none;
-  box-sizing: border-box;
-  min-width: 20px;
-  height: 20px;
-  margin: 0 0 0 6px;
-  padding: 0 5px;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.9);
-  font: 450 9.5px/20px ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  pointer-events: none;
-}
-
-.tabbrowser-tab[visuallyselected] > .tab-stack > .tab-content > .zia-tab-number {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-/* Essentials, and every tab when the sidebar is collapsed to icons: a
-   smaller key in the corner */
-.tabbrowser-tab[zen-essential] > .tab-stack,
-:root:not([zen-sidebar-expanded="true"]) .tabbrowser-tab > .tab-stack {
-  position: relative;
-}
-
-:is(.tabbrowser-tab[zen-essential], :root:not([zen-sidebar-expanded="true"]) .tabbrowser-tab) > .tab-stack > .tab-content > .zia-tab-number {
-  position: absolute;
-  right: 6px;
-  bottom: 6px;
-  min-width: 16px;
-  height: 16px;
-  margin: 0;
-  padding: 0 3px;
-  border-radius: 5px;
-  font-size: 8.75px;
-  line-height: 16px;
-}
-
-:root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-  display: block;
-  animation: zia-tab-number-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
-}
-
-@media -moz-pref("zia.tab-numbers.always") {
-  .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-    display: block;
-  }
-}
-
-/* The number being typed: its key lights up, in Zia blue or the space's
-   colour, until the key is let go and the tab chosen */
-.tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number[zia-target] {
-  background-color: #5ab9f5 !important;
-  box-shadow: none;
-  color: rgb(8, 24, 38);
-}
-
-:root[zia-tab-number-color="space"][zia-space-colored="true"] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number[zia-target] {
-  background-color: color-mix(in srgb, var(--zen-primary-color) 80%, black) !important;
-  color: rgb(255, 255, 255);
-}
-
-@keyframes zia-tab-number-in {
-  from {
-    opacity: 0;
-    translate: 4px 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-    animation: none;
-  }
-}
-.tabbrowser-tab[drag-image] {
-  margin: 0 !important;
-  translate: none !important;
-  scale: none !important;
-
-  animation: none !important;
-  transition: none !important;
-}
-
-.tabbrowser-tab[drag-image] * {
-  animation: none !important;
-  transition: none !important;
-}
-
-.tabbrowser-tab[drag-image] > .tab-stack > .tab-background {
-  box-shadow: none !important;
-}
-
-.tabbrowser-tab[drag-image] > .tab-stack > .tab-background::after {
-  display: none !important;
-}
-#zen-drag-indicator {
-  display: none !important;
-}
-
-#tabbrowser-tabs[movingtab] :is(.tabbrowser-tab, .tab-group-label-container, tab-group, zen-folder):is([zia-dragging], [zia-shift]) {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* ...a split's tabs too, which a closed folder it's dragged out of had
-   hidden (it's the split that's dragged, not its tabs) */
-#tabbrowser-tabs[movingtab] tab-group[split-view-group]:is([zia-dragging], [zia-shift]):not([zia-to-essential]) .tabbrowser-tab {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* ...and while it lands (a folder's parts included), whatever Firefox has
-   hidden for its own drop animation */
-#tabbrowser-tabs :is(zen-folder, tab-group)[zia-landing],
-#tabbrowser-tabs :is(zen-folder, tab-group)[zia-landing] > :is(.tab-group-label-container, .tab-group-container) {
-  visibility: visible !important;
-}
-
-:root[zia-dragging-tab] :is(zen-folder, tab-group:not([split-view-group])):has(:is(.tabbrowser-tab, tab-group[split-view-group])[zia-dragging]) {
-  z-index: 41 !important;
-
-  /* (a collapsed folder's clip too: dragging its open tab out of it, the
-     tab vanished as soon as it left the folder) */
-  & > .tab-group-container {
-    overflow: visible !important;
-    clip-path: none !important;
-  }
-}
-
-/* A collapsed folder showing its open tab clips its other tabs away (the
-   ones above are pushed up out of it). The open tab's glow reaches further
-   than that clip allowed, so the clip gives it the glow's full reach all
-   round, and the hidden tabs are see-through so none peeks into it. */
-zen-folder[collapsed][has-active] > .tab-group-container {
-  --zia-glow-room: calc(-1 * (var(--zia-active-glow-blur) + var(--zia-active-glow-spread) + var(--zia-active-glow-reach)));
-  overflow: visible !important;
-  clip-path: inset(var(--zia-glow-room));
-}
-
-/* ...and the same while Zen opens or shuts a folder holding the open tab:
-   it clips the folder's contents then, and the tab's glow was cut off for
-   a moment (a folder Zia's own opening holds is clipped by its height) */
-zen-folder:has(> .tab-group-container > :is(.tabbrowser-tab, tab-group[split-view-group]):is([selected], [visuallyselected], :has(.tabbrowser-tab[selected]))) > .tab-group-container:not([zia-folder-holding]) {
-  --zia-glow-room: calc(-1 * (var(--zia-active-glow-blur) + var(--zia-active-glow-spread) + var(--zia-active-glow-reach)));
-  overflow: visible !important;
-  clip-path: inset(var(--zia-glow-room));
-}
-
-/* Growing back from nothing as a folder opens, a tab's name and icon
-   spilled out of it, so the tabs showed piled up for a moment */
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-container > .tabbrowser-tab:not([selected], [visuallyselected]) {
-  overflow-y: clip;
-}
-
-zen-folder[collapsed][has-active] .tabbrowser-tab:not([selected], [visuallyselected], [folder-active="true"], [atg-folder-active], tab-group[split-view-group]:has(.tabbrowser-tab:is([selected], [visuallyselected], [folder-active="true"])) .tabbrowser-tab) {
-  opacity: 0 !important;
-  /* (fading as Zen shrinks them, rather than gone at once, which showed as
-     an empty gap closing up) */
-  transition: opacity 0.18s ease-in-out;
-}
-
-/* Unloaded (the selection moves out), its tabs stay see-through while Zen
-   shuts it, the one that was showing fading (zia.uc.js) */
-zen-folder[collapsed][zia-was-active] .tabbrowser-tab {
-  opacity: 0 !important;
-  transition: opacity 0.15s ease-in !important;
-}
-
-/* That margin lets the active tab's glow show, but it also left the
-   folder's hidden tabs reachable just below it: hovering there brought up
-   the last tab's card and a click opened it. Only the tabs a collapsed
-   folder shows can be pointed at. */
-zen-folder[collapsed] .tabbrowser-tab:not([selected], [visuallyselected], [folder-active="true"], [atg-folder-active]) {
-  pointer-events: none;
-}
-
-:root[zia-dragging-tab] .tabbrowser-tab[zen-essential] {
-  visibility: inherit !important;
-}
-
-#zia-essential-proxy,
-#zia-essential-proxy > .tab-stack,
-#zia-essential-proxy > .tab-stack > .tab-background,
-#zia-essential-proxy > .tab-stack > .tab-content {
-  opacity: 1 !important;
-}
-
-.tabbrowser-tab[zia-essential-proxy],
-.tabbrowser-tab[zia-essential-proxy] > .tab-stack {
-  overflow: visible !important;
-  contain: none !important;
-}
-
-.tabbrowser-tab[zia-essential-proxy] > .tab-stack,
-.tabbrowser-tab[zia-essential-proxy] > .tab-stack > .tab-background {
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  max-height: none !important;
-  margin: 0 !important;
-}
-
-.tabbrowser-tab[zia-essential-proxy] :is(.tab-reset-pin-button, .tab-reset-pin-label, .tab-group-line) {
-  display: none !important;
-}
-
 zen-essentials-promo {
-  display: none !important;
-}
-
-:is(#tabs-newtab-button, #vertical-tabs-newtab-button)[zia-shift] {
-  position: relative !important;
-  transform: translateY(var(--zia-drag-y)) !important;
-  transition: transform 100ms ease-out !important;
-}
-
-.zen-essentials-container > vbox:not(.tabbrowser-tab) {
-  min-height: var(--zia-essential-height);
-}
-
-@media -moz-pref("zia.essentials.zia-width") {
-  .zen-essentials-container > vbox:not(.tabbrowser-tab) {
-    min-width: var(--zia-essential-min-width);
-    max-width: var(--zia-essential-max-width);
-  }
-}
-
-.tabbrowser-tab[zen-essential][zia-essential-dragged] {
-  opacity: 0 !important;
-}
-
-/* ...and out over the list, it gives up its cell: the others close up */
-.tabbrowser-tab[zen-essential][zia-essential-dragged][zia-essential-out] {
   display: none !important;
 }
 
@@ -1574,88 +1204,11 @@ zen-essentials-promo {
   display: none !important;
 }
 
-:root[zia-dragging-tab] :is(#zen-essentials, .zen-essentials-container) {
-  transition: min-height 140ms ease-out;
-}
-
-:is(#zen-essentials, .zen-essentials-container)[zia-make-room] {
-  min-height: var(--zia-room) !important;
-}
-
 .tabbrowser-tab[zia-no-glow],
 .tabbrowser-tab[zia-no-glow] > .tab-stack > .tab-background,
 tab-group[split-view-group][zia-no-glow],
 tab-group[split-view-group][zia-no-glow] > .tab-group-container {
   --zia-active-glow-color: transparent !important;
-}
-
-.pinned-tabs-container-separator[zia-sep-open] {
-  display: flex !important;
-  visibility: visible !important;
-  height: 22px !important;
-  opacity: 1 !important;
-}
-
-.pinned-tabs-container-separator[zia-shift] {
-  position: relative !important;
-  transform: translateY(var(--zia-drag-y)) !important;
-  transition: transform 100ms ease-out !important;
-  z-index: 1 !important;
-}
-
-#tabbrowser-tabs :is(.tabbrowser-tab, .tab-group-label-container, zen-folder)[zia-shift] {
-  position: relative !important;
-  transform: translateY(var(--zia-drag-y)) !important;
-  transition: transform 100ms ease-out !important;
-  z-index: 1 !important;
-}
-
-/* The section a dragged tab or folder comes from goes above the
-   essentials while it's dragged: otherwise the essentials' icons, drawn on
-   a layer of their own, showed through it when it was dragged up over them */
-:root[zia-dragging-tab] :is(zen-workspace, .zen-workspace-pinned-tabs-section, .zen-workspace-normal-tabs-section):has([zia-dragging]) {
-  position: relative;
-  z-index: 50 !important;
-}
-
-#tabbrowser-tabs :is(.tabbrowser-tab, .tab-group-label-container, zen-folder)[zia-dragging] {
-  position: relative !important;
-  transform: translateY(var(--zia-drag-y)) !important;
-  transition: none !important;
-  z-index: 40 !important;
-
-  pointer-events: none !important;
-}
-
-[zia-drop-lock]:not([zia-landing]),
-#tabbrowser-tabs[zia-settling] :is(.tabbrowser-tab, .tab-group-label-container, tab-group, zen-folder):not([zia-landing]) {
-  transition: none !important;
-  transform: none !important;
-  translate: none !important;
-  top: 0 !important;
-}
-
-[zia-drop-lock] {
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-/* A row landing is moved by Zia's glide alone: a transition on its own
-   transform (Firefox's or Zen's, which Zen's drop used to switch off) ran
-   under the glide and showed for a frame as it ended, a 7px jump back */
-#tabbrowser-tabs :is(.tabbrowser-tab, tab-group[split-view-group])[zia-landing] {
-  transition: none !important;
-}
-
-/* (not on the row being dragged, which stays under the pointer) */
-:root[zia-dragging-tab] .tabbrowser-tab:not([zia-hover-held], [zia-dragging], [zia-dragging] *) :is(.tab-close-button, .tab-reset-button),
-#tabbrowser-tabs[zia-settling] .tabbrowser-tab:not([zia-hover-held], :hover) :is(.tab-close-button, .tab-reset-button) {
-  opacity: 0 !important;
-  transition: none !important;
-}
-
-#tabbrowser-tabs[zia-settling] .tabbrowser-tab {
-  animation: none !important;
 }
 
 #zia-tab-card[zia-anchor="essential"]::before {
@@ -1691,52 +1244,6 @@ tab-group[split-view-group][zia-no-glow] > .tab-group-container {
   to { scale: 1; filter: blur(0); opacity: 1; }
 }
 
-
-/* A tab just dropped keeps its hover wash until the pointer leaves it
-   (zia-hover-held, zia.uc.js) */
-.tabbrowser-tab:not([zen-essential], [visuallyselected])[zia-hover-held] > .tab-stack > .tab-background {
-  background: var(--zia-tab-hover-bg) !important;
-}
-
-/* ...and its x: Firefox forgets the hover until the pointer next moves,
-   and Zen only shows the x on hover. (The x only while it isn't pinned
-   and the - only once it is: pinned a moment after, the x held from
-   before showed beside the -) */
-.tabbrowser-tab:not([zen-essential], [pinned], [zia-held-pinned])[zia-hover-held] .tab-close-button,
-/* (ids only to outrank Zen's split rule that hides them unless hovered) */
-.tabbrowser-tab:not([zen-essential], [pinned], [zia-held-pinned]) .tab-close-button[zia-held-shown]:not(#zia-a):not(#zia-b),
-.tabbrowser-tab:not([zen-essential]):is([pinned], [zia-held-pinned]) .tab-reset-button[zia-held-shown]:not(#zia-a):not(#zia-b) {
-  display: flex !important;
-  opacity: 1 !important;
-  /* (a tab dropped into a folder swaps its x for a -: straight away, not
-     fading in) */
-  transition: none !important;
-}
-
-/* a split essential dragged back to the list, until it's removed */
-.tabbrowser-tab[zia-split-gone] {
-  display: none !important;
-}
-
-/* Zen's drop-to-split marker (hold a tab over one side of another tab):
-   gone, it flashed as a split landed */
-zen-split-fake-tab {
-  display: none !important;
-}
-
-/* the list measured again mid-drag (a dragged folder that has just shut) */
-#tabbrowser-tabs[zia-measuring],
-#tabbrowser-tabs[zia-measuring] * {
-  transition: none !important;
-}
-
-/* A split's own label stays hidden (Zen hides it), whatever the drag and
-   landing rules above show: it's a blue block Firefox draws for groups */
-#tabbrowser-tabs tab-group[split-view-group] > .tab-group-label-container:not(#zia-a):not(#zia-b) {
-  visibility: hidden !important;
-  opacity: 0 !important;
-}
-
 /* One of a split's two tabs closing goes at once, taking no room, so the
    one left stays where the split was (zia.uc.js) */
 .tabbrowser-tab[zia-split-closing] {
@@ -1749,161 +1256,6 @@ zen-split-fake-tab {
   opacity: 0 !important;
   visibility: hidden !important;
 }
-
-/* The copy a dragged essential (or a tab going into the essentials) is drawn
-   as sits among the real tabs, and Firefox clears every tab's offset as a
-   drag ends: its centring went, and it showed shifted half its size (over
-   the essentials) until it was gone */
-.tabbrowser-tab[zia-essential-proxy] {
-  translate: -50% -50% !important;
-}
-@property --zia-folder-bottom-extra {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 0px;
-}
-
-:root[zen-sidebar-expanded="true"] tab-group:not([split-view-group]) {
-  display: flex !important;
-  flex-direction: column !important;
-  margin-block: 0 !important;
-  margin-inline-end: 0 !important;
-
-  & > .tab-group-container {
-    margin-inline-start: 0 !important;
-
-    &::after {
-      content: none !important;
-    }
-
-    & > :is(.tabbrowser-tab, tab-group, zen-folder) {
-      margin-inline-start: 14px !important;
-    }
-
-    & > tab-group:not([split-view-group]) {
-      margin-block: 0 !important;
-    }
-  }
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) {
-  --zia-folder-box-top: var(--tab-margin-block);
-  --zia-folder-inner-gap: 5px;
-  --zia-folder-box-bottom: 0px;
-  --zia-folder-box-right: var(--zia-folder-right-fix, 0px);
-  --zia-folder-box-left: var(--zia-folder-left-fix, 0px);
-  --zia-folder-box-radius: var(--zia-tab-radius);
-
-  position: relative;
-  isolation: isolate;
-  transition: none !important;
-
-  &[collapsed]:not([has-active], :has(tab[selected], tab[atg-folder-active])) {
-    --zia-folder-box-bottom: var(--tab-margin-block);
-  }
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: var(--zia-folder-box-top) var(--zia-folder-box-right) calc(var(--zia-folder-box-bottom) - var(--zia-folder-bottom-extra)) var(--zia-folder-box-left);
-    z-index: -1;
-    border-radius: var(--zia-folder-box-radius);
-    corner-shape: round;
-    pointer-events: none;
-    background-color: transparent;
-  }
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: var(--zia-folder-box-top) var(--zia-folder-box-right) calc(var(--zia-folder-box-bottom) - var(--zia-folder-bottom-extra)) var(--zia-folder-box-left);
-    padding: var(--zia-shine-width);
-    border-radius: var(--zia-folder-box-radius);
-    corner-shape: round;
-    pointer-events: none;
-    background: var(--zia-shine-layers);
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-    opacity: 0;
-  }
-
-  &:hover {
-    background-color: transparent !important;
-
-    &::before {
-      background-color: var(--zia-folder-hover-bg);
-    }
-
-    &::after {
-      opacity: 1;
-    }
-  }
-
-  & > .tab-group-label-container {
-    &::before,
-    &:hover::before {
-      background-color: transparent !important;
-    }
-
-    & > label {
-      color: rgb(255, 255, 255) !important;
-      font-weight: var(--zia-folder-weight) !important;
-      text-align: start !important;
-      overflow: hidden;
-      text-overflow: ellipsis;
-
-      &::after {
-        content: "";
-        display: inline-block;
-        width: 14px;
-        height: 14px;
-        margin-inline-start: 4px;
-        vertical-align: -2px;
-        background-color: currentColor;
-        opacity: var(--zia-folder-mark-opacity);
-        mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' fill='none' stroke='black' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
-
-        transform-origin: center;
-        transition: rotate 0.22s cubic-bezier(0.2, 0.9, 0.3, 1);
-      }
-    }
-  }
-
-  &[collapsed] > .tab-group-label-container > label::after {
-    rotate: -90deg;
-  }
-
-  /* The box stops a tab gap above whatever's below, the same gap as
-   * between two tabs, and the padding inside makes up for it. The tabs sit
-   * the inner gap closer to the folder's name (the room under the name was
-   * more than above it), so the padding fits in the height a tab dragged in
-   * is given. Open or closed alike: switched off as a folder closed, its
-   * tabs dropped that gap before closing. The padding is the list's, not
-   * the folder's: Zen hides a folder by taking its height away (the
-   * workspace's folders tucked away), and a folder's own padding stayed,
-   * leaving a sliver for each. */
-  &:not(:has(> .tab-group-container[hidden])) {
-    --zia-folder-box-bottom: var(--tab-margin-block);
-  }
-
-  & > .tab-group-container:not([hidden]) {
-    box-sizing: border-box;
-    margin-top: calc(-1 * var(--zia-folder-inner-gap)) !important;
-    padding-bottom: var(--zia-folder-inner-gap) !important;
-  }
-
-  & :is(zen-folder, tab-group:not([split-view-group])) {
-    --zia-folder-box-left: 0px;
-    --zia-folder-box-right: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap));
-    --zia-folder-box-bottom: var(--tab-margin-block);
-  }
-
-  & :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) {
-    --zia-folder-box-right: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap));
-  }
-}
-
 #zen-sidebar-top-buttons .titlebar-buttonbox-container {
   margin-inline-start: 5px !important;
   margin-top: 3px !important;
@@ -1951,107 +1303,8 @@ zen-split-fake-tab {
   overflow: hidden !important;
 }
 
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group]))[zia-bg-shift] {
-  overflow: visible !important;
-
-  &::before,
-  &::after {
-    top: calc(var(--zia-folder-box-top) + var(--zia-drag-bg-top, 0px)) !important;
-    bottom: calc(var(--zia-folder-box-bottom) - var(--zia-folder-bottom-extra, 0px) - var(--zia-drag-bg-grow, 0px)) !important;
-    transition: top 100ms ease-out, bottom 100ms ease-out !important;
-  }
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group]))[zia-drop-slot]::before {
-  background-color: var(--zia-folder-hover-bg) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group]))[zia-drop-slot]::after {
-  opacity: 1 !important;
-}
-
-/* The folder a tab was dragged out of isn't highlighted, though Firefox
-   keeps it hovered until the mouse next moves (tab dragging) */
-:root[zen-sidebar-expanded="true"]:not(#zia-none) :is(zen-folder, tab-group:not([split-view-group]))[zia-left]:not([zia-drop-slot]) {
-  &::before {
-    background-color: transparent !important;
-  }
-
-  &::after {
-    opacity: 0 !important;
-  }
-}
-
-:root #tabbrowser-tabs:is([zia-settling], [movingtab]) .tabbrowser-tab[zia-drag-away],
-:root #tabbrowser-tabs .tabbrowser-tab[zia-drag-away][zia-dragging],
-.tabbrowser-tab[zia-drag-away] {
-  opacity: 0 !important;
-}
-
-#zia-drag-thumb {
-  position: fixed;
-  z-index: 2147483647;
-  translate: -50% -50%;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-
-  border-radius: 7px;
-  background-color: #1f1f1f;
-  overflow: hidden;
-
-  transition: width 150ms ease-out, height 150ms ease-out;
-
-  &[zia-leaving] {
-    transition: width 150ms ease-out, height 150ms ease-out, left 150ms ease-out, top 150ms ease-out;
-  }
-
-  &[zia-card] {
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
-  }
-
-  & > canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
-  }
-
-  & > img {
-    width: 24px;
-    height: 24px;
-  }
-}
-
 #zia-split-drag-picture {
   visibility: hidden !important;
-}
-
-:root #tabbrowser-tabs:is([zia-settling], [movingtab]) .tabbrowser-tab[zia-to-essential],
-:root #tabbrowser-tabs .tabbrowser-tab[zia-to-essential][zia-dragging],
-.tabbrowser-tab[zia-to-essential],
-[split-view-group][zia-to-essential],
-[split-view-group][zia-to-essential] .tabbrowser-tab {
-  opacity: 0 !important;
-}
-
-/* a split's tabs are kept showing while they're dragged (05-tab-dragging),
-   which outranked the fade above as the split turns into a tile */
-:root #tabbrowser-tabs [split-view-group][zia-to-essential],
-:root #tabbrowser-tabs[movingtab] [split-view-group][zia-to-essential] :is(.tabbrowser-tab, .tab-group-label-container, tab-group),
-:root #tabbrowser-tabs[movingtab] [split-view-group][zia-to-essential] :is(.tabbrowser-tab, .tab-group-label-container):is([zia-dragging], [zia-shift]) {
-  opacity: 0 !important;
-}
-
-.tabbrowser-tab[zia-essential-proxy] {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group]))::before {
-  corner-shape: round !important;
 }
 
 .tabbrowser-tab[zen-essential] > .tab-stack > .tab-background {
@@ -2082,7 +1335,6 @@ zen-split-fake-tab {
   transition: none !important;
 }
 
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container > label,
 #urlbar:not([breakout-extend]) :is(.urlbar-input, #zia-url-title, #zia-url-plain) {
   font-size: var(--zia-text-size) !important;
 }
@@ -2118,104 +1370,12 @@ zen-split-fake-tab {
   scale: 1 !important;
 }
 
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container .tab-group-folder-icon {
-  translate: 0 var(--zia-folder-icon-offset);
-}
-
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container .tab-group-folder-icon svg:not(:has(.icon image:not([href=""]))) {
-  scale: 0.9;
-}
-
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container .tab-group-folder-icon svg:has(.icon image:not([href=""])) {
-  & :is(.back, .front, .dots) {
-    display: none !important;
-  }
-
-  & .icon {
-    opacity: 1 !important;
-    transform: none !important;
-  }
-
-  & .icon image {
-    transform: translate(6px, 7px) scale(1.38) !important;
-  }
-}
-
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container .tab-group-folder-icon:not(:has(.icon image:not([href=""]))) {
-  background-color: var(--zia-folder-mark-color);
-  mask: url("chrome://sine/content/zia/icons/tab-default.svg") center / 16px no-repeat;
-
-  translate: 0 0;
-
-  & svg :is(.back, .front, .dots) {
-    display: none !important;
-  }
-}
-
 #zen-sidebar-top-buttons {
   margin-block: calc(var(--zia-top-row-space) - 2.5px) !important;
 }
 
 #zen-sidebar-foot-buttons {
   margin-block: var(--zia-bottom-row-space) calc(var(--zia-bottom-row-space) - 4.5px) !important;
-}
-
-:root[zen-sidebar-expanded="true"] zen-folder {
-  &[zia-folder-color="green"] { --zia-folder-swatch: var(--zia-fc-green); }
-  &[zia-folder-color="blue"] { --zia-folder-swatch: var(--zia-fc-blue); }
-  &[zia-folder-color="purple"] { --zia-folder-swatch: var(--zia-fc-purple); }
-  &[zia-folder-color="amber"] { --zia-folder-swatch: var(--zia-fc-amber); }
-  &[zia-folder-color="pink"] { --zia-folder-swatch: var(--zia-fc-pink); }
-  &[zia-folder-color="red"] { --zia-folder-swatch: var(--zia-fc-red); }
-  &[zia-folder-color="orange"] { --zia-folder-swatch: var(--zia-fc-orange); }
-
-  &[zia-folder-color]::after {
-    opacity: 1;
-  }
-
-  &[zia-folder-color]::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-wash), transparent);
-  }
-
-  &[zia-folder-color]:hover::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-tint), transparent);
-  }
-}
-
-/* Optionally, a closed coloured folder is just its coloured name: the
-   tint and outline come in on hover and stay while it's open (or showing
-   its open tab, or taking a dragged tab) */
-@media -moz-pref("zia.folders.tint-when-open") {
-  :root[zen-sidebar-expanded="true"] :is(zen-folder[zia-folder-color], tab-group:not([split-view-group]))[collapsed]:not(:hover, [zia-drop-slot], :has(.tabbrowser-tab[selected])) {
-    &::before {
-      background-color: transparent !important;
-    }
-
-    &::after {
-      opacity: 0 !important;
-    }
-  }
-}
-
-/* Advanced Tab Groups: a group wears its own colour; gradients arrive via --zia-group-swatch (zia.uc.js) */
-:root[zen-sidebar-expanded="true"] tab-group:not([split-view-group]) {
-  --zia-folder-swatch: var(--zia-group-swatch, var(--tab-group-background-color, var(--tab-group-color, var(--zia-fc-white))));
-
-  &::after {
-    opacity: 1;
-  }
-
-  &::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-wash), transparent);
-  }
-
-  &:hover::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-tint), transparent);
-  }
-
-  &[zia-drop-slot]::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-wash), transparent) !important;
-  }
 }
 
 #zia-space-label {
@@ -2270,278 +1430,7 @@ zen-split-fake-tab {
     translate: 0 2px;
   }
 }
-
-zen-folder > .tab-group-label-container > .zia-folder-close {
-  display: none;
-  list-style-image: url("chrome://browser/skin/zen-icons/close.svg");
-
-  -moz-context-properties: fill, fill-opacity !important;
-  fill: rgb(255, 255, 255) !important;
-  fill-opacity: var(--zia-folder-mark-opacity) !important;
-  color: rgb(255, 255, 255) !important;
-  opacity: 1 !important;
-  width: var(--zia-close-size);
-  height: var(--zia-close-size);
-  min-width: var(--zia-close-size);
-  padding: 4px;
-  border-radius: var(--zia-close-radius);
-  corner-shape: round !important;
-  flex-shrink: 0;
-
-  margin-inline-start: auto;
-}
-
-zen-folder > .tab-group-label-container:hover > .zia-folder-close,
-zen-folder[zia-hover-held] > .tab-group-label-container > .zia-folder-close {
-  display: flex;
-}
-
-zen-folder > .tab-group-label-container > .zia-folder-close:hover {
-  background-color: var(--zia-close-hover-bg);
-}
-
-/* A tab's own close and unload buttons use the squircle close corner.
-   Inside a folder that rule is the more specific one, so these stay
-   circular with the rest of the folder. */
-:is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab :is(.tab-close-button, .tab-reset-button) {
-  corner-shape: round !important;
-}
-
-
-/* An open empty folder shows a dashed "Drag tabs here" slot exactly where
- * the first tab will sit (sized from a real tab by zia.uc.js), outlined in
- * the folder's colour, or a soft white for white and uncoloured folders.
- * (A folder emptied by moving its last tab out collapses, zia.uc.js.)
- * While a tab is dragged in, open or collapsed, the tab wears the dashes.
- * The slot is drawn on the container so Zen's own folder code never sees an
- * extra element; it shrinks away alongside the folder's collapse (the same
- * spring, zia.uc.js), and --zia-slot-y moves it with its folder's header
- * while rows slide aside for a drag. */
-:root[zen-sidebar-expanded="true"] zen-folder[zia-empty] {
-  --zia-slot-border: 1.5px dashed rgba(255, 255, 255, 0.28);
-
-  /* lightened, so it still stands out against the folder's own tint */
-  &[zia-folder-color]:not([zia-folder-color="white"]) {
-    --zia-slot-border: 1.5px dashed color-mix(in srgb, color-mix(in srgb, var(--zia-folder-swatch), white 45%) 70%, transparent);
-  }
-
-  & > .tab-group-container::after {
-    content: url("chrome://sine/content/zia/icons/folder-drop.svg") "\2002 Drag tabs here";
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    height: var(--zia-slot-h, var(--tab-min-height, 35px));
-    margin-block: var(--zia-slot-mt, 2px) var(--zia-slot-mb, 2px);
-    margin-inline: var(--zia-slot-ms, 16px) var(--zia-slot-me, 7px);
-    overflow: hidden;
-    border: var(--zia-slot-border);
-    border-radius: var(--zia-tab-radius);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 12.5px;
-    white-space: nowrap;
-    translate: 0 var(--zia-slot-y, 0px);
-    pointer-events: none;
-    /* (there at once as the folder opens, as its tabs are; it fades as it
-       closes, below) */
-    transition:
-      opacity 0s,
-      translate 100ms ease-out;
-  }
-
-  /* Like a tab, it stays where it sits while the folder opens over it or
-     closes on it (fading out as it closes), and only gives up its room once
-     the folder has shut: the folder's own time, the spring's with folders'
-     spring on, otherwise Zen's (0.18s) */
-  @media -moz-pref("zia.folders.bounce") {
-    & > .tab-group-container::after {
-      --zia-slot-time: var(--zia-spring-time);
-    }
-  }
-
-  /* (a folder inside a closed folder keeps it hidden too: with a tab
-     selected in the outer folder, Zen shows that tab alone) */
-  &[collapsed] > .tab-group-container::after,
-  :is(zen-folder, tab-group:not([split-view-group]))[collapsed] & > .tab-group-container::after {
-    height: 0;
-    margin-block: 0;
-    border-width: 0;
-    opacity: 0;
-    transition:
-      height 0s var(--zia-slot-time, 0.18s),
-      margin 0s var(--zia-slot-time, 0.18s),
-      border-width 0s var(--zia-slot-time, 0.18s),
-      opacity var(--zia-slot-time, 0.18s) ease-out,
-      translate 100ms ease-out;
-  }
-  /* (there it shrinks away with the rest Zen hides, rather than waiting
-     for a folder of its own to shut) */
-  :is(zen-folder, tab-group:not([split-view-group]))[collapsed] &:not([collapsed]) > .tab-group-container::after {
-    transition:
-      height var(--zia-slot-time, 0.18s) var(--zia-slot-ease, cubic-bezier(0.42, 0, 0.58, 1)),
-      margin var(--zia-slot-time, 0.18s) var(--zia-slot-ease, cubic-bezier(0.42, 0, 0.58, 1)),
-      border-width var(--zia-slot-time, 0.18s) var(--zia-slot-ease, cubic-bezier(0.42, 0, 0.58, 1)),
-      opacity var(--zia-slot-time, 0.18s) ease-out,
-      translate 100ms ease-out;
-  }
-
-
-  /* A tab dragged in takes the slot's place: the slot fades but keeps its
-   * room (the layout never changes mid-drag), and the tab, which would
-   * cover it anyway, carries its dashes instead (below). */
-  &[zia-drop-slot]:not([collapsed]) > .tab-group-container::after {
-    opacity: 0;
-    transition: opacity 100ms ease;
-  }
-
-  /* (back as a tab dragged in goes out again, it fades in) */
-  :root[zia-dragging-tab] &:not([collapsed]) > .tab-group-container::after {
-    transition:
-      opacity 100ms ease,
-      translate 100ms ease-out;
-  }
-
-  &:has(> .tab-group-label-container[zia-dragging]) > .tab-group-container::after {
-    transition: none;
-  }
-}
-
-/* A tab dragged into an empty folder, open or collapsed, wears the slot's
- * dashes, so the drop spot stays marked while the tab is over it. */
-:root[zen-sidebar-expanded="true"] .tabbrowser-tab[zia-dragging][zia-into-empty] > .tab-stack > .tab-background,
-:root[zen-sidebar-expanded="true"] tab-group[split-view-group][zia-dragging][zia-into-empty] > .tab-group-container {
-  outline: var(--zia-slot-border) !important;
-  outline-offset: -1.5px !important;
-}
-
-/* A coloured folder keeps its usual colour while a tab is dragged into it
- * (its shine marks it as the target): not the plain hover wash, and not the
- * hover tint either, which flickered off and on again as the tab dropped. */
-:root[zen-sidebar-expanded="true"] zen-folder[zia-folder-color]:not([zia-folder-color="white"])[zia-drop-slot]::before {
-  background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-wash), transparent) !important;
-}
-
-/* The selected tab stays dark on a folder's lighter box, as in Dia: its
- * see-through black would otherwise take on the box's lightening and turn
- * grey. Set only while the box shows (hovered, held, taking a drop, or
- * coloured), so on a bare folder it matches the tabs outside. */
-:root[zen-sidebar-expanded="true"] :is(zen-folder:is(:hover, [zia-hover-held], [zia-drop-slot], [zia-folder-color]), tab-group:not([split-view-group])) {
-  --zia-active-tab-bg: var(--zia-active-tab-bg-folder);
-}
-
-/* A folder just dropped keeps its hover box until the pointer leaves
-   (tab dragging, zia-hover-held) */
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group]))[zia-hover-held] {
-  &::before {
-    background-color: var(--zia-folder-hover-bg);
-  }
-
-  &::after {
-    opacity: 1;
-  }
-
-  &:is([zia-folder-color], tab-group)::before {
-    background-color: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-tint), transparent);
-  }
-}
-
-/* While a folder opens or closes, its tabs sit in their places and the
-   folder clips them as its height grows or shrinks (zia.uc.js) */
-.tab-group-container[zia-folder-holding] {
-  overflow-y: clip !important;
-}
-
-/* A space collapsed (its name clicked) with a tab open in one of its
-   folders: Zen keeps just that tab, and hides its folder's name too. The
-   folder's name stays (and any folder it's in), so the tab isn't left
-   floating on its own. Marked on the space while it's collapsed and until
-   it has finished opening again (zia.uc.js): Zen leaves the name at no
-   height, which showed for a moment as it opened. */
-zen-workspace[zia-keep-folder-names] :is(zen-folder, tab-group:not([split-view-group])):has(.tabbrowser-tab[selected]) > .tab-group-label-container {
-  /* (Zen's own height for it, which its collapse animates to nothing) */
-  height: calc(var(--tab-margin-block) * 2 + var(--tab-min-height)) !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-/* ...and the tab keeps its place under it: Zen pulls it out to the edge
-   when the space collapses, as it would be with its folder hidden */
-zen-workspace[zia-keep-folder-names] .tab-group-container > :is(.tabbrowser-tab[selected], tab-group[split-view-group]:has(.tabbrowser-tab[selected])) {
-  --zen-folder-indent: 14px !important;
-}
-
-/* The same inside a closed folder showing its selected tab: a folder in it
-   holding that tab (or the one it goes on showing once another is
-   selected) keeps its name, with the tab under it, as it would be
-   open. Zen hides the name and pulls the tab out to the closed folder's
-   edge, which left the inner folder's box round the lone tab. */
-:root:not(#zia-none) zen-folder[collapsed]:is([has-active], [zia-was-active]) :is(zen-folder, tab-group:not([split-view-group])):is(:has(.tabbrowser-tab:is([selected], [folder-active="true"])), [zia-keeps-name]) > .tab-group-label-container,
-:root:not(#zia-none) zen-folder[zia-revealing] [zia-keeps-name] > .tab-group-label-container {
-  height: calc(var(--tab-margin-block) * 2 + var(--tab-min-height)) !important;
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
-:root:not(#zia-none) zen-folder[collapsed]:is([has-active], [zia-was-active]) :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-container > :is(.tabbrowser-tab:is([selected], [folder-active="true"], [zia-kept-tab]), tab-group[split-view-group]:has(.tabbrowser-tab:is([selected], [folder-active="true"]))) {
-  --zen-folder-indent: 14px !important;
-}
-
-/* Zen leaves the other tabs in that inner folder at their full height (it
-   only shrinks the closed folder's own), see-through, so the inner folder's
-   box stretched far below the tab shown. They shrink away with the rest:
-   no height, so their minimum height, which can be animated, sets it. */
-:root:not(#zia-none) zen-folder[collapsed]:is([has-active], [zia-was-active]) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([selected], [visuallyselected], [folder-active="true"], [zia-kept-tab], [atg-folder-active], tab-group[split-view-group]:has(.tabbrowser-tab:is([selected], [visuallyselected], [folder-active="true"])) .tabbrowser-tab) {
-  height: 0 !important;
-  min-height: 0 !important;
-  margin-block: 0 !important;
-  overflow: clip !important;
-  transition:
-    min-height 0.18s ease-in-out,
-    margin-block 0.18s ease-in-out,
-    opacity 0.18s ease-in-out !important;
-}
-
-/* ...and a folder in it that Zen hides goes entirely: its box and outline
-   stayed as a thin line that could still be hovered, and, open, its room at
-   the bottom left a gap under the tab shown */
-:root:not(#zia-none) zen-folder[collapsed]:is([has-active], [zia-was-active]) :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab:is([selected], [folder-active="true"])), [zia-keeps-name]) {
-  pointer-events: none;
-  padding-bottom: 0 !important;
-  transition: padding-bottom 0.18s ease-in-out !important;
-
-  &::before,
-  &::after {
-    opacity: 0 !important;
-  }
-}
-
-/* Letting go of that tab (zia.uc.js), the folder keeps its layout a
-   moment while it fades, the inner folder's name with it */
-zen-folder[collapsed][zia-was-active] > .tab-group-container > .zen-tab-group-start {
-  margin-top: 0 !important;
-}
-
-:root:not(#zia-none):not(#zia-none-2) zen-folder[collapsed][zia-was-active] :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  opacity: 0 !important;
-  transition: opacity 0.15s ease-in !important;
-}
-
-/* ...and the folders it hides go entirely: Zen shrinks their contents to
-   nothing, but their colour and outline stayed, squashed into a thin
-   bright line above the kept folder */
-zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab[selected]))::before,
-zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-group])):not(:has(.tabbrowser-tab[selected]))::after {
-  opacity: 0 !important;
-}
-
-/* A folder whose tab was just dragged out, held while it eases shut: its
-   box keeps its bottom where it was (zia.uc.js) */
-:root[zen-sidebar-expanded="true"] zen-folder[zia-holding]::before,
-:root[zen-sidebar-expanded="true"] zen-folder[zia-holding]::after {
-  bottom: var(--zia-hold-inset) !important;
-}
-#zia-tab-card,
-#zia-folder-card {
+#zia-tab-card {
   clip-path: inset(0 round var(--zia-tab-card-radius));
   position: fixed;
   z-index: 2147483647;
@@ -2557,13 +1446,11 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
   -moz-window-dragging: no-drag;
 }
 
-#zia-tab-card[hidden],
-#zia-folder-card[hidden] {
+#zia-tab-card[hidden] {
   display: none;
 }
 
-#zia-tab-card::after,
-#zia-folder-card::after {
+#zia-tab-card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -2573,18 +1460,15 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
   pointer-events: none;
 }
 
-#zia-tab-card[zia-open],
-#zia-folder-card[zia-open] {
+#zia-tab-card[zia-open] {
   animation: zia-tab-card-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
-#zia-tab-card[zia-snap],
-#zia-folder-card[zia-snap] {
+#zia-tab-card[zia-snap] {
   animation: none;
 }
 
-#zia-tab-card[zia-closing],
-#zia-folder-card[zia-closing] {
+#zia-tab-card[zia-closing] {
   animation: zia-tab-card-out 0.12s ease-in forwards;
   pointer-events: none;
 }
@@ -2599,129 +1483,6 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
     opacity: 0;
     transform: scale(0.85);
   }
-}
-
-#zia-folder-card {
-  width: 222px;
-  padding: 0;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-.zia-folder-card-list {
-  padding: 6px;
-  /* ten rows exactly: each is the tab's height with a margin above and
-     below, and between two rows those margins are one, so ten take ten
-     heights and eleven margins. The margin is the space between two tabs
-     in the sidebar (their gap above and below each). */
-  --zia-folder-card-gap: calc(2 * var(--zia-tab-gap));
-  max-height: calc(10 * var(--zia-tab-height) + 11 * var(--zia-folder-card-gap) + 12px);
-  box-sizing: border-box;
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-
-.zia-folder-card-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  height: var(--zia-tab-height);
-  margin-block: var(--zia-folder-card-gap);
-
-  padding-inline: 9px 6px;
-  border-radius: var(--zia-tab-radius);
-  corner-shape: round !important;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: var(--zia-text-size);
-  font-weight: var(--zia-tab-weight);
-  cursor: default;
-}
-
-.zia-folder-card-row:hover {
-  background-color: rgba(255, 255, 255, 0.13);
-}
-
-.zia-folder-card-row[zia-selected] {
-  /* dark on the card's lighter grey, as on a folder's box in the sidebar */
-  background-color: var(--zia-active-tab-bg-folder);
-  color: rgb(255, 255, 255);
-  position: relative;
-
-  /* the selected tab's thin edge, without its glow */
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    padding: var(--zia-shine-width);
-    border-radius: inherit;
-    corner-shape: round;
-    pointer-events: none;
-    background: var(--zia-tab-shine-layers);
-    mask:
-      linear-gradient(#000 0 0) content-box exclude,
-      linear-gradient(#000 0 0);
-  }
-}
-
-.zia-folder-card-act:is([zia-act="close"], [zia-act="unload"]) {
-  flex: none;
-  width: 14px;
-  height: 14px;
-  margin-inline-start: auto;
-  padding: 4px;
-  border-radius: var(--zia-close-radius);
-  corner-shape: round !important;
-  opacity: 0;
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-
-  .zia-folder-card-row:hover > & {
-    opacity: 0.8;
-  }
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-    opacity: 1 !important;
-  }
-}
-
-.zia-folder-card-act[zia-act="mute"] {
-  border-radius: 4px;
-
-  &:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-  }
-}
-
-.zia-folder-card-row[zia-new-tab] {
-  color: rgba(255, 255, 255, 0.55);
-}
-
-.zia-folder-card-icon {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  object-fit: contain;
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-}
-
-.zia-folder-card-sound {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin-inline: 2px 6px;
-  -moz-context-properties: fill, fill-opacity;
-  fill: currentColor;
-}
-
-.zia-folder-card-label {
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 @keyframes zia-tab-card-in {
@@ -2971,17 +1732,11 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
   transition: translate 0.4s cubic-bezier(0.3, 1.4, 0.5, 1);
 }
 
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-container > .tabbrowser-tab {
-  margin-inline-end: 0 !important;
-}
-
-
 /* Optionally the tab, folder and essential hover cards are a touch
    see-through, with what's behind them blurred, like the compact sidebar
    and the address bar pop-up. */
 @media -moz-pref("zia.cards.blur") {
-  #zia-tab-card,
-  #zia-folder-card {
+  #zia-tab-card{
     background-color: color-mix(in srgb, var(--zia-tab-card-bg) 76%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }
@@ -2992,56 +1747,16 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
     backface-visibility: hidden !important;
   }
 }
-
-/* Optional: a coloured folder's card takes the folder's colour, as its row
-   in the sidebar does (the same wash, over the card's own background) */
-@media -moz-pref("zia.folders.tint-card") {
-  #zia-folder-card {
-    &[zia-folder-color="green"] { --zia-folder-swatch: var(--zia-fc-green); }
-    &[zia-folder-color="blue"] { --zia-folder-swatch: var(--zia-fc-blue); }
-    &[zia-folder-color="purple"] { --zia-folder-swatch: var(--zia-fc-purple); }
-    &[zia-folder-color="amber"] { --zia-folder-swatch: var(--zia-fc-amber); }
-    &[zia-folder-color="pink"] { --zia-folder-swatch: var(--zia-fc-pink); }
-    &[zia-folder-color="red"] { --zia-folder-swatch: var(--zia-fc-red); }
-    &[zia-folder-color="orange"] { --zia-folder-swatch: var(--zia-fc-orange); }
-
-    &[zia-folder-color]:not([zia-folder-color="white"]) {
-      --zia-folder-card-bg: color-mix(in srgb, var(--zia-folder-swatch) var(--zia-folder-wash), var(--zia-tab-card-bg));
-      background-color: var(--zia-folder-card-bg) !important;
-    }
-  }
-
-  /* (with the cards see-through, as see-through: the setting's own
-     background, which overrode it, left it grey) */
-  @media -moz-pref("zia.cards.blur") {
-    #zia-folder-card[zia-folder-color]:not([zia-folder-color="white"]) {
-      background-color: color-mix(in srgb, var(--zia-folder-card-bg) 76%, transparent) !important;
-    }
-  }
-}
 #urlbar:not([breakout-extend]) .urlbar-input {
   color: rgb(255, 255, 255) !important;
 }
+
 :root[zia-site-dark="true"] #urlbar:not([breakout-extend]) .urlbar-input {
   color: var(--zia-dark-ink, rgb(251, 251, 254)) !important;
 }
 
 :root[zia-site-light="true"] #urlbar:not([breakout-extend]) .urlbar-input {
   color: rgb(28, 28, 30) !important;
-}
-
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container > label,
-:is(zen-folder, tab-group:not([split-view-group]))[collapsed] > .tab-group-label-container > label {
-  color: rgb(255, 255, 255) !important;
-  opacity: 1 !important;
-}
-
-:root:not(#zia-none) :is(zen-folder[zia-folder-color], tab-group:not([split-view-group])) > .tab-group-label-container > label {
-  color: color-mix(in srgb, var(--zia-folder-swatch, white) var(--zia-folder-name-tint), white) !important;
-}
-
-:root:not(#zia-none) :is(zen-folder[zia-folder-color], tab-group:not([split-view-group])):hover > .tab-group-label-container > label {
-  color: color-mix(in srgb, var(--zia-folder-swatch, white) var(--zia-folder-name-tint-hover), white) !important;
 }
 
 #zen-workspaces-button {
@@ -3119,48 +1834,12 @@ zen-workspace arrowscrollbox::part(scrollbox) {
   scrollbar-width: none !important;
 }
 
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  font-weight: var(--zia-folder-weight) !important;
-}
-
 :root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
   margin-inline-end: var(--zia-tab-right-fix, 0px) !important;
 }
 
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
 :root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
   margin-inline-end: var(--zia-tab-right-fix, 0px) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  padding-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  padding-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
 }
 
 /* As in Dia, a tab that isn't the one you're on is a little dimmer, hovered
@@ -3173,7 +1852,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 .tabbrowser-tab:not([zen-essential])[visuallyselected] .tab-label-container {
   color: rgb(255, 255, 255) !important;
 }
-
 
 /* Renaming a tab or folder: the name in the box stays the size it is in the
    list */
@@ -3693,184 +2371,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 }
 
 }
-#zia-split-drop {
-  --zia-drop-pull: 0px;
-  position: fixed;
-  left: var(--zia-drop-left, 0px);
-  top: var(--zia-drop-top, 0px);
-  width: var(--zia-drop-width, 0px);
-  height: var(--zia-drop-height, 0px);
-  z-index: 10000;
-  display: none;
-  pointer-events: auto;
-
-  &[open] {
-    display: block;
-  }
-}
-
-.zia-split-zone {
-  --zia-zone-w: 200px;
-  --zia-zone-h: 336px;
-  --zia-zone-edge: 44px;
-  --zia-zone-tx: 0px;
-  --zia-zone-ty: 0px;
-  --zia-zone-ease: cubic-bezier(0.2, 0.9, 0.3, 1);
-  position: absolute;
-  top: 50%;
-  width: min(var(--zia-zone-w), 45%);
-  height: min(var(--zia-zone-h), 86%);
-  translate: var(--zia-zone-tx) calc(-50% + var(--zia-zone-ty));
-  border-radius: 14px;
-  background: #1f1f1f;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  opacity: 0;
-  scale: 0.94;
-  pointer-events: none;
-  /* Size springs (--zia-spring): a tab dragged in, it grows a touch past its
-   * new size and settles back; dragged off, it shrinks a touch past and
-   * settles back */
-  transition:
-    width var(--zia-spring-time) var(--zia-spring),
-    height var(--zia-spring-time) var(--zia-spring),
-    translate 0.2s var(--zia-zone-ease),
-    background-color 0.15s ease,
-    opacity 0.18s ease,
-    scale 0.2s var(--zia-zone-ease);
-
-  &[side="left"] {
-    left: var(--zia-zone-edge);
-  }
-
-  &[side="right"] {
-    right: var(--zia-zone-edge);
-  }
-
-  #zia-split-drop[shown] & {
-    opacity: 1;
-    scale: 1;
-  }
-
-  #zia-split-drop[has-side] & {
-    --zia-zone-w: 300px;
-    --zia-zone-h: 500px;
-  }
-
-  &[active] {
-    --zia-zone-w: 350px !important;
-    --zia-zone-h: 580px !important;
-    z-index: 1;
-
-    background: rgb(23, 44, 52);
-  }
-}
-
-.zia-split-zone-inner {
-  position: absolute;
-  inset: 6px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  border: 1px dashed rgba(255, 255, 255, 0.16);
-  border-radius: 9px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 14px;
-  font-weight: 500;
-  transition: border-color 0.15s ease, color 0.15s ease;
-
-  & > * {
-    transition: scale var(--zia-spring-time) var(--zia-spring);
-  }
-
-  .zia-split-zone[active] & > * {
-    scale: 1.3;
-  }
-
-  .zia-split-zone[active] & {
-    border: 1.5px dashed rgba(72, 176, 228, 0.9);
-    color: rgb(80, 178, 232);
-  }
-}
-
-.zia-split-zone-icon,
-.zia-split-zone-label {
-  --zia-shine-base: currentColor;
-  background-image: linear-gradient(
-    100deg,
-    var(--zia-shine-base) 0%,
-    var(--zia-shine-base) 40%,
-    rgba(255, 255, 255, 0.95) 50%,
-    var(--zia-shine-base) 60%,
-    var(--zia-shine-base) 100%
-  );
-  background-size: 300% 100%;
-  background-position: 100% 0;
-  animation: zia-zone-shine 2.8s ease-in-out infinite;
-}
-
-.zia-split-zone-label {
-  color: transparent;
-  background-clip: text;
-
-  --zia-shine-base: rgba(255, 255, 255, 0.55);
-
-  .zia-split-zone[active] & {
-    --zia-shine-base: rgb(80, 178, 232);
-  }
-}
-
-.zia-split-zone[side="right"] .zia-split-zone-label,
-.zia-split-zone[side="right"] .zia-split-zone-icon {
-  animation-delay: 0.35s;
-}
-
-@keyframes zia-zone-shine {
-  0%, 55% { background-position: 100% 0; }
-  100% { background-position: 0% 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .zia-split-zone-icon,
-  .zia-split-zone-label {
-    animation: none;
-  }
-}
-
-.zia-split-zone-icon {
-  width: 18px;
-  height: 18px;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect x='1.6' y='2.6' width='12.8' height='10.8' rx='2' fill='none' stroke='black' stroke-width='1.3'/%3E%3Crect x='2.6' y='3.6' width='4.4' height='8.8' rx='.8'/%3E%3C/svg%3E") center / contain no-repeat;
-
-  .zia-split-zone[side="right"] & {
-    transform: scaleX(-1);
-  }
-}
-
-#zia-split-blank-drag-image {
-  position: fixed;
-  left: -10000px;
-  top: 0;
-  pointer-events: none;
-}
-
-#zia-split-drag-picture {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 10001;
-  display: none;
-  pointer-events: none;
-  border-radius: 7px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
-  transition: translate 0.04s linear;
-
-  &[following] {
-    display: block;
-  }
-}
-
 :root:not([inDOMFullscreen="true"]) #tabbrowser-tabbox[zen-split-view="true"] {
   --zia-split-pad: 3px;
   --zia-split-radius: 8px;
@@ -3946,21 +2446,6 @@ tab-group[split-view-group] .tab-group-container > .tabbrowser-tab::after {
   }
 }
 
-/* In a folder, a split's box ends where a tab's does, the folder's gap in
-   from its edge (it kept Zen's 2px, so it ran further right than the tabs
-   above and below it) */
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
 :root[zen-sidebar-expanded="true"] tab-group[split-view-group]:is([hasactivetab], :has(.tabbrowser-tab[visuallyselected])) .tab-group-container {
   background: var(--zia-active-tab-bg) !important;
   box-shadow: 0 0 var(--zia-active-glow-blur) var(--zia-active-glow-spread) var(--zia-active-glow-color) !important;
@@ -3987,7 +2472,6 @@ tab-group[split-view-group] .tab-group-container > .tabbrowser-tab::after {
     display: none !important;
   }
 }
-
 @media -moz-pref("zia.features.find-bar") {
 .browserContainer:has(> findbar) {
   position: relative;
@@ -4877,9 +3361,6 @@ tooltip[default="true"] {
   }
 }
 
-#zen-dragover-background {
-  display: none !important;
-}
 
 :root[zen-sidebar-expanded] .zen-current-workspace-indicator:not(#zia-workspace-slot > .zen-current-workspace-indicator) {
   display: none !important;
@@ -4950,9 +3431,7 @@ tooltip[default="true"] {
     opacity: 0.4 !important;
   }
 }
-
-.tabbrowser-tab .tab-reset-button,
-zen-folder .tab-reset-button {
+.tabbrowser-tab .tab-reset-button {
   -moz-context-properties: fill, fill-opacity !important;
   fill: rgb(255, 255, 255) !important;
   fill-opacity: 1 !important;
@@ -4965,39 +3444,9 @@ zen-folder .tab-reset-button {
   padding: 4px !important;
 }
 
-zen-folder .tab-reset-button {
-  fill-opacity: var(--zia-folder-mark-opacity) !important;
-  corner-shape: round !important;
-}
-
 #urlbar #identity-icon-label,
 #urlbar .identity-icon-label {
   display: none !important;
-}
-
-/* A folder being named by the local model shimmers (zia.uc.js) */
-.tab-group-label-container[zia-skeleton-on="true"] > *:not(.zia-skeleton-overlay) {
-  opacity: 0 !important;
-}
-
-.zia-skeleton-block {
-  background-image: linear-gradient(
-    100deg,
-    rgba(255, 255, 255, 0.06) 40%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.06) 60%
-  );
-  background-size: 300% 100%;
-  animation: zia-suggesting-shimmer 1.1s ease-in-out infinite;
-}
-
-@keyframes zia-suggesting-shimmer {
-  from {
-    background-position: 130% 0;
-  }
-  to {
-    background-position: -30% 0;
-  }
 }
 @media -moz-pref("layout.css.prefers-color-scheme.content-override", 1),
        (-moz-pref("layout.css.prefers-color-scheme.content-override", 2)) and (not (-moz-system-dark-theme)) {
@@ -5053,38 +3502,6 @@ zen-folder .tab-reset-button {
   border-radius: 16.5px !important;
   --urlbarview-separator-color: transparent !important;
   --urlbarView-separator-color: transparent !important;
-}
-
-:root:not(#zia-none) .tabbrowser-tab[zia-morph] > .tab-stack > .tab-background {
-  margin-inline-start: var(--zia-morph-bg-start) !important;
-  margin-inline-end: var(--zia-morph-bg-end) !important;
-  transition: margin-inline-start 120ms ease-out, margin-inline-end 120ms ease-out !important;
-}
-
-:root:not(#zia-none) .tabbrowser-tab[zia-morph] > .tab-stack > .tab-content {
-  margin-inline-start: var(--zia-morph-content-start) !important;
-  margin-inline-end: var(--zia-morph-content-end) !important;
-  transition: margin-inline-start 120ms ease-out, margin-inline-end 120ms ease-out !important;
-}
-
-:root:not(#zia-none) .tabbrowser-tab[zia-morph-done] > .tab-stack > :is(.tab-background, .tab-content) {
-  transition: none !important;
-}
-
-:root:not(#zia-none) tab-group[split-view-group][zia-morph] > .tab-group-container {
-  margin-inline-start: var(--zia-morph-bg-start) !important;
-  margin-inline-end: var(--zia-morph-bg-end) !important;
-  transition: margin-inline-start 120ms ease-out, margin-inline-end 120ms ease-out !important;
-}
-
-:root:not(#zia-none) tab-group[split-view-group][zia-morph-done] > .tab-group-container {
-  transition: none !important;
-}
-
-/* ...and dropped, it eases out to its own width (zia.uc.js) */
-:root:not(#zia-none) .tabbrowser-tab[zia-morph-out] > .tab-stack > :is(.tab-background, .tab-content),
-:root:not(#zia-none) tab-group[split-view-group][zia-morph-out] > .tab-group-container {
-  transition: margin-inline-start 160ms ease-out, margin-inline-end 160ms ease-out !important;
 }
 
 /* The pop-up in the toolbar's colour, copied as it opened (the "Address bar
@@ -5953,4 +4370,27 @@ zen-folder .tab-reset-button {
   &[zen-right-side="true"] #sidebar-box[sidebar-positionend]::before {
     inset-inline-end: 0;
   }
+}
+/* Playing tabs keep their favicon and mute controls without a glow box.
+   Zen also draws animated music notes above essential favicons. */
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) .tab-icon-stack::after {
+  content: none !important;
+  display: none !important;
+}
+
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background::before,
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background::after {
+  content: none !important;
+  display: none !important;
+}
+
+:root:not(#zia-native-media):not(#zia-native-media-2) .tab-icon-overlay:not([crashed]):is([soundplaying], [muted]) {
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
 }

@@ -4,10 +4,9 @@
     "zia.newtab.real-tab",
     "zia.tabs.sound-bars",
     "zia.toolbar.site-color",
-    "zia.split.drop-cards",
     "zia.page.rounding",
   ];
-  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color", "zia.split.drop-cards"];
+  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color"];
 
 
   // ---------- Picture-in-picture: Dia's look, and tucking into the screen edge
@@ -45,4 +44,3 @@
       decoratePipWindow(win);
     }
   }
-

@@ -23,12 +23,10 @@
     const urlbar = gURLBar?.textbox || document.getElementById("urlbar");
     const apply = () => {
       urlbar?.toggleAttribute("zia-classic", !Services.prefs.getBoolPref("zia.urlbar.dia-style", true));
-      // Off gives Cmd/Ctrl+T back to Zen's floating address bar, and tab
-      // drops on the page back to Zen's own split.
+      // Off gives Cmd/Ctrl+T back to Zen's floating address bar.
       try {
         const defaults = Services.prefs.getDefaultBranch("");
         defaults.setBoolPref("zen.urlbar.replace-newtab", !Services.prefs.getBoolPref("zia.newtab.real-tab", true));
-        defaults.setBoolPref("zen.splitView.enable-tab-drop", !Services.prefs.getBoolPref("zia.split.drop-cards", true));
       } catch (err) {
         noteError("options: apply (2)", err);
       }
@@ -49,7 +47,7 @@
     });
   }
 
-  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "folder-icon-suggest", "tab-hover-cards"];
+  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "tab-hover-cards"];
 
   function featureOn(name) {
     try {
@@ -64,4 +62,3 @@
       safely(name, fn);
     }
   }
-

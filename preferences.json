@@ -113,7 +113,7 @@
   },
   {
     "type": "checkbox",
-    "label": "Tab and folder hover cards",
+    "label": "Tab hover cards",
     "property": "zia.features.tab-hover-cards",
     "defaultValue": true
   },
@@ -122,12 +122,6 @@
     "label": "Hover cards are slightly see-through, with what's behind them blurred",
     "property": "zia.cards.blur",
     "defaultValue": true
-  },
-  {
-    "type": "checkbox",
-    "label": "Name new folders and choose their icons with a local model (downloads ~25MB the first time)",
-    "property": "zia.features.folder-icon-suggest",
-    "defaultValue": false
   },
   {
     "type": "separator",
@@ -165,12 +159,6 @@
   },
   {
     "type": "checkbox",
-    "label": "Split essentials (experimental): drag a two-site split onto the essentials",
-    "property": "zia.essentials.split",
-    "defaultValue": true
-  },
-  {
-    "type": "checkbox",
     "label": "Asleep (unloaded) tabs, essentials and folders look dimmed",
     "property": "zia.tabs.dim-asleep",
     "defaultValue": false
@@ -201,12 +189,6 @@
     "type": "checkbox",
     "label": "Zia's rounded page corners (off: Zen's own)",
     "property": "zia.page.rounding",
-    "defaultValue": true
-  },
-  {
-    "type": "checkbox",
-    "label": "Split view drop cards when dragging a tab onto the page (off: Zen's own)",
-    "property": "zia.split.drop-cards",
     "defaultValue": true
   },
   {
@@ -292,28 +274,6 @@
     "label": "New tabs open your default search engine's page (off: Zen's new tab page, or an extension's if you use one)",
     "property": "zia.newtab.search-engine",
     "defaultValue": true
-  },
-  {
-    "type": "separator",
-    "label": "Folders"
-  },
-  {
-    "type": "checkbox",
-    "label": "Folders open and close with a gentle spring",
-    "property": "zia.folders.bounce",
-    "defaultValue": true
-  },
-  {
-    "type": "checkbox",
-    "label": "Coloured folders only show their colour when hovered or open",
-    "property": "zia.folders.tint-when-open",
-    "defaultValue": false
-  },
-  {
-    "type": "checkbox",
-    "label": "A coloured folder's card (its tabs, shown on hover) takes the folder's colour",
-    "property": "zia.folders.tint-card",
-    "defaultValue": false
   },
   {
     "type": "separator",

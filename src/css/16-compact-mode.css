@@ -65,9 +65,6 @@
   }
 }
 
-#zen-dragover-background {
-  display: none !important;
-}
 
 :root[zen-sidebar-expanded] .zen-current-workspace-indicator:not(#zia-workspace-slot > .zen-current-workspace-indicator) {
   display: none !important;
@@ -138,4 +135,3 @@
     opacity: 0.4 !important;
   }
 }
-
