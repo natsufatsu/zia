@@ -3181,6 +3181,16 @@ zen-workspace arrowscrollbox::part(scrollbox) {
   font-size: var(--zia-text-size) !important;
 }
 @media -moz-pref("zia.features.media-player") {
+:root {
+  --zia-media-bg: rgba(0, 0, 0, 0.225);
+  --zia-media-card-height: 64px;
+  --zia-media-card-height-open: 124px;
+  --zia-media-radius: 12.5px;
+  --zia-media-ring-size: 46px;
+  --zia-media-art-size: 38px;
+  --zia-media-ease: var(--zen-media-stack-easing, cubic-bezier(0.25, 1, 0.5, 1));
+}
+
 #zen-media-controls-toolbar {
   --zia-media-ease: var(--zen-media-stack-easing, cubic-bezier(0.25, 1, 0.5, 1));
 
@@ -3199,8 +3209,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 
     --zen-sidebar-notification-bg: rgb(0, 0, 0);
 
-    background-color: var(--zia-media-rest, var(--zia-media-bg)) !important;
-    background-image: none !important;
+    background: var(--zia-media-bg) !important;
     isolation: isolate;
 
     & .zen-media-info-vbox::before {
@@ -3233,11 +3242,11 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     box-sizing: border-box !important;
     height: var(--zia-media-card-height) !important;
     transition:
-      transform var(--zia-spring-time) var(--zia-spring),
+      transform 0.35s var(--zia-media-ease),
       opacity 0.3s var(--zia-media-ease),
       filter 0.3s var(--zia-media-ease),
-      height var(--zia-spring-time) var(--zia-spring),
-      background-color 0.3s var(--zia-media-ease) !important;
+      height 0.3s var(--zia-media-ease),
+      background-color 0.3s ease !important;
 
     &[zen-reindexing] {
       transition: none !important;
@@ -3291,9 +3300,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
       min-height: var(--zia-media-art-size) !important;
       padding: 0 !important;
       border-radius: 7px !important;
-      /* (the picture itself too: on Windows it came through square, the
-         rounding only on what's behind it) */
-      clip-path: inset(0 round 7px);
       transition: opacity 0.2s ease, filter 0.2s ease;
     }
 
@@ -3348,7 +3354,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     }
   }
 
-  .zen-media-card:is([media-position-hidden], [zia-live]) .zia-ring-fill {
+  .zen-media-card[media-position-hidden] .zia-ring-fill {
     opacity: 0;
   }
 
@@ -3378,18 +3384,32 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 
   .zen-media-title {
     color: rgb(255, 255, 255) !important;
-    font-weight: var(--zia-folder-weight) !important;
+    font-weight: 500 !important;
     font-size: 1.08em !important;
   }
 
   .zen-media-artist {
     color: rgba(255, 255, 255, 0.65) !important;
     opacity: 1 !important;
-    font-weight: var(--zia-tab-weight) !important;
+    font-weight: 400 !important;
     font-size: 0.95em !important;
   }
 
-  .zen-media-playpause-button { grid-column: 6; grid-row: 1; }
+  /* Keep the mute state beside the track metadata; playback belongs to the
+     expanded control row with the transport buttons. */
+  .zen-media-mute-button {
+    grid-column: 6;
+    grid-row: 1;
+    justify-self: center !important;
+    max-height: 30px !important;
+    opacity: 1 !important;
+    translate: 0 0 !important;
+    margin-top: 0 !important;
+    pointer-events: auto !important;
+  }
+
+  /* Span the card so transport alignment is independent of metadata columns. */
+  .zen-media-playpause-button { grid-column: 1 / -1; grid-row: 3; }
 
   .zen-media-progress-hbox {
     grid-column: 1 / -1;
@@ -3407,8 +3427,8 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     margin: 0 !important;
     pointer-events: none !important;
     transition:
-      height var(--zia-spring-time) var(--zia-spring),
-      margin var(--zia-spring-time) var(--zia-spring),
+      height 0.3s var(--zia-media-ease),
+      margin 0.3s var(--zia-media-ease),
       opacity 0.25s var(--zia-media-ease) !important;
   }
 
@@ -3416,7 +3436,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     display: none !important;
   }
 
-  .zen-media-card:is([media-position-hidden], [zia-live]):not([media-sharing]) .zen-media-progress-hbox {
+  .zen-media-card[media-position-hidden]:not([media-sharing]) .zen-media-progress-hbox {
     & > * {
       display: none !important;
     }
@@ -3486,15 +3506,22 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     }
   }
 
-  .zen-media-mute-button { grid-column: 1; grid-row: 3; justify-self: start !important; }
-  .zen-media-previoustrack-button { grid-column: 3; grid-row: 3; }
-  .zen-media-nexttrack-button { grid-column: 4; grid-row: 3; }
-  /* Zen hides it unless the page has exactly one video (YouTube has hidden
-   * previews too); the button picks the main video either way. */
-  .zen-media-pip-button { grid-column: 5; grid-row: 3; display: flex !important; }
-  .zen-media-close-button { grid-column: 6; grid-row: 3; }
+  .zen-media-pip-button { grid-column: 1 / -1; grid-row: 3; justify-self: start !important; }
+  .zen-media-previoustrack-button {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    position: relative;
+    inset-inline-start: calc(-25% + 7px);
+  }
+  .zen-media-nexttrack-button {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    position: relative;
+    inset-inline-start: calc(25% - 7px);
+  }
+  .zen-media-close-button { grid-column: 1 / -1; grid-row: 3; justify-self: end !important; }
 
-  .zen-media-mute-button,
+  .zen-media-playpause-button,
   .zen-media-previoustrack-button,
   .zen-media-nexttrack-button,
   .zen-media-pip-button,
@@ -3506,27 +3533,31 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     margin-top: 0 !important;
     pointer-events: none;
     transition:
-      max-height var(--zia-spring-time) var(--zia-spring),
+      max-height 0.3s var(--zia-media-ease),
       opacity 0.3s var(--zia-media-ease),
-      translate var(--zia-spring-time) var(--zia-spring),
-      margin var(--zia-spring-time) var(--zia-spring) !important;
+      translate 0.3s var(--zia-media-ease),
+      margin 0.3s var(--zia-media-ease) !important;
   }
 
   .zen-media-card:not([muted]) .zen-media-mute-button {
-    list-style-image: var(--zia-sound-still, url("chrome://sine/content/zia/icons/sound-still.svg")) !important;
+    list-style-image: var(--zia-sound-still, url("chrome://sine/content/zia/icons/workspace-player/sound-still.svg")) !important;
   }
 
   .zen-media-card.playing:not([muted]) .zen-media-mute-button {
-    list-style-image: var(--zia-sound-wave, url("chrome://sine/content/zia/icons/sound-wave.svg")) !important;
+    list-style-image: var(--zia-sound-wave, url("chrome://sine/content/zia/icons/workspace-player/sound-wave.svg")) !important;
   }
 
   .zen-media-card[muted] .zen-media-mute-button {
-    list-style-image: var(--zia-sound-muted, url("chrome://sine/content/zia/icons/sound-muted.svg")) !important;
+    list-style-image: var(--zia-sound-muted, url("chrome://sine/content/zia/icons/workspace-player/sound-muted.svg")) !important;
   }
 
   .zen-media-mute-button > .toolbarbutton-icon {
     -moz-context-properties: fill;
     fill: currentColor !important;
+  }
+
+  .zen-media-card:not([can-pip]) .zen-media-pip-button {
+    display: none !important;
   }
 
   .media-device-buttons {
@@ -3535,35 +3566,9 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     justify-self: end;
   }
 
-  /* With more than one card, the whole stack opens without the spring too,
-   * height included */
-  &:hover:has(.zen-media-card ~ .zen-media-card) .zen-media-card:not([zen-reindexing]) {
-    transition:
-      transform 0.35s var(--zia-media-ease),
-      opacity 0.3s var(--zia-media-ease),
-      filter 0.3s var(--zia-media-ease),
-      height 0.3s var(--zia-media-ease),
-      background-color 0.3s var(--zia-media-ease) !important;
-  }
-
   &:hover {
     .zen-media-card {
       height: var(--zia-media-card-height-open) !important;
-      /* The stack fans open without the spring, which made the top card
-       * bounce; it keeps the spring when it closes, and the card still
-       * springs as it grows. */
-      transition:
-        transform 0.35s var(--zia-media-ease),
-        opacity 0.3s var(--zia-media-ease),
-        filter 0.3s var(--zia-media-ease),
-        height var(--zia-spring-time) var(--zia-spring),
-        background-color 0.3s var(--zia-media-ease) !important;
-
-      &[zen-reindexing] {
-        transition: none !important;
-      }
-
-      background-color: var(--zia-media-solid, var(--zia-media-card-base)) !important;
     }
 
     .zen-media-progress-hbox {
@@ -3575,7 +3580,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 
     .zen-media-current-time,
     .zen-media-duration {
-      max-width: 64px;
+      max-width: 40px;
       opacity: 1;
     }
 
@@ -3595,7 +3600,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
       }
     }
 
-    .zen-media-mute-button,
+    .zen-media-playpause-button,
     .zen-media-previoustrack-button,
     .zen-media-nexttrack-button,
     .zen-media-pip-button,
@@ -3646,17 +3651,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 }
 
 #zen-media-controls-toolbar:not(:hover) {
-  & .zen-media-mute-button {
-    grid-column: 6;
-    grid-row: 1;
-    justify-self: center !important;
-    max-height: 30px !important;
-    opacity: 1 !important;
-    translate: 0 0 !important;
-    margin-top: 0 !important;
-    pointer-events: auto !important;
-  }
-
   & .zen-media-playpause-button {
     opacity: 0 !important;
     pointer-events: none !important;
@@ -3667,9 +3661,7 @@ zen-workspace arrowscrollbox::part(scrollbox) {
   transition: opacity 0.2s var(--zia-media-ease) !important;
 }
 
-/* (not while the front card fades away, when the one behind is about to
-   take its place: it showed as an almost empty card until it did) */
-#zen-media-controls-toolbar:not(:hover):has(.zen-media-card[stacked-behind]):not(:has(.zen-media-card:not([stacked-behind]):is([zen-hiding], [zen-removing]))) .zen-media-card[stacked-behind] {
+#zen-media-controls-toolbar:not(:hover):has(.zen-media-card[stacked-behind]) .zen-media-card[stacked-behind] {
   mask: linear-gradient(
     #000 0 calc(var(--zen-media-stack-peek, 8px) * var(--zen-media-card-peek-level, 1) / (1 - 0.04 * var(--zen-media-card-peek-level, 1))),
     transparent 0
@@ -3679,8 +3671,28 @@ zen-workspace arrowscrollbox::part(scrollbox) {
     opacity: 0 !important;
   }
 }
+#zen-media-controls-toolbar .zen-media-card {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07) !important;
 }
 
+/* A translucent workspace tint, with a denser background when expanded. */
+#zen-media-controls-toolbar .zen-media-card {
+  background: color-mix(in srgb, var(--zia-media-space-bg, #66505d) var(--zia-media-opacity-collapsed, 40%), transparent) !important;
+}
+#zen-media-controls-toolbar:is(:hover, :focus-within) .zen-media-card {
+  background: color-mix(in srgb, var(--zia-media-space-bg, #66505d) var(--zia-media-opacity-expanded, 90%), transparent) !important;
+  color: rgb(245, 245, 247) !important;
+}
+#zen-media-controls-toolbar .zen-media-artist {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  #zen-media-controls-toolbar .zen-media-card {
+    transition: none !important;
+  }
+}
+
+}
 #zia-split-drop {
   --zia-drop-pull: 0px;
   position: fixed;

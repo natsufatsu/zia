@@ -263,7 +263,9 @@
     safely("allowEmojiFolderIcons", allowEmojiFolderIcons);
     safely("hideWwwInUrlbar", hideWwwInUrlbar);
     safely("watchRightEdges", watchRightEdges);
+    ifOn("media-player", "watchMediaOpacity", watchMediaOpacity);
     ifOn("media-player", "watchMediaGlow", watchMediaGlow);
+    ifOn("media-player", "watchMediaWorkspace", watchMediaWorkspace);
     safely("keepMediaCardsInPlace", keepMediaCardsInPlace);
     safely("watchTabSoundBars", watchTabSoundBars);
     safely("watchSelectedTabGlow", watchSelectedTabGlow);

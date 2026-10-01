@@ -1,3 +1,23 @@
+# Zia — custom media player edition
+
+Full [Zia](https://github.com/z1n-k/zia) 2.80.4, with the music player's
+appearance and workspace/opacity settings from
+[Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
+The sidebar, tab groups, URL bar, split view, PiP, PDF viewer and other features
+keep upstream's implementation and settings. See [VARIANT.md](VARIANT.md).
+
+Install **`natsufatsu/zia`** through Sine, with unofficial JavaScript mods enabled.
+Use this as your full Zia replacement: remove the original `z1n-k/zia` first,
+and disable the standalone Zia URL Bar, Split Tabs and Media Player mods because
+this package already includes those features. Restart Zen after switching.
+Quick Save Image is independent and can remain enabled.
+
+In **Settings → Sine Mods → Zia (custom media player)**, adjust collapsed and
+expanded player background opacity. Defaults are 40% and 90%; changes apply
+immediately. Existing preferences from the standalone player are reused.
+
+---
+
 <!--
   Images live on the readme-images branch; docs/readme-images.md lists every
   slot with its size and what it shows. Slots still waiting for their final
@@ -34,7 +54,7 @@ the page, the toolbar, the sidebar, the address bar, PDFs, media and picture-in-
 
 1. Install [Sine](https://github.com/CosmoCreeper/Sine).
 2. In Zen, go to **Settings → Sine Mods**, open Sine's settings and turn on **installing JS from unofficial sources** (Zia is a JavaScript mod).
-3. Paste `z1n-k/zia` into the box under the marketplace.
+3. Paste `natsufatsu/zia` into the box under the marketplace.
 4. Restart Zen when Sine asks. If Zia doesn't load, open `about:support` and click **Clear startup cache**.
 
 Then set **Look and Feel → Sidebar and Top Toolbar** and use dark mode. Updates arrive through Sine; the first start after one takes a moment while Zia sets up its icons.
