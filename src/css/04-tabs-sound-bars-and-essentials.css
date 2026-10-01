@@ -234,3 +234,85 @@
 
 
 }
+
+/* Tab numbers (zia.uc.js): hold Cmd/Ctrl and a small key at the end of each
+   tab, and in the corner of each essential, shows the number Cmd/Ctrl+1–9
+   takes you to, like the shortcuts in a macOS menu. Optionally always shown. */
+.tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+  display: none;
+  flex: none;
+  box-sizing: border-box;
+  min-width: 20px;
+  height: 20px;
+  margin: 0 0 0 6px;
+  padding: 0 5px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+  font: 450 9.5px/20px ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tabbrowser-tab[visuallyselected] > .tab-stack > .tab-content > .zia-tab-number {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Essentials, and every tab when the sidebar is collapsed to icons: a
+   smaller key in the corner */
+.tabbrowser-tab[zen-essential] > .tab-stack,
+:root:not([zen-sidebar-expanded="true"]) .tabbrowser-tab > .tab-stack {
+  position: relative;
+}
+
+:is(.tabbrowser-tab[zen-essential], :root:not([zen-sidebar-expanded="true"]) .tabbrowser-tab) > .tab-stack > .tab-content > .zia-tab-number {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0 3px;
+  border-radius: 5px;
+  font-size: 8.75px;
+  line-height: 16px;
+}
+
+:root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+  display: block;
+  animation: zia-tab-number-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@media -moz-pref("zia.tab-numbers.always") {
+  .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+    display: block;
+  }
+}
+
+/* The number being typed: its key lights up, in Zia blue or the space's
+   colour, until the key is let go and the tab chosen */
+.tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number[zia-target] {
+  background-color: #5ab9f5 !important;
+  box-shadow: none;
+  color: rgb(8, 24, 38);
+}
+
+:root[zia-tab-number-color="space"][zia-space-colored="true"] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number[zia-target] {
+  background-color: color-mix(in srgb, var(--zen-primary-color) 80%, black) !important;
+  color: rgb(255, 255, 255);
+}
+
+@keyframes zia-tab-number-in {
+  from {
+    opacity: 0;
+    translate: 4px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+    animation: none;
+  }
+}

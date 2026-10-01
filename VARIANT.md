@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.8, commit `ae99883dfa15827ea127fc1f3b4c66a89b579f83`.
+- Previous variant: 2.80.9, commit `d21f54884a130cd2aabfa51f25c4988d5d67cba2`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.9.
+- Current variant: 2.80.10.
 
 ## Player
 
@@ -102,6 +102,23 @@ toolbar-only mode and a simulated later titlebar reparenting in an isolated
 Zen 1.22.3b profile. The reparenting case fails on 2.80.8 and passes on 2.80.9.
 It represents a layout change, rather than a reproduction of every installed
 side mod. The 2.80.8 startup module remains byte-for-byte unchanged.
+
+### Tab-number visibility (2.80.10)
+
+The earlier split-essential stylesheet cleanup truncated the tab-number rules
+that followed it. Cmd/Ctrl created the number elements, and release correctly
+cleared the held flag, but the elements remained visible without their default
+hidden style. The original upstream tab-number CSS is restored verbatim,
+including held/always-show visibility, target highlighting, essential/collapsed
+badge placement and reduced-motion handling. Keyboard handlers, preferences,
+the generated JS and startup/compact-mode fixes are unchanged.
+
+`python tools/check_urlbar_live.py --full-zia --tab-number-check` injects chrome
+key events into isolated Zen 1.22.3b and checks computed badge styles, repeated
+press/release, selection on modifier release, other-shortcut cancellation and
+the always-show preference. The release-visibility case fails on 2.80.9 and
+passes on 2.80.10. The static preservation check also requires the exact original
+CSS block so future split-essential cleanup cannot remove it again.
 
 ### Feature preservation
 

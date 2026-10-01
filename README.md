@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.9**.
+Current version: **2.80.10**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -40,6 +40,11 @@ Version 2.80.9 keeps the workspace indicator inside the sidebar in compact
 mode. It stays hidden while the sidebar is closed and reappears when you reveal
 the sidebar, including after a toolbar layout update. Startup optimizations
 from 2.80.8 are retained.
+
+Version 2.80.10 restores the original tab-number badge styles. Numbers appear
+while Cmd/Ctrl is held and disappear on release; the optional always-show
+setting still works. Number selection, highlighting and badge placement on
+essentials and collapsed sidebar tabs are retained.
 
 ## Install or update
 
