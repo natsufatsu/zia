@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.12**.
+Current version: **2.80.13**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -56,6 +56,9 @@ the same centered line height, including on Windows.
 Version 2.80.12 makes the player's waveform shrink into four dots when paused,
 matching the standalone player. Resuming restores the moving bars; muted media
 keeps the dots. Artwork colors and reduced-motion handling are retained.
+
+Version 2.80.13 moves tab text up by 1px in the expanded sidebar for better
+alignment with the favicons.
 
 ## Install or update
 

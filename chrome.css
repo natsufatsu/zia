@@ -1946,6 +1946,11 @@ zen-workspace arrowscrollbox::part(scrollbox) {
   color: rgb(255, 255, 255) !important;
 }
 
+/* Bring the visible text level with the favicon in the expanded sidebar. */
+:root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) .tab-label-container {
+  translate: 0 -1px;
+}
+
 /* Renaming a tab or folder: the name in the box stays the size it is in the
    list */
 #tab-label-input {

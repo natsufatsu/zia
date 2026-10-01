@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.11, commit `75bff50a9f771cd7cd6e510980efd0095185a260`.
+- Previous variant: 2.80.12, commit `b24aa7808db476ffad20c5d91975c2ea945dae57`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.12.
+- Current variant: 2.80.13.
 
 ## Player
 
@@ -159,6 +159,12 @@ collapse animation. The preservation check allows only this one player-state
 assignment to differ from the previously retained upstream logic.
 
 ### Feature preservation
+
+Tab text is translated upward by 1px in the expanded sidebar in 2.80.13.
+The offset applies to non-essential tab labels, including selected, background,
+pinned and split tabs. Favicons, controls, row heights and group names retain
+their positions. A live layout comparison with the translation disabled checks
+the 1px text movement and unchanged surrounding geometry.
 
 The development workspace uses `tools/check_full_zia_variant.py` to verify
 unchanged upstream files, media CSS/helpers, remaining preferences and package
