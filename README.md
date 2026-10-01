@@ -3,12 +3,23 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.6**.
+Current version: **2.80.7**.
 
-This edition uses **native Zen tab groups, folders and tab dragging**.
+This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
-extra group menus and custom dragging are removed. Zen handles dragging and
-dropping tabs into splits. The experimental split-essential tiles are removed;
+extra group menus and custom sidebar dragging are removed.
+
+Page drops use **Zia Split Tabs 1.0.7**: animated left/right targets, Zen's
+rectangular icon-and-title preview, and movement updated once per animation
+frame. Drop a background tab at either edge to split it beside the current page.
+Dragging the current tab adds a new-tab pane. Moving back over the sidebar
+restores the original preview; releasing in the center cancels the split.
+
+The native split-drop default is disabled for this browser session to avoid
+competing targets. If you explicitly set `zen.splitView.enable-tab-drop` to true
+in about:config, set it to false. Native sidebar tab dragging remains intact.
+
+The experimental split-essential tiles are removed;
 existing essentials and native split tabs are preserved.
 
 Playing or muted tabs keep their favicon and mute controls without the glow
@@ -38,14 +49,18 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 
 - Native group and folder collapse/expand, with group boxes matching Zen's CSS.
 - Native animation, drag-image and folder methods remain unmodified.
-- Native folder icon menu and split-drop preference are preserved.
+- Native folder menus and sidebar drag methods are preserved.
+- Scripted page drops create correctly ordered left/right splits; center drops
+  cancel, previews clean up, and dragging the current tab adds a pane.
 - No glow box or animated media badge on playing essential tabs.
 - Actual audio playback, player artwork, live opacity and expanded layout.
 - Two split-pane toolbars and stable player workspace color across pane focus.
 - Quick Save Image downloads a real image; no mod errors in these checks.
 
-The source build check is `scripts/build.sh --check` (run through Bash).
-PiP, PDFs and other platforms were not separately exercised; their unrelated
+Run `node tests/split-drag-updates.cjs` for drag scheduling, release coordinates,
+preview restoration and cancellation checks. The source build check is
+`scripts/build.sh --check` (run through Bash).
+Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated
 feature code and assets are preserved from upstream.
 
 ## Credits

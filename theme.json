@@ -1,11 +1,11 @@
 {
   "id": "zia",
   "name": "Zia (custom media player)",
-  "description": "Zia with the workspace media player, native tab groups and native dragging.",
+  "description": "Zia with the workspace media player, animated split drop targets, native tab groups and native sidebar dragging.",
   "image": "https://github.com/user-attachments/assets/998f92b8-74ea-4bac-8131-6ab4a9993ab7",
   "readme": "https://raw.githubusercontent.com/natsufatsu/zia/main/README.md",
   "author": "z1n-k (original Zia), natsufatsu (media player variant)",
-  "version": "2.80.6",
+  "version": "2.80.7",
   "updatedAt": "2026-10-01T00:00:00Z",
   "style": {
     "chrome": "chrome.css"

@@ -175,6 +175,7 @@
     safely("keepMediaCardsInPlace", keepMediaCardsInPlace);
     safely("watchTabSoundBars", watchTabSoundBars);
     safely("watchSelectedTabGlow", watchSelectedTabGlow);
+    safely("watchSplitDrop", watchSplitDrop);
     safely("watchSplitPanes", watchSplitPanes);
     ifOn("find-bar", "watchFindBars", watchFindBars);
     safely("watchSpaceColor", watchSpaceColor);
