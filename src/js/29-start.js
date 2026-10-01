@@ -1,10 +1,47 @@
   function safely(name, fn) {
     try {
-      fn();
+      const result = fn();
+      result?.catch?.((err) => console.error(`[Zia] ${name} failed:`, err));
     } catch (err) {
       console.error(`[Zia] ${name} failed:`, err);
     }
   }
+
+  // Give Sine's other scripts and the first browser paint a turn before
+  // optional panels, icon menus and decoration initialize. Each idle slice
+  // is short, including when the browser stays busy restoring a session.
+  const startupTasks = [];
+  let startupIdle = 0;
+  let startupTimer = 0;
+  let startupStopped = false;
+
+  function scheduleStartupTasks() {
+    if (startupStopped || startupIdle || !startupTasks.length) {
+      return;
+    }
+    startupIdle = requestIdleCallback((deadline) => {
+      startupIdle = 0;
+      const started = performance.now();
+      do {
+        const [name, fn] = startupTasks.shift();
+        safely(name, fn);
+      } while (startupTasks.length && !startupStopped &&
+               performance.now() - started < 4 && deadline.timeRemaining() > 1);
+      scheduleStartupTasks();
+    }, { timeout: 250 });
+  }
+
+  function afterStartup(name, fn) {
+    startupTasks.push([name, fn]);
+    scheduleStartupTasks();
+  }
+
+  window.addEventListener("unload", () => {
+    startupStopped = true;
+    startupTasks.length = 0;
+    cancelIdleCallback(startupIdle);
+    clearTimeout(startupTimer);
+  }, { once: true });
 
   function canUnload(tab) {
     return tab?.linkedBrowser?.isRemoteBrowser !== false;
@@ -67,16 +104,24 @@
 
   function watchEdgeGlow() {
     let pending = 0;
+    let settled = 0;
+    let marked = null;
+    const mark = (next) => {
+      if (next === marked) {
+        return;
+      }
+      marked?.removeAttribute("zia-no-glow");
+      marked = next;
+      marked?.setAttribute("zia-no-glow", "true");
+    };
     const update = () => {
       pending = 0;
       if (!gBrowser?.selectedTab) {
         return;
       }
-      for (const el of document.querySelectorAll("[zia-no-glow]")) {
-        el.removeAttribute("zia-no-glow");
-      }
       const tab = gBrowser.selectedTab;
       if (!tab || tab.hasAttribute("zen-essential")) {
+        mark(null);
         return;
       }
       // (a split glows as a whole: at the top, it's the split that goes
@@ -89,28 +134,30 @@
         window.gZenWorkspaces?.activeWorkspaceStrip,
       ].filter(Boolean);
       if (sections.length) {
-        const rows = [];
+        let first = null;
         for (const section of sections) {
           for (const row of section.querySelectorAll(
             ".tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), .tab-group-label-container"
           )) {
             const box = row.getBoundingClientRect();
             if (box.height > 4 && row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) !== false) {
-              rows.push(row);
+              first = row;
+              break;
             }
           }
+          if (first) {
+            break;
+          }
         }
-        if (rows[0] === tab || (split && split.contains(rows[0]))) {
-          glowing.setAttribute("zia-no-glow", "true");
-        }
+        mark(first === tab || (split && first && split.contains(first)) ? glowing : null);
         return;
       }
       const mine = glowing.getBoundingClientRect();
       if (!mine.height) {
+        mark(null);
         return;
       }
       let above = false;
-      let below = false;
       for (const row of document.querySelectorAll(
         "#tabbrowser-tabs .tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), #tabbrowser-tabs .tab-group-label-container"
       )) {
@@ -125,20 +172,22 @@
         if (row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) === false) {
           continue;
         }
-        above ||= box.bottom <= mine.top + 1;
-        below ||= box.top >= mine.bottom - 1;
+        if (box.bottom <= mine.top + 1) {
+          above = true;
+          break;
+        }
       }
-      if (!above) {
-        glowing.setAttribute("zia-no-glow", "true");
-      }
+      mark(!above ? glowing : null);
     };
-    const soon = () => {
-      update();
+    const schedule = () => {
       if (!pending) {
         pending = requestAnimationFrame(update);
       }
-
-      setTimeout(update, 250);
+    };
+    const soon = () => {
+      schedule();
+      clearTimeout(settled);
+      settled = setTimeout(schedule, 250);
     };
     for (const type of [
       "TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned", "TabGrouped",
@@ -146,9 +195,23 @@
     ]) {
       gBrowser.tabContainer.addEventListener(type, soon);
     }
-    window.addEventListener("dragend", () => setTimeout(soon, 450), true);
-
-    setInterval(update, 1000);
+    window.addEventListener("dragend", soon, true);
+    window.addEventListener("resize", soon);
+    window.addEventListener("ZenWorkspacesUIUpdate", soon);
+    gBrowser.tabContainer.addEventListener("transitionend", schedule);
+    gBrowser.tabContainer.addEventListener("animationend", schedule);
+    const changes = new MutationObserver(soon);
+    changes.observe(gBrowser.tabContainer, {
+      childList: true, subtree: true, attributes: true,
+      attributeFilter: ["hidden", "collapsed", "split-view-group"],
+    });
+    Services.prefs.addObserver("zen.workspaces.active", soon);
+    window.addEventListener("unload", () => {
+      cancelAnimationFrame(pending);
+      clearTimeout(settled);
+      changes.disconnect();
+      Services.prefs.removeObserver("zen.workspaces.active", soon);
+    }, { once: true });
     soon();
   }
 
@@ -157,7 +220,7 @@
 
     safely("restoreNativeTabs", restoreNativeTabs);
     safely("applyZenDefaults", applyZenDefaults);
-    safely("setupIconPack", setupIconPack);
+    afterStartup("setupIconPack", setupIconPack);
     safely("watchOptions", watchOptions);
     safely("watchUrlbarPosition", watchUrlbarPosition);
     safely("watchPipWindows", watchPipWindows);
@@ -182,9 +245,9 @@
     safely("animateEssentialsAdds", animateEssentialsAdds);
     ifOn("undo-close", "watchUndoClose", watchUndoClose);
     ifOn("tab-numbers", "watchTabNumbers", watchTabNumbers);
-    safely("watchWelcome", watchWelcome);
-    safely("watchGlanceThumbs", watchGlanceThumbs);
-    safely("watchSidebarPanels", watchSidebarPanels);
+    afterStartup("watchWelcome", watchWelcome);
+    afterStartup("watchGlanceThumbs", watchGlanceThumbs);
+    afterStartup("watchSidebarPanels", watchSidebarPanels);
     safely("watchTypedAddress", watchTypedAddress);
     safely("registerScrollActor", registerScrollActor);
     safely("registerPdfActor", registerPdfActor);
@@ -193,13 +256,13 @@
     safely("watchTitleOnly", watchTitleOnly);
     safely("addDownloadProgress", addDownloadProgress);
     safely("flyFirstDownloadToButton", flyFirstDownloadToButton);
-    ifOn("icon-picker", "addIconPicker", addIconPicker);
+    afterStartup("addIconPicker", () => ifOn("icon-picker", "addIconPicker", addIconPicker));
     safely("watchCompactTopRow", watchCompactTopRow);
-    safely("watchOldIcons", watchOldIcons);
+    afterStartup("watchOldIcons", watchOldIcons);
     safely("watchEssentialRows", watchEssentialRows);
     safely("watchSidebarPaint", watchSidebarPaint);
     safely("watchWindowButtonsSide", watchWindowButtonsSide);
-    safely("addTabHoverCards", addTabHoverCards);
+    afterStartup("addTabHoverCards", addTabHoverCards);
 
     gBrowser.tabContainer.addEventListener("TabSelect", () => {
       const browser = gBrowser.selectedBrowser;
@@ -317,7 +380,7 @@
     safely("animateNavButtons", animateNavButtons);
     safely("springReloadHover", springReloadHover);
     safely("watchEdgeGlow", watchEdgeGlow);
-    safely("watchExtensionIcons", watchExtensionIcons);
+    afterStartup("watchExtensionIcons", watchExtensionIcons);
     safely("keepSidebarUnscrolledSideways", keepSidebarUnscrolledSideways);
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
@@ -329,13 +392,23 @@
     updateTitle();
   }
 
+  const queueStart = () => {
+    if (!startupStopped) {
+      startupTimer = setTimeout(() => {
+        startupTimer = 0;
+        if (!startupStopped) {
+          safely("start", start);
+        }
+      }, 0);
+    }
+  };
   if (window.gBrowserInit?.delayedStartupFinished) {
-    start();
+    queueStart();
   } else {
     const observer = (subject) => {
       if (subject === window) {
         Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
-        start();
+        queueStart();
       }
     };
     Services.obs.addObserver(observer, "browser-delayed-startup-finished");

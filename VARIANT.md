@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.6, commit `1356bc711716ad6014fc137315342c74883828f0`.
+- Previous variant: 2.80.7, commit `4837e8e8cae68efcb2db2bd70eb03cc8a3981c42`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.7.
+- Current variant: 2.80.8.
 
 ## Player
 
@@ -55,6 +55,38 @@ off, as in the standalone mod. Disable the separate Zia Split Tabs mod when
 using this package.
 
 ## Validation
+
+### Startup work
+
+The main startup routine yields one event-loop turn so Sine can load its other
+scripts first. Core URL bar, site color, player, split handlers and actors still
+initialize together. Optional panels, icon setup, welcome tour, glance thumbnails,
+hover cards and extension icons initialize in idle slices with a 4ms budget and
+a 250ms timeout for a busy browser. An individual initializer can exceed that
+budget; the scheduler yields between initializers. Closing the window cancels
+pending work. Synchronous and asynchronous initializer failures are logged.
+
+Selected-tab edge decoration now reacts to tab/workspace/layout events instead
+of polling every second. Event bursts share a single animation frame and a
+debounced settled check. Only the first visible row is measured in Zen's
+workspace containers. Unchanged decoration does not rewrite attributes.
+Stylesheets, other feature modules, preferences and icon assets are unchanged.
+
+`tests/startup-work.cjs` checks peer scheduling, bounded slices, unload
+cancellation, coalesced event bursts and retained first-row/split behavior.
+The development workspace's `tools/profile_zia_startup.py` compares isolated
+Zen profiles with cold and warm icon caches. It measures sequential script
+loading after Zen is ready, not total desktop startup time. The synthetic
+60-tab/200-event case checks scaling; it does not reproduce a user's restored
+session or the complete set of side mods.
+
+On Windows with Zen 1.22.3b, the same 60-tab/200-event run produced 35,821
+layout reads in 2.80.7 and 12 in 2.80.8. Warm sequential script execution,
+with Sine's `ignoreCache: true`, measured 43.5ms before and 12.3ms after;
+cold execution measured 92.4ms and 52.2ms. These are individual local runs
+with profiling instrumentation, not a promised browser launch speedup.
+
+### Feature preservation
 
 The development workspace uses `tools/check_full_zia_variant.py` to verify
 unchanged upstream files, media CSS/helpers, remaining preferences and package

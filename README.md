@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.7**.
+Current version: **2.80.8**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -29,6 +29,12 @@ remain available.
 The URL bar, site-colored toolbar, page frame, split-pane toolbars, media
 metadata/artwork, PiP, PDF viewer and other unrelated Zia features remain.
 See [VARIANT.md](VARIANT.md) for the scope and validation.
+
+Version 2.80.8 reduces startup work while retaining the same styles. Zia yields
+to the other Sine scripts before initializing and sets up optional panels,
+icon menus and hover cards in short idle slices. Tab decoration updates share
+one animation frame and one final check after transitions settle; they stop
+at the first visible row and no longer scan every tab every second.
 
 ## Install or update
 
@@ -58,7 +64,8 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 - Quick Save Image downloads a real image; no mod errors in these checks.
 
 Run `node tests/split-drag-updates.cjs` for drag scheduling, release coordinates,
-preview restoration and cancellation checks. The source build check is
+preview restoration and cancellation checks. `node tests/startup-work.cjs`
+checks startup scheduling, event bursts and selected-row decoration. The source build check is
 `scripts/build.sh --check` (run through Bash).
 Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated
 feature code and assets are preserved from upstream.
