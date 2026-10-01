@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.14**.
+Current version: **2.80.15**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -64,6 +64,10 @@ Version 2.80.14 skips first-row tab decoration scans while the compact sidebar
 is hidden. Revealing the sidebar refreshes the decoration, including after
 changing tabs while it was hidden.
 
+Version 2.80.15 animates the toolbar clip with Zen's sidebar timing instead of
+measuring the sidebar and rewriting the clip every frame. The toolbar still
+stays hidden behind the sidebar as it moves, including on the right side.
+
 ## Install or update
 
 1. Enable unofficial JavaScript mods in Sine.
@@ -97,6 +101,9 @@ Run `node tests/split-drag-updates.cjs` for drag scheduling, release coordinates
 preview restoration, cancellation and mouse-press targeting checks. `node tests/startup-work.cjs`
 checks startup scheduling, event bursts and selected-row decoration. The source build check is
 `scripts/build.sh --check` (run through Bash).
+The development workspace's `python tools/check_urlbar_live.py --full-zia --inspect
+--compact-startup --compact-clipping-check` checks clipping against the sidebar
+edge while opening, closing, reversing direction and resizing.
 Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated
 feature code and assets are preserved from upstream.
 

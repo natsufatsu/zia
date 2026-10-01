@@ -48,6 +48,7 @@
         )
       )) {
         moveTopRow();
+        followCover();
       }
     });
     watcher.observe(navBar, { childList: true, subtree: true });
@@ -65,76 +66,142 @@
 
     // The top toolbar stays up while the sidebar is out, cut away only where
     // the sidebar covers it (see-through, the address showed through it).
-    // It follows the sidebar as it slides, frame by frame, until it settles.
-    const covered = () => [
+    // Read the geometry once per change, then let Firefox animate the clip
+    // with the sidebar's own transition rather than polling every frame.
+    const toolbarElements = () => [
       document.getElementById("zen-appcontent-navbar-container"),
       document.getElementById("urlbar"),
-    ].filter((el) => el && !toolbox?.contains(el));
-    function cutUnder(el, over) {
+    ].filter(Boolean);
+    function clipUnder(el, box, over, raw = false) {
       let start = 0;
       let end = 0;
       if (over && el.getAttribute("breakout-extend") !== "true") {
-        const box = el.getBoundingClientRect();
-        const across = over.bottom > box.top && over.top < box.bottom && over.right > box.left && over.left < box.right;
+        const across = over.bottom > box.top && over.top < box.bottom &&
+          (raw || (over.right > box.left && over.left < box.right));
         if (across) {
-          const onLeft = over.left + over.width / 2 < window.innerWidth / 2;
-          start = onLeft ? Math.min(box.width, Math.max(0, over.right - box.left)) : 0;
-          end = onLeft ? 0 : Math.min(box.width, Math.max(0, box.right - over.left));
+          const onLeft = root.getAttribute("zen-right-side") !== "true";
+          const amount = onLeft ? over.right - box.left : box.right - over.left;
+          const inset = raw ? amount : Math.ceil(Math.min(box.width, Math.max(0, amount)));
+          start = onLeft ? inset : 0;
+          end = onLeft ? 0 : inset;
         }
       }
-      const clip = start || end ? `inset(0 ${Math.ceil(end)}px 0 ${Math.ceil(start)}px)` : "";
-      if (el.style.clipPath !== clip) {
-        el.style.clipPath = clip;
-      }
-      return clip;
+      return start || end || raw ? `inset(0 ${end}px 0 ${start}px)` : "";
     }
     let coverFrame = 0;
-    let coverStill = 0;
-    let coverLast = "";
+    const clipAnimations = new Map();
+    function applyClip(el, clip, from, to, motion) {
+      clipAnimations.get(el)?.cancel();
+      clipAnimations.delete(el);
+      if (el.style.clipPath !== clip) el.style.clipPath = clip;
+      if (!motion || from === to) return;
+      const animation = el.animate([{ clipPath: from }, { clipPath: to }], {
+        ...motion.effect.getTiming(), fill: "both",
+      });
+      animation.playbackRate = motion.playbackRate;
+      if (motion.startTime !== null) animation.startTime = motion.startTime;
+      else if (motion.currentTime !== null) animation.currentTime = motion.currentTime;
+      clipAnimations.set(el, animation);
+      animation.finished.then(() => {
+        if (clipAnimations.get(el) === animation) {
+          clipAnimations.delete(el);
+          animation.cancel();
+        }
+      }, () => {});
+    }
     function cover() {
       coverFrame = 0;
-      // (shown, or sliding in or out: hidden, it's off screen and unseen)
-      const out = inCompactMode() && toolbox && getComputedStyle(toolbox).visibility !== "hidden";
+      const targets = toolbarElements();
+      const elements = targets.filter((el) => !toolbox?.contains(el));
+      const style = inCompactMode() && toolbox ? getComputedStyle(toolbox) : null;
       let over = null;
-      if (out) {
-        // (the sidebar's own card: the toolbox's padding round it is clear)
+      let fromOver = null;
+      let toOver = null;
+      let motion = null;
+      if (style && style.visibility !== "hidden") {
+        // getAnimations updates CSS transitions before reading their endpoints.
+        const axis = root.getAttribute("zen-right-side") === "true" ? "right" : "left";
+        motion = toolbox.getAnimations().find((animation) =>
+          animation.transitionProperty === axis && animation.playState !== "finished"
+        );
         const box = toolbox.getBoundingClientRect();
-        const style = getComputedStyle(toolbox);
         const left = box.left + (parseFloat(style.paddingLeft) || 0);
         const right = box.right - (parseFloat(style.paddingRight) || 0);
         over = { left, right, top: box.top, bottom: box.bottom, width: Math.max(0, right - left) };
+        if (motion) {
+          const frames = motion.effect.getKeyframes();
+          const origin = parseFloat(style[axis]);
+          const first = parseFloat(frames[0]?.[axis]);
+          const last = parseFloat(frames.at(-1)?.[axis]);
+          if ([origin, first, last].every(Number.isFinite)) {
+            const shifted = (value) => {
+              const delta = (value - origin) * (axis === "left" ? 1 : -1);
+              return { ...over, left: over.left + delta, right: over.right + delta };
+            };
+            fromOver = shifted(first);
+            toOver = shifted(last);
+          } else {
+            motion = null;
+          }
+        }
       }
-      const now = covered().map((el) => cutUnder(el, over && over.width ? over : null)).join("|");
-      coverStill = now === coverLast ? coverStill + 1 : 0;
-      coverLast = now;
-      if (coverStill < 8) {
-        coverFrame = requestAnimationFrame(cover);
+      // Finish every geometry read before changing any styles.
+      const clips = elements.map((el) => {
+        const box = over ? el.getBoundingClientRect() : null;
+        const from = clipUnder(el, box, fromOver);
+        const to = clipUnder(el, box, toOver);
+        const animate = motion && (from || to) && el.getAttribute("breakout-extend") !== "true";
+        return { el, clip: clipUnder(el, box, motion ? toOver : over),
+          from: animate ? clipUnder(el, box, fromOver, true) : null,
+          to: animate ? clipUnder(el, box, toOver, true) : null, motion: animate ? motion : null };
+      });
+      for (const el of new Set([...targets, ...clipAnimations.keys()])) {
+        if (!elements.includes(el)) applyClip(el, "");
       }
+      for (const clip of clips) applyClip(clip.el, clip.clip, clip.from, clip.to, clip.motion);
     }
     function followCover() {
-      coverStill = 0;
       if (!coverFrame) {
         coverFrame = requestAnimationFrame(cover);
       }
     }
 
+    let panelWatcher = null;
     if (toolbox) {
-      const panelWatcher = new MutationObserver(syncPanelOpen);
+      panelWatcher = new MutationObserver(syncPanelOpen);
       panelWatcher.observe(toolbox, { attributes: true, attributeFilter: SIDEBAR_SHOWN_ATTRS });
+      toolbox.addEventListener("transitionend", (event) => {
+        if (event.target === toolbox && ["left", "right", "visibility"].includes(event.propertyName)) followCover();
+      });
     }
 
     window.addEventListener("resize", followCover);
-    document.getElementById("urlbar")?.addEventListener("focus", followCover, true);
-    document.getElementById("urlbar")?.addEventListener("blur", followCover, true);
-    if (document.getElementById("urlbar")) {
-      new MutationObserver(followCover).observe(document.getElementById("urlbar"), { attributes: true, attributeFilter: ["breakout-extend"] });
+    const urlbar = document.getElementById("urlbar");
+    urlbar?.addEventListener("focus", followCover, true);
+    urlbar?.addEventListener("blur", followCover, true);
+    const breakoutWatcher = new MutationObserver(followCover);
+    if (urlbar) {
+      breakoutWatcher.observe(urlbar, { attributes: true, attributeFilter: ["breakout-extend"] });
+    }
+    const sizes = new ResizeObserver(followCover);
+    for (const el of [toolbox, document.getElementById("zen-appcontent-navbar-container"), urlbar]) {
+      if (el) sizes.observe(el);
     }
 
     const modeWatcher = new MutationObserver(() => {
       moveTopRow();
       syncPanelOpen();
     });
-    modeWatcher.observe(root, { attributes: true, attributeFilter: ["zen-compact-mode"] });
+    modeWatcher.observe(root, { attributes: true, attributeFilter: ["zen-compact-mode", "zen-right-side", "zen-sidebar-expanded", "zen-single-toolbar"] });
+    window.addEventListener("unload", () => {
+      cancelAnimationFrame(coverFrame);
+      sizes.disconnect();
+      breakoutWatcher.disconnect();
+      panelWatcher?.disconnect();
+      modeWatcher.disconnect();
+      for (const animation of clipAnimations.values()) animation.cancel();
+      clipAnimations.clear();
+    }, { once: true });
 
     moveTopRow();
     syncPanelOpen();
