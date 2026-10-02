@@ -6748,6 +6748,11 @@
     });
   }
   function restoreNativeTabs() {
+    // Arrow panels default to flipping on both axes. Zen centers this panel
+    // with a negative Y offset; flipping that offset near the top places the
+    // preview below its folder. Slide it within the screen instead.
+    document.getElementById("zen-folder-tabs-popup")?.setAttribute("flip", "slide");
+
     // Undo only a haptics change explicitly marked by the previous drag code.
     if (Services.prefs.getBoolPref("zia.haptics.muted", false)) {
       Services.prefs.setBoolPref("zen.haptic-feedback.enabled", true);
@@ -8702,133 +8707,6 @@
     }, { capture: true, passive: true });
   }
 
-  function watchEdgeGlow() {
-    let pending = 0;
-    let settled = 0;
-    let marked = null;
-    const mark = (next) => {
-      if (next === marked) {
-        return;
-      }
-      marked?.removeAttribute("zia-no-glow");
-      marked = next;
-      marked?.setAttribute("zia-no-glow", "true");
-    };
-    const update = () => {
-      pending = 0;
-      // A hidden compact sidebar has no visible first row to decorate.
-      // Keep the last mark and refresh it when the sidebar is revealed.
-      if (root.getAttribute("zen-compact-mode") === "true" &&
-          Services.prefs.getBoolPref("zen.view.compact.hide-tabbar", false) &&
-          root.getAttribute("zia-panel-open") !== "true") {
-        return;
-      }
-      if (!gBrowser?.selectedTab) {
-        return;
-      }
-      const tab = gBrowser.selectedTab;
-      if (!tab || tab.hasAttribute("zen-essential")) {
-        mark(null);
-        return;
-      }
-      // (a split glows as a whole: at the top, it's the split that goes
-      // without, whichever of its tabs is open)
-      const split = tab.group?.hasAttribute?.("split-view-group") ? tab.group : null;
-      const glowing = split || tab;
-
-      const sections = [
-        window.gZenWorkspaces?.pinnedTabsContainer,
-        window.gZenWorkspaces?.activeWorkspaceStrip,
-      ].filter(Boolean);
-      if (sections.length) {
-        let first = null;
-        for (const section of sections) {
-          for (const row of section.querySelectorAll(
-            ".tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), .tab-group-label-container"
-          )) {
-            const box = row.getBoundingClientRect();
-            if (box.height > 4 && row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) !== false) {
-              first = row;
-              break;
-            }
-          }
-          if (first) {
-            break;
-          }
-        }
-        mark(first === tab || (split && first && split.contains(first)) ? glowing : null);
-        return;
-      }
-      const mine = glowing.getBoundingClientRect();
-      if (!mine.height) {
-        mark(null);
-        return;
-      }
-      let above = false;
-      for (const row of document.querySelectorAll(
-        "#tabbrowser-tabs .tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), #tabbrowser-tabs .tab-group-label-container"
-      )) {
-        if (row === tab || (split && split.contains(row))) {
-          continue;
-        }
-        const box = row.getBoundingClientRect();
-
-        if (!box.height || !box.width || box.right <= mine.left || box.left >= mine.right) {
-          continue;
-        }
-        if (row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) === false) {
-          continue;
-        }
-        if (box.bottom <= mine.top + 1) {
-          above = true;
-          break;
-        }
-      }
-      mark(!above ? glowing : null);
-    };
-    const schedule = () => {
-      if (!pending) {
-        pending = requestAnimationFrame(update);
-      }
-    };
-    const soon = () => {
-      schedule();
-      clearTimeout(settled);
-      settled = setTimeout(schedule, 250);
-    };
-    for (const type of [
-      "TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned", "TabGrouped",
-      "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabShow", "TabHide",
-    ]) {
-      gBrowser.tabContainer.addEventListener(type, soon);
-    }
-    window.addEventListener("dragend", soon, true);
-    window.addEventListener("resize", soon);
-    window.addEventListener("ZenWorkspacesUIUpdate", soon);
-    gBrowser.tabContainer.addEventListener("transitionend", schedule);
-    gBrowser.tabContainer.addEventListener("animationend", schedule);
-    const changes = new MutationObserver(soon);
-    changes.observe(gBrowser.tabContainer, {
-      childList: true, subtree: true, attributes: true,
-      attributeFilter: ["hidden", "collapsed", "split-view-group"],
-    });
-    const visibility = new MutationObserver(schedule);
-    visibility.observe(root, {
-      attributes: true, attributeFilter: ["zia-panel-open", "zen-compact-mode"],
-    });
-    Services.prefs.addObserver("zen.workspaces.active", soon);
-    Services.prefs.addObserver("zen.view.compact.hide-tabbar", schedule);
-    window.addEventListener("unload", () => {
-      cancelAnimationFrame(pending);
-      clearTimeout(settled);
-      changes.disconnect();
-      visibility.disconnect();
-      Services.prefs.removeObserver("zen.workspaces.active", soon);
-      Services.prefs.removeObserver("zen.view.compact.hide-tabbar", schedule);
-    }, { once: true });
-    soon();
-  }
-
   function start() {
     const urlbar = gURLBar.textbox || document.getElementById("urlbar");
 
@@ -8993,7 +8871,6 @@
     safely("suckInEssentialGlances", suckInEssentialGlances);
     safely("animateNavButtons", animateNavButtons);
     safely("springReloadHover", springReloadHover);
-    safely("watchEdgeGlow", watchEdgeGlow);
     afterStartup("watchExtensionIcons", watchExtensionIcons);
     safely("keepSidebarUnscrolledSideways", keepSidebarUnscrolledSideways);
     safely("watchColorDrift", watchColorDrift);

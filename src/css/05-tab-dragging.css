@@ -15,13 +15,6 @@ zen-essentials-promo {
   display: none !important;
 }
 
-.tabbrowser-tab[zia-no-glow],
-.tabbrowser-tab[zia-no-glow] > .tab-stack > .tab-background,
-tab-group[split-view-group][zia-no-glow],
-tab-group[split-view-group][zia-no-glow] > .tab-group-container {
-  --zia-active-glow-color: transparent !important;
-}
-
 #zia-tab-card[zia-anchor="essential"]::before {
   content: "";
   position: absolute;

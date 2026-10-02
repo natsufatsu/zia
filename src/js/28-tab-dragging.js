@@ -1,4 +1,9 @@
   function restoreNativeTabs() {
+    // Arrow panels default to flipping on both axes. Zen centers this panel
+    // with a negative Y offset; flipping that offset near the top places the
+    // preview below its folder. Slide it within the screen instead.
+    document.getElementById("zen-folder-tabs-popup")?.setAttribute("flip", "slide");
+
     // Undo only a haptics change explicitly marked by the previous drag code.
     if (Services.prefs.getBoolPref("zia.haptics.muted", false)) {
       Services.prefs.setBoolPref("zen.haptic-feedback.enabled", true);

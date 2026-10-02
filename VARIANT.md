@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.14, commit `59870090004fda7d45c43809ea331b0c10dd9a42`.
+- Previous variant: 2.80.15, commit `398da29`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.15.
+- Current variant: 2.80.16.
 
 ## Player
 
@@ -30,9 +30,15 @@ pane toolbars are retained. Existing split-essential session tags are
 released after session restore, without deleting or moving any tab or essential.
 Only haptics explicitly marked as muted by the old drag code are restored.
 
-Removed playing/muted-tab glow boxes and shine pseudo-elements. Native animated
-music notes above essential favicons are hidden. The audio overlay is unframed;
-its controls and sidebar sound bars remain.
+Removed media-only glow boxes and shine pseudo-elements on essentials and
+unselected playing/muted tabs. Selected regular tabs retain their selection
+glow and border shine. Native animated music notes above essential favicons
+are hidden. The audio overlay is unframed; its controls and sound bars remain.
+
+The native folder preview uses `flip="slide"` instead of the arrow panel's
+default `flip="both"`. Zen's negative vertical offset otherwise reverses near
+the top of the screen, displacing the popup downward. Sliding keeps the preview
+beside its folder while fitting it to the screen. No folder method is replaced.
 
 Unrelated actors, PiP/PDF resources, icons, welcome files and feature sources
 are preserved. Sine still identifies this package as `zia`, so it replaces
@@ -62,6 +68,33 @@ using this package.
 
 ## Validation
 
+### Selected-tab glow (2.80.16)
+
+The media override now preserves the selected regular tab's shadow and border
+shine while playing or muted. The first-row suppression watcher and its CSS
+are removed, so the first workspace row also glows, including split groups.
+This removes the watcher's event listeners, observers and layout scans.
+
+`python tools/check_urlbar_live.py --full-zia --inspect --tab-glow-check` runs
+`tests/tab-glow-live.js` to check shadows and shine in isolated Zen: first/second rows across
+normal, playing, muted and playing/muted states, plus each focused pane of a
+first-row split, with favicon tinting on and off. The full live check also
+checks selected glow during actual audio playback and muting, while selected
+playing essentials remain free of media frames and animated notes.
+`tests/startup-work.cjs` retains the idle startup and cancellation checks;
+its obsolete first-row suppression assertions are removed.
+
+### Native folder preview placement (2.80.16)
+
+`python tools/check_urlbar_live.py --full-zia --inspect --folder-preview-check`
+runs `tests/folder-preview-live.js`. Two- and eight-tab folders are checked near
+the top, middle and bottom of both left and right sidebars. The popup stays
+within the screen and beside its anchor; native search filters entries and
+resets on dismissal. The native `openTabsPopup` method remains unchanged.
+The test also restores `flip="both"` temporarily to reproduce the original
+displacement: a folder at y=10 opens its preview at y=154 instead of y=0.
+Add `--compact-startup` to check the revealed compact sidebar as well.
+
 ### Startup work (2.80.8)
 
 The main startup routine yields one event-loop turn so Sine can load its other
@@ -72,13 +105,13 @@ a 250ms timeout for a busy browser. An individual initializer can exceed that
 budget; the scheduler yields between initializers. Closing the window cancels
 pending work. Synchronous and asynchronous initializer failures are logged.
 
-Selected-tab edge decoration now reacts to tab/workspace/layout events instead
+In 2.80.8, selected-tab edge decoration reacted to tab/workspace/layout events instead
 of polling every second. Event bursts share a single animation frame and a
 debounced settled check. Only the first visible row is measured in Zen's
 workspace containers. Unchanged decoration does not rewrite attributes.
 Stylesheets, other feature modules, preferences and icon assets are unchanged.
 
-`tests/startup-work.cjs` checks peer scheduling, bounded slices, unload
+At that version, `tests/startup-work.cjs` checked peer scheduling, bounded slices, unload
 cancellation, coalesced event bursts and retained first-row/split behavior.
 The development workspace's `tools/profile_zia_startup.py` compares isolated
 Zen profiles with cold and warm icon caches. It measures sequential script
@@ -176,7 +209,7 @@ compact mode hides the tab sidebar. It keeps the previous decoration while
 hidden and refreshes on reveal, compact-mode exit or a change to the native
 hide-tabbar preference. Toolbar-only compact mode continues updating normally.
 The visibility observer and preference listener are removed on window unload.
-`node tests/startup-work.cjs` checks hidden scans, reveal after selection changes,
+At that version, `node tests/startup-work.cjs` checked hidden scans, reveal after selection changes,
 toolbar-only mode, compact-mode exit and cleanup.
 
 Tab text is translated upward by 1px in the expanded sidebar in 2.80.13.

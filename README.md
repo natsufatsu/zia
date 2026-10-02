@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.15**.
+Current version: **2.80.16**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -22,9 +22,10 @@ in about:config, set it to false. Native sidebar tab dragging remains intact.
 The experimental split-essential tiles are removed;
 existing essentials and native split tabs are preserved.
 
-Playing or muted tabs keep their favicon and mute controls without the glow
-box, outline or animated notes above essential favicons. Sidebar sound bars
-remain available.
+Selected tabs keep their glow and border shine while playing audio or muted,
+including the first tab in a workspace. Media-only glow boxes, outlines and
+animated notes above essential favicons stay hidden. Sidebar sound bars remain
+available.
 
 The URL bar, site-colored toolbar, page frame, split-pane toolbars, media
 metadata/artwork, PiP, PDF viewer and other unrelated Zia features remain.
@@ -68,6 +69,12 @@ Version 2.80.15 animates the toolbar clip with Zen's sidebar timing instead of
 measuring the sidebar and rewriting the clip every frame. The toolbar still
 stays hidden behind the sidebar as it moves, including on the right side.
 
+Version 2.80.16 restores the selected-tab glow on playing and muted tabs and
+the first workspace row, including splits. The first-row suppression watcher
+and its layout scans are removed. Both white and favicon-colored glows work.
+Native folder previews slide into the available screen space at the top or
+bottom edge, keeping them beside their folder instead of flipping downward.
+
 ## Install or update
 
 1. Enable unofficial JavaScript mods in Sine.
@@ -91,6 +98,10 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 - Scripted page drops create correctly ordered left/right splits; center drops
   cancel, previews clean up, and dragging the current tab adds a pane.
 - No glow box or animated media badge on playing essential tabs.
+- Selected-tab glow and border shine on first-row, playing, muted and split tabs,
+  with both white and favicon-colored glows.
+- Native folder preview placement near the top and bottom of either sidebar,
+  with short and scrolling folder lists; native search and dismissal still work.
 - Actual audio playback, player artwork, live opacity and expanded layout.
 - Two split-pane toolbars and stable player workspace color across pane focus.
 - Ordinary/split tab hover cards, reload hover/reset and live-media styles.
@@ -99,11 +110,17 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 
 Run `node tests/split-drag-updates.cjs` for drag scheduling, release coordinates,
 preview restoration, cancellation and mouse-press targeting checks. `node tests/startup-work.cjs`
-checks startup scheduling, event bursts and selected-row decoration. The source build check is
+checks startup scheduling and idle-work cancellation. The source build check is
 `scripts/build.sh --check` (run through Bash).
 The development workspace's `python tools/check_urlbar_live.py --full-zia --inspect
 --compact-startup --compact-clipping-check` checks clipping against the sidebar
 edge while opening, closing, reversing direction and resizing.
+`python tools/check_urlbar_live.py --full-zia --inspect --tab-glow-check` checks
+the selected glow and border shine across first/second rows, audio states and
+both focused split panes, with favicon tinting on and off. It runs
+`tests/tab-glow-live.js` in a privileged browser context through Marionette.
+`python tools/check_urlbar_live.py --full-zia --inspect --folder-preview-check`
+runs `tests/folder-preview-live.js` for folder popup positioning and search.
 Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated
 feature code and assets are preserved from upstream.
 

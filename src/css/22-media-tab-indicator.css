@@ -1,17 +1,20 @@
-/* Playing tabs keep their favicon and mute controls without a glow box.
-   Zen also draws animated music notes above essential favicons. */
+/* Hide media-only decorations while preserving the selected regular tab's
+   glow and shine. Zen also draws music notes above essential favicons. */
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) .tab-icon-stack::after {
   content: none !important;
   display: none !important;
 }
 
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background {
-  box-shadow: none !important;
   outline: none !important;
 }
 
-:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background::before,
-:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background::after {
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]):is([zen-essential], :not([visuallyselected])) > .tab-stack > .tab-background {
+  box-shadow: none !important;
+}
+
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]):is([zen-essential], :not([visuallyselected])) > .tab-stack > .tab-background::before,
+:root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]):is([zen-essential], :not([visuallyselected])) > .tab-stack > .tab-background::after {
   content: none !important;
   display: none !important;
 }
