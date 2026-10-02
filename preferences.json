@@ -187,6 +187,12 @@
   },
   {
     "type": "checkbox",
+    "label": "Experimental: tint the toolbar in real time with smooth colour changes (needs the site-coloured toolbar)",
+    "property": "zia.toolbar.realtime-tint",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
     "label": "Zia's rounded page corners (off: Zen's own)",
     "property": "zia.page.rounding",
     "defaultValue": true

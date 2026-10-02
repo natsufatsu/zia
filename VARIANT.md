@@ -2,9 +2,36 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.16, commit `863cd2c`.
+- Previous variant: 2.80.17, commit `001f621`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.17.
+- Current variant: 2.80.18.
+
+## Experimental real-time tint (2.80.18)
+
+The new `zia.toolbar.realtime-tint` checkbox is off by default and requires
+`zia.toolbar.site-color`. It retains the current top-edge/dominant-colour
+sampler and adds serialized sampling at most every 100 ms. An exponential
+filter with a 250 ms time constant smooths the tint on animation frames;
+the toolbar's extra CSS background transition is disabled in this mode.
+The normal load, scroll and three-second drift checks remain intact when
+the mode is off. Experimental mode replaces their confirmation gates with
+the smoothing filter, so low-share or moving readings can keep updating.
+
+Filtered colours are cached per browser/document in memory, independently
+of the legacy tab cache and persisted site colours. Tab switches restore
+cached colours immediately; stale captures cannot update another tab or a
+new document. Sampling and painting pause while the window is hidden or
+minimized and stop on unload or when either setting is disabled. Error
+pages retain their existing handling, and the open URL popup keeps its
+existing frozen tint. Split-pane bars retain their existing tint logic.
+
+`node tests/realtime-tint.cjs` checks rate limits, smoothing across frame
+rates, low-share readings, legacy isolation, slow captures, loading,
+visibility, tab/document races, pref changes and cleanup. The development
+workspace's `python tools/check_urlbar_live.py --full-zia --inspect
+--realtime-tint-check` uses an actual page with timed background changes,
+checks intermediate values and rapid alternation, and verifies cached tab
+restoration and returning to the default mode.
 
 ## Player
 

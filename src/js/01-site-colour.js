@@ -250,6 +250,10 @@
 
   async function updateColor(fromScroll = false, duringLoad = false) {
     const browser = gBrowser.selectedBrowser;
+    if (realtimeTintOn()) {
+      requestRealtimeSample();
+      return;
+    }
     if (!siteColorOn()) {
       applyColor(null);
       return;
@@ -340,7 +344,7 @@
 
   async function checkColor() {
     const browser = gBrowser.selectedBrowser;
-    if (checking || document.hidden || !siteColorOn() || !browser || isErrorPage(browser) || isLoading(browser) ||
+    if (realtimeTintOn() || checking || document.hidden || !siteColorOn() || !browser || isErrorPage(browser) || isLoading(browser) ||
         scrollTimer || scrollSampling || !colorCache.has(browser)) {
       return;
     }
@@ -500,11 +504,11 @@
     setFlag("zia-color-snap", true);
     if (isErrorPage(browser)) {
       showErrorColor();
-    } else if (isLoading(browser) || !colorCache.has(browser)) {
+    } else if (isLoading(browser) || (!colorCache.has(browser) && !realtimeCachedColor(browser))) {
       showFallbackColor();
     } else {
       colorRequestId++;
-      applyColor(colorCache.get(browser));
+      applyColor(realtimeCachedColor(browser) || colorCache.get(browser));
     }
     requestAnimationFrame(() => requestAnimationFrame(() => setFlag("zia-color-snap", false)));
   }
@@ -519,6 +523,10 @@
   let lastScrollSample = 0;
 
   function requestScrollSample() {
+    if (realtimeTintOn()) {
+      requestRealtimeSample();
+      return;
+    }
     if (scrollTimer) {
       return;
     }
@@ -642,4 +650,3 @@
       }
     }
   }
-

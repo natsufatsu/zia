@@ -225,6 +225,11 @@
     transition: background-color var(--zia-color-fade) ease, border-color var(--zia-color-fade) ease !important;
   }
 
+  /* Real-time mode smooths the colour itself on each animation frame. */
+  &[zia-realtime-tint="true"] #zen-appcontent-navbar-wrapper {
+    transition: border-color var(--zia-color-fade) ease !important;
+  }
+
   &[zia-color-snap="true"] #zen-appcontent-navbar-wrapper {
     transition: none !important;
   }

@@ -268,6 +268,7 @@
     safely("springReloadHover", springReloadHover);
     afterStartup("watchExtensionIcons", watchExtensionIcons);
     safely("keepSidebarUnscrolledSideways", keepSidebarUnscrolledSideways);
+    safely("watchRealtimeTint", watchRealtimeTint);
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
     safely("watchUnloadable", watchUnloadable);

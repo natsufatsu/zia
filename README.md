@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.17**.
+Current version: **2.80.18**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -80,6 +80,14 @@ are preloaded and cached, and the label is reused across workspace switches.
 If a new icon is still loading, the previous label stays visible until the
 new icon and name can appear together. Late loads cannot overwrite a newer
 workspace selection. Text icons and workspaces without icons remain supported.
+
+Version 2.80.18 adds an optional experimental real-time toolbar tint under
+Page settings. It uses the existing top-edge colour sampler every 100 ms,
+with a time-based smoothing filter to reduce flashes while following changing
+backgrounds. The normal tinting mode remains the default. Captures never
+overlap, pause in hidden/minimized windows, and do not update saved site
+colours. The setting takes effect immediately and needs the site-coloured
+toolbar enabled.
 
 ## Install or update
 
