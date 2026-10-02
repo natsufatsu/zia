@@ -40,7 +40,7 @@
 
 /* closing eases home (kept plain, so the opening rules below win while open) */
 .zia-fi > * {
-  transition: transform 0.4s var(--fi-soft), opacity 0.25s var(--fi-soft);
+  transition: transform 0.4s var(--fi-soft), opacity 0.25s var(--fi-soft), left 0.3s var(--fi-soft), right 0.3s var(--fi-soft);
 }
 
 /* a folder left white (the default) takes the space's colour, a touch
@@ -51,7 +51,7 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 
 /* opening springs a touch past and settles */
 :is(zen-folder, tab-group:not([split-view-group])):not([collapsed]) > .tab-group-label-container .zia-fi > * {
-  transition: transform 0.55s var(--fi-spring), opacity 0.25s var(--fi-soft);
+  transition: transform 0.55s var(--fi-spring), opacity 0.25s var(--fi-soft), left 0.3s var(--fi-soft), right 0.3s var(--fi-soft);
 }
 
 /* the front falls open a touch past where it rests, then settles back up */
@@ -85,7 +85,7 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 66' preserveAspectRatio='none'%3E%3Cpath d='M0 13.5 Q0 0 13.5 0 H86.5 Q100 0 100 13.5 L97.9 52.5 Q97.2 66 83.5 66 H16.5 Q2.8 66 2.1 52.5 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
 }
 
-/* the sheets: hidden until there's something in the folder for them,
+/* the sheets, the back one dimmer, further back: hidden until there's something in the folder for them,
    each peeking over the front's edge, so a closed folder shows how full
    it is */
 .zia-fi-sheet {
@@ -103,17 +103,17 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 }
 
 .zia-fi-s2 {
-  left: 0.3em;
-  right: 0.1em;
+  left: 0.28em;
+  right: 0.12em;
   top: 0.06em;
   background: color-mix(in srgb, var(--fi-accent) 25%, white);
 }
 
 .zia-fi-s3 {
-  left: 0.1em;
-  right: 0.3em;
-  top: 0.07em;
-  background: linear-gradient(#f4f4f6, #dcdce2);
+  left: 0.32em;
+  right: 0.08em;
+  top: 0.08em;
+  background: linear-gradient(color-mix(in srgb, var(--fi-accent) 12%, #cfcfd5), color-mix(in srgb, var(--fi-accent) 12%, #b4b4bc));
 }
 
 :is(zen-folder, tab-group)[zia-fi-count="1"] .zia-fi-s1,
@@ -122,10 +122,17 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   opacity: 1;
 }
 
-/* with two or three, the front sheet sits left of centre so the others show */
-:is(zen-folder, tab-group):is([zia-fi-count="2"], [zia-fi-count="3"]) .zia-fi-s1 {
-  left: 0.14em;
+/* a stack from left to right: alone, the sheet sits in the middle; a
+   second slides in behind it on the right, pushing it left; a third goes
+   behind those two, further right, the second moving to the middle */
+:is(zen-folder, tab-group)[zia-fi-count="2"] .zia-fi-s1 {
+  left: 0.12em;
   right: 0.28em;
+}
+
+:is(zen-folder, tab-group)[zia-fi-count="3"] {
+  & .zia-fi-s1 { left: 0.08em; right: 0.32em; }
+  & .zia-fi-s2 { left: 0.2em; right: 0.2em; }
 }
 
 /* open: the front tips forward and the sheets rise, fanning out */
@@ -135,9 +142,9 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 }
 
 :is(zen-folder, tab-group):is([zia-fi-count="2"], [zia-fi-count="3"]):not([collapsed]) .zia-fi {
-  & .zia-fi-s1 { transform: translateY(-0.12em) rotate(-5deg); }
-  & .zia-fi-s2 { transform: translateY(-0.08em) rotate(6deg); transition-delay: 0.05s; }
-  & .zia-fi-s3 { transform: translateY(-0.06em) rotate(-10deg); transition-delay: 0.1s; }
+  & .zia-fi-s1 { transform: translateY(-0.12em) rotate(-6deg); }
+  & .zia-fi-s2 { transform: translateY(-0.09em) rotate(2deg); transition-delay: 0.05s; }
+  & .zia-fi-s3 { transform: translateY(-0.06em) rotate(9deg); transition-delay: 0.1s; }
 }
 
 /* a tab dropped in: its sheet drops into the folder from above */

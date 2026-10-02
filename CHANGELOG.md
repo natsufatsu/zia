@@ -4,6 +4,26 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.83.2] — 2026-10-02
+
+### Changed
+
+- The folder icon's sheets stack from left to right: one sits in the
+  middle, a second slides in behind it on the right and pushes it
+  left, a third goes in behind those two. The back one is a little
+  dimmer, so it reads as further back.
+
+### Fixed
+
+- With folder naming by the local model on, a folder still called *New
+  Folder* was renamed after restarting the browser (or bringing it back
+  with Cmd+Z): Zen announces restored folders as if they were new. Only
+  folders you make now get named.
+- A tab dropped into a folder put down its sheet in the two-sheet spot,
+  which then jumped wider: while Zen drops a tab in, the folder holds an
+  extra child for a moment, and it was counted. The sheets are counted
+  once the folder has settled, and move between spots smoothly.
+
 ## [2.83.1] — 2026-10-02
 
 ### Changed
