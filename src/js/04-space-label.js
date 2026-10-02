@@ -1,4 +1,7 @@
   let workspaceSlot = null;
+  let spaceLabel = null;
+  let spaceLabelRequest = 0;
+  const spaceIconCache = new Map();
   let movedIndicator = null;
   let movedFromSpace = null;
   let spaceAttrObserver = null;
@@ -18,18 +21,31 @@
       topButtons.prepend(workspaceSlot);
     }
 
+    let queued = false;
+    const onSpaceSwitch = () => {
+      if (queued) {
+        return;
+      }
+      queued = true;
+      queueMicrotask(() => {
+        queued = false;
+        if (!window.closed) {
+          warmSpaceIcons();
+          placeWorkspaceIndicator();
+        }
+      });
+    };
     for (const type of ["ZenWorkspacesUIUpdate", "ZenWorkspaceDataChanged", "AfterWorkspacesSessionRestore"]) {
-      window.addEventListener(type, () => setTimeout(placeWorkspaceIndicator, 0));
+      window.addEventListener(type, onSpaceSwitch);
     }
-
-    const onSpaceSwitch = () => setTimeout(placeWorkspaceIndicator, 0);
     Services.prefs.addObserver("zen.workspaces.active", onSpaceSwitch);
     window.addEventListener("unload", () => Services.prefs.removeObserver("zen.workspaces.active", onSpaceSwitch));
     gBrowser.tabContainer.addEventListener("TabSelect", onSpaceSwitch);
     placeWorkspaceIndicator();
+    warmSpaceIcons();
 
-    setTimeout(placeWorkspaceIndicator, 500);
-    setTimeout(placeWorkspaceIndicator, 2000);
+    setTimeout(onSpaceSwitch, 500);
+    setTimeout(onSpaceSwitch, 2000);
   }
 
   const XHTML_NS = "http://www.w3.org/1999/xhtml";
@@ -48,10 +64,13 @@
       return;
     }
 
-    let label = indicator.querySelector("#zia-space-label");
+    let label = spaceLabel || indicator.querySelector("#zia-space-label");
     if (!label) {
       label = document.createElementNS(XHTML_NS, "div");
       label.id = "zia-space-label";
+    }
+    spaceLabel = label;
+    if (label.parentNode !== indicator) {
       indicator.prepend(label);
     }
 
@@ -69,47 +88,76 @@
       text.className = "zia-space-name";
       label.appendChild(text);
     }
-    text.textContent = (workspace.name || "").replace(blank, "");
+    const name = (workspace.name || "").replace(blank, "");
+    const request = ++spaceLabelRequest;
+    const apply = (svg) => {
+      text.textContent = name;
+      const mark = label.querySelector(".zia-space-svg");
+      label.removeAttribute("zia-icon");
+      label.removeAttribute("zia-has-icon");
+      label.removeAttribute("zia-has-svg");
+      if (!hasIcon || (icon.endsWith(".svg") && !svg)) {
+        mark?.remove();
+        return;
+      }
+      if (!icon.endsWith(".svg")) {
+        mark?.remove();
+        label.setAttribute("zia-icon", icon);
+        label.setAttribute("zia-has-icon", "true");
+        return;
+      }
+      label.setAttribute("zia-has-svg", "true");
+      let svgSlot = mark;
+      if (!svgSlot) {
+        svgSlot = document.createElementNS(XHTML_NS, "span");
+        svgSlot.className = "zia-space-svg";
+        label.prepend(svgSlot);
+      }
+      if (svgSlot.dataset.src !== icon || !svgSlot.firstChild) {
+        svgSlot.replaceChildren(svg.cloneNode(true));
+        svgSlot.dataset.src = icon;
+      }
+    };
+    if (!hasIcon || !icon.endsWith(".svg") || !isOwnIconUrl(icon)) {
+      apply(null);
+      return;
+    }
+    const entry = readSpaceIcon(icon);
+    if (entry.node) {
+      apply(entry.node);
+      return;
+    }
+    // Keep the complete previous label while a new icon is being loaded.
+    // Cached icons are replaced synchronously, before the next browser paint.
+    if (!text.textContent) {
+      text.textContent = name;
+    }
+    entry.promise.then((node) => {
+      if (request === spaceLabelRequest && label.isConnected) {
+        apply(node);
+      }
+    });
+  }
 
-    const mark = label.querySelector(".zia-space-svg");
-    label.removeAttribute("zia-icon");
-    label.removeAttribute("zia-has-icon");
-    label.removeAttribute("zia-has-svg");
+  function warmSpaceIcons() {
+    for (const workspace of window.gZenWorkspaces?.getWorkspaces?.() || []) {
+      const icon = typeof workspace.icon === "string" ? workspace.icon.trim() : "";
+      if (icon.endsWith(".svg") && isOwnIconUrl(icon)) {
+        readSpaceIcon(icon);
+      }
+    }
+  }
 
-    if (!hasIcon) {
-      mark?.remove();
-      return;
+  function readSpaceIcon(icon) {
+    const cached = spaceIconCache.get(icon);
+    if (cached) {
+      return cached;
     }
-    if (!icon.endsWith(".svg")) {
-      mark?.remove();
-      label.setAttribute("zia-icon", icon);
-      label.setAttribute("zia-has-icon", "true");
-      return;
-    }
-    // Only the browser's and mods' own icon files: never a web address or a
-    // file elsewhere on the computer.
-    if (!isOwnIconUrl(icon)) {
-      mark?.remove();
-      return;
-    }
-    label.setAttribute("zia-has-svg", "true");
-    let svgSlot = mark;
-    if (!svgSlot) {
-      svgSlot = document.createElementNS(XHTML_NS, "span");
-      svgSlot.className = "zia-space-svg";
-      label.prepend(svgSlot);
-    }
-    if (svgSlot.dataset.src === icon && svgSlot.firstChild) {
-      return;
-    }
-    svgSlot.dataset.src = icon;
-    svgSlot.replaceChildren();
-    fetch(icon)
+    const entry = { node: null, promise: null };
+    spaceIconCache.set(icon, entry);
+    entry.promise = fetch(icon)
       .then((response) => response.text())
       .then((source) => {
-        if (svgSlot.dataset.src !== icon) {
-          return;
-        }
         const colored = source
           .replace(/context-fill-opacity/g, "1")
           .replace(/context-stroke-opacity/g, "1")
@@ -122,12 +170,19 @@
         const parsed = new DOMParser().parseFromString(colored, "image/svg+xml");
         const node = parsed.documentElement;
         if (!node || node.localName !== "svg") {
-          return;
+          throw new Error("Invalid workspace SVG");
         }
         cleanSvg(node);
-        svgSlot.replaceChildren(document.importNode(node, true));
+        entry.node = document.importNode(node, true);
+        return entry.node;
       })
-      .catch(() => {});
+      .catch(() => {
+        // A resource mapping may not exist yet during the first icon-pack
+        // startup. Drop failures so the next update can try again.
+        spaceIconCache.delete(icon);
+        return null;
+      });
+    return entry;
   }
 
   const OWN_ICON_SCHEMES = ["chrome:", "resource:"];

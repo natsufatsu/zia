@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.16**.
+Current version: **2.80.17**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -75,6 +75,12 @@ and its layout scans are removed. Both white and favicon-colored glows work.
 Native folder previews slide into the available screen space at the top or
 bottom edge, keeping them beside their folder instead of flipping downward.
 
+Version 2.80.17 switches workspace icons without a blank flash. Workspace SVGs
+are preloaded and cached, and the label is reused across workspace switches.
+If a new icon is still loading, the previous label stays visible until the
+new icon and name can appear together. Late loads cannot overwrite a newer
+workspace selection. Text icons and workspaces without icons remain supported.
+
 ## Install or update
 
 1. Enable unofficial JavaScript mods in Sine.
@@ -102,6 +108,8 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
   with both white and favicon-colored glows.
 - Native folder preview placement near the top and bottom of either sidebar,
   with short and scrolling folder lists; native search and dismissal still work.
+- Workspace icons remain visible while switching, including delayed SVG loads,
+  cached swaps and switches made before a previous icon finishes loading.
 - Actual audio playback, player artwork, live opacity and expanded layout.
 - Two split-pane toolbars and stable player workspace color across pane focus.
 - Ordinary/split tab hover cards, reload hover/reset and live-media styles.
@@ -121,6 +129,10 @@ both focused split panes, with favicon tinting on and off. It runs
 `tests/tab-glow-live.js` in a privileged browser context through Marionette.
 `python tools/check_urlbar_live.py --full-zia --inspect --folder-preview-check`
 runs `tests/folder-preview-live.js` for folder popup positioning and search.
+`python tools/check_urlbar_live.py --full-zia --inspect --workspace-icon-check`
+runs `tests/workspace-icon-live.js` with native workspace switching, delayed
+SVG loads and frame-by-frame visibility checks. Add `--compact-startup` for
+the compact sidebar.
 Physical drag latency, PiP, PDFs and other platforms were not separately exercised; their unrelated
 feature code and assets are preserved from upstream.
 

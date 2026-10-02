@@ -2,9 +2,9 @@
 
 - Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.15, commit `398da29`.
+- Previous variant: 2.80.16, commit `863cd2c`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.16.
+- Current variant: 2.80.17.
 
 ## Player
 
@@ -67,6 +67,26 @@ off, as in the standalone mod. Disable the separate Zia Split Tabs mod when
 using this package.
 
 ## Validation
+
+### Workspace icon continuity (2.80.17)
+
+The workspace label is reused when native indicators move into the sidebar
+slot. Parsed and sanitized SVGs are cached by URL; inactive workspace icons
+are preloaded and concurrent requests share one fetch. Cached icons are applied
+synchronously. A pending icon keeps the complete previous label visible until
+the new icon and name are ready. A request counter rejects stale completions
+after another workspace or icon is selected. Failed loads can be retried on
+the next update. Workspace events coalesce in a microtask before repaint.
+The original SVG recoloring, URL restrictions and sanitizer remain in place.
+
+`python tools/check_urlbar_live.py --full-zia --inspect --workspace-icon-check`
+runs `tests/workspace-icon-live.js` with native workspace switches. SVG loads
+are delayed deliberately while animation frames are sampled: the label stays
+connected and visible, each SVG is fetched once, cached switches show the
+correct icon immediately, and a late response cannot change the current icon.
+Text and iconless workspaces are also checked. Add `--compact-startup` to run
+against the revealed compact sidebar. The existing `--workspace-check` tests
+hidden/revealed indicator placement and compact-mode changes.
 
 ### Selected-tab glow (2.80.16)
 
