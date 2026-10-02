@@ -74,6 +74,7 @@
     appliedColorKey = key;
     if (!rgb) {
       root.style.removeProperty("--zia-site-bg");
+      updateInkTint(null);
       setFlag("zia-site-light", false);
       setFlag("zia-site-dark", true);
       setFlag("zia-site-mid", false);
@@ -83,6 +84,7 @@
       return;
     }
     root.style.setProperty("--zia-site-bg", cssColor(rgb));
+    updateInkTint(rgb);
     const brightness = brightnessOf(rgb);
     const light = wantsDarkInk(rgb);
     // A vivid colour (a strong red, say) is treated as mid even when it's a
@@ -98,6 +100,37 @@
     updateDarkSiteInk(rgb, mid ? INK_MAX : brightness);
   }
 
+  // The toolbar's text and buttons take the site's own hue, as in Dia: on
+  // a cream page they're a soft brown (Dia's own, measured) rather than a
+  // neutral grey. Grey pages (no hue to speak of) stay neutral.
+  function updateInkTint(rgb) {
+    if (!rgb) {
+      root.style.removeProperty("--zia-ink-h");
+      root.style.removeProperty("--zia-ink-s");
+      return;
+    }
+    const [r, g, b] = rgb.slice(0, 3).map((c) => c / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const d = max - min;
+    let h = 0;
+    let s = 0;
+    if (d > 0.0001) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      if (max === r) {
+        h = 60 * (((g - b) / d) % 6);
+      } else if (max === g) {
+        h = 60 * ((b - r) / d + 2);
+      } else {
+        h = 60 * ((r - g) / d + 4);
+      }
+    }
+    root.style.setProperty("--zia-ink-h", `${Math.round((h + 360) % 360)}`);
+    // a third of the site's saturation, as Dia does
+    root.style.setProperty("--zia-ink-s", `${Math.round(Math.min(s, 1) * 34)}%`);
+  }
+
   function updateDarkSiteInk(rgb, brightness, inkOnly = false) {
     if (!rgb || brightness >= INK_MAX) {
       root.style.removeProperty("--zia-dark-ink");
@@ -110,7 +143,7 @@
     // in Dia; the soft grey only from there up.
     const t = brightness <= BLACKISH ? 0 : Math.min(1, (brightness - BLACKISH) / (INK_MAX - 44 - BLACKISH));
     const level = brightness <= BLACKISH ? 251 : Math.round(150 + t * 26);
-    root.style.setProperty("--zia-dark-ink", `rgb(${level}, ${level}, ${level})`);
+    root.style.setProperty("--zia-dark-ink", `hsl(var(--zia-ink-h, 0) var(--zia-ink-s, 0%) ${((level / 255) * 100).toFixed(1)}%)`);
     if (inkOnly) {
       root.style.removeProperty("--zia-urlbar-hover-bg");
       return;
@@ -1596,8 +1629,39 @@
     }
   }
 
+  // Optional: Cmd/Ctrl+T leaves the address bar ready to type in, with the
+  // search page showing behind it (off: the page's own search box)
+  const focusAddressBarOnNewTab = () => Services.prefs.getBoolPref("zia.newtab.focus-address-bar", false);
+
+  function keepNewTabUrlbar(tab) {
+    const focus = () => {
+      if (gBrowser.selectedTab !== tab || tab.ziaTypedInPage) {
+        return;
+      }
+      if (!gURLBar.focused) {
+        gURLBar.focus();
+        gURLBar.select();
+      }
+    };
+    // the search page loading after can pull focus to its own box: put it
+    // back, until something's been typed or clicked in the page
+    tab.linkedBrowser?.addEventListener("mousedown", () => (tab.ziaTypedInPage = true), { once: true });
+    requestAnimationFrame(focus);
+    for (const ms of [250, 700, 1500]) {
+      setTimeout(() => {
+        if (document.activeElement === tab.linkedBrowser) {
+          focus();
+        }
+      }, ms);
+    }
+  }
+
   function closeNewTabUrlbar(tab) {
     if (!searchHomeUrl || !newTabSearchEnabled()) {
+      return;
+    }
+    if (focusAddressBarOnNewTab()) {
+      keepNewTabUrlbar(tab);
       return;
     }
     requestAnimationFrame(() => {
@@ -4385,13 +4449,75 @@
     update();
   }
 
+  // Find opens empty, as in Dia, rather than with the last search in it.
+  // (Text selected on the page still fills it in: Firefox does that just
+  // after this.)
+  function clearFindBarOnOpen(event) {
+    const findbar = event.target;
+    if (findbar?.localName !== "findbar") {
+      return;
+    }
+    // (not findbar.clear(): that collapses the page's selection too, which
+    // Firefox is about to read)
+    try {
+      const field = findbar._findField;
+      if (field?.value) {
+        field.value = "";
+        field.editor?.clearUndoRedo();
+        findbar._updateStatusUI?.();
+        findbar._enableFindButtons?.(false);
+      }
+    } catch (err) {
+      noteError("find bar: clearFindBarOnOpen", err);
+    }
+  }
+
+  // On macOS Firefox fills a find bar that opens with nothing selected from
+  // the system's shared find clipboard, the last search made anywhere: so it
+  // reopened with that search in it. Opened with nothing selected, it starts
+  // empty; text selected on the page still fills it in.
+  function skipClipboardPrefill(findbar) {
+    if (!findbar || findbar.__ziaNoClipboardPrefill || typeof findbar.onCurrentSelection !== "function") {
+      return;
+    }
+    findbar.__ziaNoClipboardPrefill = true;
+    const original = findbar.onCurrentSelection;
+    findbar.onCurrentSelection = function (selectionString, isInitialSelection) {
+      if (!isInitialSelection || selectionString) {
+        return original.call(this, selectionString, isInitialSelection);
+      }
+      // Firefox's own steps for an empty opening, minus the clipboard
+      try {
+        if (!this._startFindDeferred) {
+          return undefined;
+        }
+        this._findField.value = "";
+        this._enableFindButtons(false);
+        this._findField.select();
+        this._findField.focus();
+        this._startFindDeferred.resolve();
+        this._startFindDeferred = null;
+        return undefined;
+      } catch (err) {
+        noteError("find bar: skipClipboardPrefill", err);
+        return original.call(this, selectionString, isInitialSelection);
+      }
+    };
+  }
+
+  function dressFindBar(findbar) {
+    shortenFindCount(findbar);
+    skipClipboardPrefill(findbar);
+  }
+
   function watchFindBars() {
+    window.addEventListener("findbaropen", clearFindBarOnOpen, true);
     gBrowser.tabContainer.addEventListener("TabFindInitialized", (event) => {
-      shortenFindCount(gBrowser.getCachedFindBar?.(event.target));
+      dressFindBar(gBrowser.getCachedFindBar?.(event.target));
     });
     for (const tab of gBrowser.tabs) {
       if (gBrowser.isFindBarInitialized?.(tab)) {
-        shortenFindCount(gBrowser.getCachedFindBar(tab));
+        dressFindBar(gBrowser.getCachedFindBar(tab));
       }
     }
   }
@@ -7477,7 +7603,8 @@
     }
     // A folder made empty (New Folder) has nothing to go by but its own
     // default name, which only ever suggested a plain folder icon
-    if (!(folder.tabs || []).length) {
+    // (Zen keeps a hidden placeholder tab in an empty folder: not a tab)
+    if (!(folder.tabs || []).some((tab) => !tab.hasAttribute("zen-empty-tab"))) {
       return;
     }
 
@@ -7801,7 +7928,13 @@
   const FOLDER_SLOT_INSET = { start: 14, end: 5 };
   let slotSize = "";
   function measureFolderSlot() {
-    const visible = (tab) => tab.getBoundingClientRect().height > 8 && !tab.hasAttribute("zen-empty-tab");
+    // (not a glance: its tab sits inside the one it came from, drawn as a
+    // small picture, and the slot shrank to that while a glance was open)
+    const visible = (tab) =>
+      tab.getBoundingClientRect().height > 8 &&
+      !tab.hasAttribute("zen-empty-tab") &&
+      !tab.hasAttribute("zen-glance-tab") &&
+      !tab.parentElement?.closest(".tabbrowser-tab");
     const inFolder = [...document.querySelectorAll("zen-folder:not([collapsed]) > .tab-group-container > .tabbrowser-tab")].find(visible);
     const tab =
       inFolder || [...document.querySelectorAll("#tabbrowser-tabs .tabbrowser-tab:not([zen-essential])")].find(visible);
@@ -7922,6 +8055,100 @@
     schedule();
   }
 
+  // Folders without an icon of their own show a glass folder in their colour
+  // (or the space's) holding a sheet of paper for each tab in it, up to
+  // three: an empty folder is just the folder. It opens and closes with the
+  // folder, and a tab dropped in drops a sheet in with it.
+  const FOLDER_ICON_MAX_SHEETS = 3;
+  const FOLDER_ICON_DROP_MS = 650;
+
+  function folderIconBox(folder) {
+    return folder?.querySelector?.(":scope > .tab-group-label-container .tab-group-folder-icon");
+  }
+
+  function addFolderIcon(folder) {
+    const box = folderIconBox(folder);
+    if (!box || box.querySelector(":scope > .zia-fi")) {
+      return;
+    }
+    const icon = document.createElementNS(HTML_NS, "div");
+    icon.className = "zia-fi";
+    // back to front: the folder's back, the sheets, the glass front
+    for (const part of ["back", "sheet zia-fi-s3", "sheet zia-fi-s2", "sheet zia-fi-s1", "front"]) {
+      const el = document.createElementNS(HTML_NS, "div");
+      el.className = `zia-fi-${part}`;
+      icon.append(el);
+    }
+    box.append(icon);
+  }
+
+  // What's in a folder: its tabs (a split counts once) and folders
+  function folderItemCount(folder) {
+    const container = folder.querySelector(":scope > .tab-group-container");
+    if (!container) {
+      return 0;
+    }
+    return [...container.children].filter(
+      (el) =>
+        (el.classList.contains("tabbrowser-tab") && !el.hasAttribute("zen-empty-tab")) ||
+        el.localName === "zen-folder" ||
+        el.localName === "tab-group"
+    ).length;
+  }
+
+  function countFolderSheets(folder) {
+    addFolderIcon(folder);
+    const count = Math.min(FOLDER_ICON_MAX_SHEETS, folderItemCount(folder));
+    const before = folder.hasAttribute("zia-fi-count") ? Number(folder.getAttribute("zia-fi-count")) : null;
+    if (before === count) {
+      return;
+    }
+    folder.setAttribute("zia-fi-count", String(count));
+    if (before === null) {
+      return;
+    }
+    // a sheet more than before: it drops in. A sheet fewer: the top one
+    // lifts out and away, as if pulled from the folder with the tab.
+    clearTimeout(folder.ziaFolderDropTimer);
+    folder.removeAttribute("zia-fi-drop");
+    folder.removeAttribute("zia-fi-lift");
+    if (count > before) {
+      folder.setAttribute("zia-fi-drop", String(count));
+    } else {
+      folder.setAttribute("zia-fi-lift", String(before));
+    }
+    folder.ziaFolderDropTimer = setTimeout(() => {
+      folder.removeAttribute("zia-fi-drop");
+      folder.removeAttribute("zia-fi-lift");
+    }, FOLDER_ICON_DROP_MS);
+  }
+
+  function countAllFolderSheets() {
+    document.querySelectorAll("zen-folder, tab-group:not([split-view-group])").forEach(countFolderSheets);
+  }
+
+  function watchFolderIcon() {
+    let queued = false;
+    const recount = () => {
+      if (queued) {
+        return;
+      }
+      queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        countAllFolderSheets();
+      });
+    };
+    for (const type of ["TabGroupCreate", "TabGrouped", "TabUngrouped", "TabOpen", "TabClose", "TabMove", "TabGroupRemoved"]) {
+      gBrowser.tabContainer.addEventListener(type, recount);
+    }
+    window.addEventListener("ZenWorkspacesUIUpdate", recount);
+    // tabs moved in and out by Zen's own drag and drop, without an event
+    new MutationObserver(recount).observe(gBrowser.tabContainer, { subtree: true, childList: true });
+    countAllFolderSheets();
+    // folders restored at start-up
+    setTimeout(countAllFolderSheets, 1500);
+  }
   // Optional: the last essential stretches across whatever's left of its row.
   // The grid can't span "to the end of the row" by itself, so Zia counts the
   // columns and sets the span.
@@ -13508,8 +13735,10 @@
       if (!entry.own) {
         rules.push(`${selector}, ${selector} .toolbarbutton-icon {
           -moz-context-properties: fill, fill-opacity, stroke, stroke-opacity !important;
-          fill: var(--toolbarbutton-icon-fill, currentColor) !important;
-          stroke: var(--toolbarbutton-icon-fill, currentColor) !important;
+          fill: var(--zia-toolbar-ink, var(--toolbarbutton-icon-fill, currentColor)) !important;
+          stroke: var(--zia-toolbar-ink, var(--toolbarbutton-icon-fill, currentColor)) !important;
+          fill-opacity: 1 !important;
+          stroke-opacity: 1 !important;
         }`);
       }
     }
@@ -15629,6 +15858,7 @@
     safely("watchOldIcons", watchOldIcons);
     safely("watchNewFolders", watchNewFolders);
     safely("watchFolderColors", watchFolderColors);
+    safely("watchFolderIcon", watchFolderIcon);
     safely("addFolderColorPicker", addFolderColorPicker);
     safely("watchGroupColors", watchGroupColors);
     safely("watchFolderCloseButtons", watchFolderCloseButtons);

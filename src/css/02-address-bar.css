@@ -522,11 +522,12 @@
   --toolbar-field-color: var(--zia-dark-ink, rgb(251, 251, 254)) !important;
   /* The buttons are white on every dark site, as in Dia, so a dimmed one
      (back with nowhere to go) still reads; the address keeps the softer ink. */
-  --toolbarbutton-icon-fill: rgb(251, 251, 254) !important;
+  --toolbarbutton-icon-fill: var(--zia-dark-button-ink) !important;
+  --zia-toolbar-ink: var(--zia-dark-button-ink);
 
   & toolbarbutton:not(.webextension-browser-action, [id$="-browser-action"], [id$="-BAP"]) {
-    color: rgb(251, 251, 254) !important;
-    fill: rgb(251, 251, 254) !important;
+    color: var(--zia-dark-button-ink) !important;
+    fill: var(--zia-dark-button-ink) !important;
   }
 }
 
@@ -542,6 +543,7 @@
   --toolbar-color: rgb(255, 255, 255) !important;
   --toolbar-field-color: rgb(255, 255, 255) !important;
   --toolbarbutton-icon-fill: rgb(255, 255, 255) !important;
+  --zia-toolbar-ink: rgb(255, 255, 255);
   --zen-toolbar-element-bg-hover: rgba(0, 0, 0, 0.14) !important;
 
   & toolbarbutton:not(.webextension-browser-action, [id$="-browser-action"], [id$="-BAP"]) {
@@ -561,12 +563,27 @@
 
 :root[zia-site-light="true"] #zen-appcontent-navbar-wrapper {
   color-scheme: light !important;
-  color: rgb(28, 28, 30) !important;
-  --toolbox-textcolor: rgb(28, 28, 30) !important;
-  --toolbar-color: rgb(28, 28, 30) !important;
-  --toolbar-field-color: rgb(28, 28, 30) !important;
+  color: var(--zia-light-ink) !important;
+  --toolbox-textcolor: var(--zia-light-ink) !important;
+  --toolbar-color: var(--zia-light-ink) !important;
+  --toolbar-field-color: var(--zia-light-ink) !important;
+  /* the buttons in the same ink as the address, as in Dia */
+  --toolbarbutton-icon-fill: var(--zia-light-ink) !important;
+  --zia-toolbar-ink: var(--zia-light-ink);
   --zen-toolbar-element-bg: rgba(0, 0, 0, 0.06) !important;
   --zen-toolbar-element-bg-hover: rgba(0, 0, 0, 0.1) !important;
+}
+
+:root[zia-site-light="true"] :is(#zia-url-title, #zia-url-plain) .zia-url-title-rest {
+  /* (the ink is already the softer brown-grey, so less dim than on dark) */
+  opacity: 0.7;
+}
+
+:root[zia-site-light="true"] #zen-appcontent-navbar-wrapper toolbarbutton:not(.webextension-browser-action, [id$="-browser-action"], [id$="-BAP"]) {
+  color: var(--zia-light-ink) !important;
+  fill: var(--zia-light-ink) !important;
+  /* full strength, or the thin strokes read lighter than the address */
+  fill-opacity: 1 !important;
 }
 
 :root #urlbar[breakout-extend]:not([zia-classic]) {
@@ -599,9 +616,11 @@
   font-weight: var(--zia-tab-weight) !important;
 }
 
-/* Optional: the address bar's text centred in it (off: from the left) */
+/* Optional: the address bar's text centred in it (off: from the left).
+   Only the toolbar's: the floating bar mid-window (Zen's new tab bar, or
+   its own setting) is a search box, and starts from the left. */
 @media -moz-pref("zia.urlbar.center-text") {
-  #urlbar :is(.urlbar-input, #zia-url-title, #zia-url-plain) {
+  #urlbar:not([zen-floating-urlbar="true"]) :is(.urlbar-input, #zia-url-title, #zia-url-plain) {
     text-align: center !important;
     justify-content: center !important;
   }
