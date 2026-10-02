@@ -380,27 +380,48 @@ tab-group[split-view-group]:has(.tabbrowser-tab[zia-split-of]) {
 
 /* Tab numbers (zia.uc.js): hold Cmd/Ctrl and a small key at the end of each
    tab, and in the corner of each essential, shows the number Cmd/Ctrl+1–9
-   takes you to, like the shortcuts in a macOS menu. Optionally always shown. */
+   takes you to, drawn as an outlined key like the shortcuts in Zen's own
+   menus and pop-ups. Optionally always shown. */
 .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
   display: none;
   flex: none;
   box-sizing: border-box;
-  min-width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   margin: 0 0 0 6px;
-  padding: 0 5px;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: inset 0 0.5px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.9);
-  font: 450 9.5px/20px ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  padding: 0;
+  border-radius: 6.5px;
+  corner-shape: squircle;
+  background-color: rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.62);
+  font: 500 10px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
-  text-align: center;
+  place-items: center;
   pointer-events: none;
+
+  & > span {
+    display: block;
+    text-box: trim-both cap alphabetic;
+  }
+}
+
+.tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number[zia-wide] {
+  width: auto;
+  min-width: 18px;
+  padding: 0 4px;
+
+  /* the two digits a little closer; the space the last one gives back is
+     made up after it, so the pair stays centred */
+  & > span {
+    letter-spacing: -0.05em;
+    margin-inline-end: 0.05em;
+  }
 }
 
 .tabbrowser-tab[visuallyselected] > .tab-stack > .tab-content > .zia-tab-number {
-  background-color: rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Essentials, and every tab when the sidebar is collapsed to icons: a
@@ -414,23 +435,28 @@ tab-group[split-view-group]:has(.tabbrowser-tab[zia-split-of]) {
   position: absolute;
   right: 6px;
   bottom: 6px;
-  min-width: 16px;
-  height: 16px;
+  width: 15px;
+  height: 15px;
   margin: 0;
-  padding: 0 3px;
   border-radius: 5px;
+  background-color: rgba(28, 28, 30, 0.45);
   font-size: 8.75px;
-  line-height: 16px;
+}
+
+:is(.tabbrowser-tab[zen-essential], :root:not([zen-sidebar-expanded="true"]) .tabbrowser-tab) > .tab-stack > .tab-content > .zia-tab-number[zia-wide] {
+  width: auto;
+  min-width: 15px;
+  padding: 0 2.5px;
 }
 
 :root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-  display: block;
+  display: grid;
   animation: zia-tab-number-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
 @media -moz-pref("zia.tab-numbers.always") {
   .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
-    display: block;
+    display: grid;
   }
 }
 
@@ -454,8 +480,25 @@ tab-group[split-view-group]:has(.tabbrowser-tab[zia-split-of]) {
   }
 }
 
+/* let go: they slide back off to the right, as they came in */
+:root[zia-tab-numbers-leaving]:not([zia-tab-numbers]) .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+  display: grid;
+  animation: zia-tab-number-out 0.1s cubic-bezier(0.4, 0, 0.8, 0.4) forwards;
+}
+
+@keyframes zia-tab-number-out {
+  to {
+    opacity: 0;
+    translate: 4px 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   :root[zia-tab-numbers] .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
     animation: none;
+  }
+
+  :root[zia-tab-numbers-leaving]:not([zia-tab-numbers]) .tabbrowser-tab > .tab-stack > .tab-content > .zia-tab-number {
+    display: none;
   }
 }
