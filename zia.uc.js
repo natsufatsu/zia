@@ -19,6 +19,21 @@
     console.debug(`[Zia] ${where}:`, err);
   }
 
+  // Spaces switching: Zen marks it on the toolbar (1.23) or, before, the
+  // window. watchSpacesSwitching(callback) calls back as it starts and ends.
+  function spacesSwitching() {
+    return !!(window.gNavToolbox?.hasAttribute("animating-background") || root.hasAttribute("animating-background"));
+  }
+
+  function watchSpacesSwitching(callback) {
+    const watcher = new MutationObserver(callback);
+    for (const el of [window.gNavToolbox, root]) {
+      if (el) {
+        watcher.observe(el, { attributes: true, attributeFilter: ["animating-background"] });
+      }
+    }
+  }
+
   function setFlag(name, on) {
     if (on === root.hasAttribute(name)) {
       return;
@@ -1668,6 +1683,7 @@
     };
     // the search page loading after can pull focus to its own box: put it
     // back, until something's been typed or clicked in the page
+    tab.ziaBlankAddress = true;
     tab.linkedBrowser?.addEventListener("mousedown", () => (tab.ziaTypedInPage = true), { once: true });
     requestAnimationFrame(focus);
     for (const ms of [250, 700, 1500]) {
@@ -1677,6 +1693,47 @@
         }
       }, ms);
     }
+  }
+
+  // The search page arriving in a new tab put its address in the address
+  // bar, already open to type in, so it had to be deleted first (Zen 1.23
+  // writes a page's address in as it loads, even with the bar in use). It's
+  // kept empty instead, until something's typed there or in the page.
+  function keepNewTabAddressEmpty(browser, location) {
+    const tab = gBrowser.getTabForBrowser?.(browser);
+    if (!tab?.ziaBlankAddress || !searchHomeUrl || !location) {
+      return;
+    }
+    if (tab.ziaTypedInPage || location.spec === "about:newtab" || location.spec === "about:blank") {
+      return;
+    }
+    let home = null;
+    try {
+      home = Services.io.newURI(searchHomeUrl);
+    } catch (err) {
+      return;
+    }
+    // (the search page itself: a search from it, or anywhere else, shows
+    // its address as usual from then on)
+    if (location.prePath !== home.prePath || location.filePath !== home.filePath) {
+      tab.ziaBlankAddress = false;
+      return;
+    }
+    const clear = () => {
+      if (gBrowser.selectedTab !== tab || tab.ziaTypedInPage || !tab.ziaBlankAddress) {
+        return;
+      }
+      // (what's in the bar is still the page's own address, not typing)
+      const shown = gURLBar.value || "";
+      if (shown && (gURLBar.valueIsTyped || !location.spec.includes(shown.replace(/^https?:\/\//, "").replace(/\/$/, "")))) {
+        tab.ziaBlankAddress = false;
+        return;
+      }
+      browser.userTypedValue = "";
+      gURLBar.value = "";
+    };
+    clear();
+    requestAnimationFrame(clear);
   }
 
   function closeNewTabUrlbar(tab) {
@@ -8519,15 +8576,21 @@
     if (!essentials) {
       return;
     }
+    // (not while spaces are switching: Zen shows and hides each space's
+    // essentials as they slide, and working the rows out again then measured
+    // the grid every frame of the slide; once it's over instead)
     let frame = 0;
     const schedule = () => {
       if (!frame) {
         frame = requestAnimationFrame(() => {
           frame = 0;
-          fillEssentialRows();
+          if (!spacesSwitching()) {
+            fillEssentialRows();
+          }
         });
       }
     };
+    watchSpacesSwitching(schedule);
     new MutationObserver(schedule).observe(essentials, {
       childList: true,
       subtree: true,
@@ -9201,10 +9264,20 @@
       return;
     }
     const name = compact ? "--zen-main-browser-background-toolbar" : "--zen-main-browser-background";
-    const paint = paintColor(getComputedStyle(layer).getPropertyValue(name));
+    const value = getComputedStyle(layer).getPropertyValue(name);
     const rootStyle = getComputedStyle(root);
-    const tint = resolveColor(rootStyle.getPropertyValue("--zia-media-bg"));
-    const base = resolveColor(rootStyle.getPropertyValue("--zia-media-card-base"));
+    const tintText = rootStyle.getPropertyValue("--zia-media-bg");
+    const baseText = rootStyle.getPropertyValue("--zia-media-card-base");
+    // (only when one of them changed: worked out again for nothing, it
+    // wrote to the window's root each time, restyling the whole window)
+    const key = `${value}|${tintText}|${baseText}`;
+    if (key === syncSidebarPaint.key) {
+      return;
+    }
+    syncSidebarPaint.key = key;
+    const paint = paintColor(value);
+    const tint = resolveColor(tintText);
+    const base = resolveColor(baseText);
     if (!paint || !tint || !base) {
       root.style.removeProperty("--zia-media-rest");
       root.style.removeProperty("--zia-media-solid");
@@ -9245,7 +9318,26 @@
 
   function watchSidebarPaint() {
     syncSidebarPaint();
-    const watcher = new MutationObserver(syncSidebarPaint);
+    // Zen writes the backdrop's style on every frame of a swipe between
+    // spaces (fading one space's colour into the next), and each write ran
+    // this: style worked out several times over and the whole window
+    // restyled, every frame, which was much of a swipe's stutter. Once a
+    // frame at most now, and not mid-swipe or mid-switch (the colours are on
+    // their way somewhere else): once it's over.
+    let frame = 0;
+    const schedule = () => {
+      if (frame) {
+        return;
+      }
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (!spacesSwitching()) {
+          syncSidebarPaint();
+        }
+      });
+    };
+    const watcher = new MutationObserver(schedule);
+    watchSpacesSwitching(schedule);
     for (const id of ["zen-browser-background", "zen-toolbar-background"]) {
       const layer = document.getElementById(id);
       if (layer) {
@@ -16635,6 +16727,7 @@
           return;
         }
         redirectBlankNewTab(browser, location, flags);
+        keepNewTabAddressEmpty(browser, location);
 
         if (flags & LOCATION_CHANGE_ERROR_PAGE) {
           errorBrowsers.add(browser);

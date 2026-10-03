@@ -4,6 +4,19 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.90.1] — 2026-10-03
+
+### Fixed
+
+- With Cmd/Ctrl+T set to leave the address bar ready to type in, the
+  search page's address no longer appears in it as the page loads, so
+  there's nothing to delete before typing.
+- Switching spaces does less work: as Zen fades one space's colour into
+  the next, Zia worked out the music card's colours again on every frame
+  and restyled the whole window each time, and measured the essentials'
+  rows again too. Both now wait until the switch is over (the colour
+  still fades as before).
+
 ## [2.90.0] — 2026-10-03
 
 ### Changed
