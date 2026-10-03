@@ -4,6 +4,21 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.87.1] — 2026-10-03
+
+### Fixed
+
+- Light spaces: the music card was a grey wash with white writing, the
+  essentials faint white tiles, the buttons on tabs (close, unload) white,
+  and an open folder's box and the fine edges round tabs and folders
+  white on cream, so they all but disappeared; so did the glass folder in
+  the space's pale colour, and the arrow in an empty folder's "Drag tabs
+  here". The music card is now a white card in the dark ink, the
+  essentials firmer white tiles with a fine dark edge, the tab buttons a
+  soft dark (as the folders' close mark), the folder box and edges a
+  faint shade of black, the glass folder and box a deeper tint with a
+  fine dark edge, and the arrow dark.
+
 ## [2.87.0] — 2026-10-03
 
 ### Added
