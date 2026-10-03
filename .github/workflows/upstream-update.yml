@@ -71,7 +71,9 @@ jobs:
           remote = subprocess.check_output(['git', 'ls-remote', '--heads', 'origin', branch], text=True)
           if remote.strip():
               raise SystemExit('Update branch already exists remotely; review it without overwriting it.')
-          subprocess.run(['git', '-C', result['worktree'], 'push', 'origin', 'HEAD:refs/heads/' + branch], check=True)
+          # Worktree branches share refs with the primary checkout. Push from
+          # that checkout so actions/checkout's scoped credentials apply.
+          subprocess.run(['git', 'push', 'origin', branch + ':refs/heads/' + branch], check=True)
           body = Path(os.environ['REPORT']).with_suffix('.md')
           body.write_text('Imports upstream ' + result['upstream'] + ' as fork ' + result['version'] + '.\n\n'
               'Generated-file, syntax, behavior and preservation checks passed. The custom sidebar/player and excluded features remain protected.\n\n'
