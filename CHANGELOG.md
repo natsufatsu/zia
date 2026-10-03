@@ -4,6 +4,27 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.87.3] — 2026-10-03
+
+### Changed
+
+- The glass folder and the archive box are a touch narrower, still the
+  same width as each other, and each edge is bowed out slightly, a
+  squircle's, so their lines aren't ruler-straight; the corners are as
+  they were.
+
+### Fixed
+
+- A folder inside another showed its parent's state, not its own: in an
+  open folder it looked open even when shut, so opening and closing it
+  didn't animate, and it took the parent's sheets, or its archive box.
+  Each folder's icon now follows only its own folder.
+
+- Closing a folder ended in a snap, its glass icon's bright bottom edge
+  suddenly sharpening as the front landed: Firefox drew the front one way
+  while it tipped and another once it was shut. It's drawn the same way
+  throughout now, so it closes smoothly; the archive box's lid too.
+
 ## [2.87.2] — 2026-10-03
 
 ### Changed

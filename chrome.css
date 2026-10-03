@@ -2919,27 +2919,30 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 /* the back and its tab, one shape: bright enough to read on a dark
    sidebar, and narrower than the front so it never peeks round it */
 .zia-fi-back {
-  left: 0.07em;
-  right: 0.07em;
+  left: 0.1em;
+  right: 0.1em;
   top: 0;
   bottom: 0.04em;
-  --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 82' preserveAspectRatio='none'%3E%3Cpath d='M0 12 Q0 0 12 0 H30 Q35 0 39 3 L45 8 Q48 10.5 53 10.5 H88 Q100 10.5 100 22.5 V70 Q100 82 88 82 H12 Q0 82 0 70 Z'/%3E%3C/svg%3E");
+  --shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 82' preserveAspectRatio='none'%3E%3Cpath d='M1 12 Q1 0 13 0 H30 Q35 0 39 3 L45 8 Q48 10.5 53 10.5 H87 Q99 10.5 99 22.5 Q100.3 46 99 70 Q99 81 87 81 Q50 83 13 81 Q1 81 1 70 Q-0.3 41 1 12 Z'/%3E%3C/svg%3E");
   mask: var(--shape) 0 0 / 100% 100% no-repeat;
   background: linear-gradient(color-mix(in srgb, var(--fi-accent) 62%, white), color-mix(in srgb, var(--fi-accent) 88%, white));
 }
 
 /* the milky glass front, tinted the same, narrowing to the bottom */
 .zia-fi-front {
-  left: 0;
-  right: 0;
+  left: 0.03em;
+  right: 0.03em;
   bottom: 0;
   height: 0.66em;
   border-radius: 0.135em;
   transform-origin: 50% 100%;
   background: linear-gradient(180deg, color-mix(in srgb, var(--fi-accent) 55%, rgba(255, 255, 255, 0.55)), color-mix(in srgb, var(--fi-accent) 45%, rgba(255, 255, 255, 0.35)) 55%, rgba(255, 255, 255, 0.55));
-  backdrop-filter: blur(1px) saturate(1.5);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 66' preserveAspectRatio='none'%3E%3Cpath d='M0 13.5 Q0 0 13.5 0 H86.5 Q100 0 100 13.5 L97.9 52.5 Q97.2 66 83.5 66 H16.5 Q2.8 66 2.1 52.5 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  /* drawn as its own layer always: Firefox draws it so (a touch softer)
+     while it tips, and went back to drawing it flat the moment it landed
+     shut, its bright lower edge sharpening with a snap */
+  will-change: transform;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 66' preserveAspectRatio='none'%3E%3Cpath d='M1 14.5 Q1 1.2 14.5 1.2 Q50 -1.2 85.5 1.2 Q99 1.2 99 14.5 Q100.35 33.5 96.9 52.5 Q96.2 64.8 82.5 64.8 Q50 67.2 17.5 64.8 Q3.8 64.8 3.1 52.5 Q-0.35 33.5 1 14.5 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
 }
 
 /* the sheets, the back one dimmer, further back: hidden until there's something in the folder for them,
@@ -2973,32 +2976,32 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   background: linear-gradient(color-mix(in srgb, var(--fi-accent) 12%, #cfcfd5), color-mix(in srgb, var(--fi-accent) 12%, #b4b4bc));
 }
 
-:is(zen-folder, tab-group)[zia-fi-count="1"] .zia-fi-s1,
-:is(zen-folder, tab-group)[zia-fi-count="2"] :is(.zia-fi-s1, .zia-fi-s2),
-:is(zen-folder, tab-group)[zia-fi-count="3"] .zia-fi-sheet {
+:is(zen-folder, tab-group)[zia-fi-count="1"] > .tab-group-label-container .zia-fi-s1,
+:is(zen-folder, tab-group)[zia-fi-count="2"] > .tab-group-label-container :is(.zia-fi-s1, .zia-fi-s2),
+:is(zen-folder, tab-group)[zia-fi-count="3"] > .tab-group-label-container .zia-fi-sheet {
   opacity: 1;
 }
 
 /* a stack from left to right: alone, the sheet sits in the middle; a
    second slides in behind it on the right, pushing it left; a third goes
    behind those two, further right, the second moving to the middle */
-:is(zen-folder, tab-group)[zia-fi-count="2"] .zia-fi-s1 {
+:is(zen-folder, tab-group)[zia-fi-count="2"] > .tab-group-label-container .zia-fi-s1 {
   left: 0.12em;
   right: 0.28em;
 }
 
-:is(zen-folder, tab-group)[zia-fi-count="3"] {
+:is(zen-folder, tab-group)[zia-fi-count="3"] > .tab-group-label-container {
   & .zia-fi-s1 { left: 0.08em; right: 0.32em; }
   & .zia-fi-s2 { left: 0.2em; right: 0.2em; }
 }
 
 /* open: the front tips forward and the sheets rise, fanning out */
-:is(zen-folder, tab-group):not([collapsed]) .zia-fi {
+:is(zen-folder, tab-group):not([collapsed]) > .tab-group-label-container .zia-fi {
   & .zia-fi-front { transform: rotateX(-32deg); }
   & .zia-fi-s1 { transform: translateY(-0.12em); }
 }
 
-:is(zen-folder, tab-group):is([zia-fi-count="2"], [zia-fi-count="3"]):not([collapsed]) .zia-fi {
+:is(zen-folder, tab-group):is([zia-fi-count="2"], [zia-fi-count="3"]):not([collapsed]) > .tab-group-label-container .zia-fi {
   & .zia-fi-s1 { transform: translateY(-0.12em) rotate(-6deg); }
   & .zia-fi-s2 { transform: translateY(-0.09em) rotate(2deg); transition-delay: 0.05s; }
   & .zia-fi-s3 { transform: translateY(-0.06em) rotate(9deg); transition-delay: 0.1s; }
@@ -3012,9 +3015,9 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   100% { opacity: 1; translate: 0 0; }
 }
 
-:is(zen-folder, tab-group)[zia-fi-drop="1"] .zia-fi-s1,
-:is(zen-folder, tab-group)[zia-fi-drop="2"] .zia-fi-s2,
-:is(zen-folder, tab-group)[zia-fi-drop="3"] .zia-fi-s3 {
+:is(zen-folder, tab-group)[zia-fi-drop="1"] > .tab-group-label-container .zia-fi-s1,
+:is(zen-folder, tab-group)[zia-fi-drop="2"] > .tab-group-label-container .zia-fi-s2,
+:is(zen-folder, tab-group)[zia-fi-drop="3"] > .tab-group-label-container .zia-fi-s3 {
   animation: zia-fi-drop 0.6s cubic-bezier(0.3, 0.9, 0.4, 1) both;
 }
 
@@ -3026,9 +3029,9 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   100% { opacity: 0; translate: 0.08em -0.62em; rotate: 8deg; }
 }
 
-:is(zen-folder, tab-group)[zia-fi-lift="1"] .zia-fi-s1,
-:is(zen-folder, tab-group)[zia-fi-lift="2"] .zia-fi-s2,
-:is(zen-folder, tab-group)[zia-fi-lift="3"] .zia-fi-s3 {
+:is(zen-folder, tab-group)[zia-fi-lift="1"] > .tab-group-label-container .zia-fi-s1,
+:is(zen-folder, tab-group)[zia-fi-lift="2"] > .tab-group-label-container .zia-fi-s2,
+:is(zen-folder, tab-group)[zia-fi-lift="3"] > .tab-group-label-container .zia-fi-s3 {
   animation: zia-fi-lift 0.5s cubic-bezier(0.4, 0, 0.6, 1) both;
 }
 
@@ -3037,8 +3040,8 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 /* one or the other shows; crossing three and four, the old one shrinks and
    blurs away and the new one grows out of a blur into focus, running a
    touch past full size */
-:is(zen-folder, tab-group)[zia-fi-full] .zia-fi-fold,
-:is(zen-folder, tab-group):not([zia-fi-full]) .zia-fb {
+:is(zen-folder, tab-group)[zia-fi-full] > .tab-group-label-container .zia-fi-fold,
+:is(zen-folder, tab-group):not([zia-fi-full]) > .tab-group-label-container .zia-fb {
   opacity: 0;
 }
 
@@ -3062,14 +3065,16 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 }
 
 /* the inside, in the folder's back's tint, the glass front's size so no
-   band shows round its edge. The box is the folder's width: the lid all
-   of it, the box just inside the lid. */
+   band shows round its edge. The box is the folder's width: the lid as
+   wide as the folder's front, the box just inside the lid; like the
+   folder, each edge is bowed out a touch, a squircle's, the corners as
+   they were. */
 .zia-fb-back {
-  left: 0.03em;
-  right: 0.03em;
+  left: 0.06em;
+  right: 0.06em;
   bottom: 0;
   height: 0.62em;
-  border-radius: 0.1em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 62' preserveAspectRatio='none'%3E%3Cpath d='M1 11 Q1 1 11 1 Q44 -1 77 1 Q87 1 87 11 Q89 31 87 51 Q87 61 77 61 Q44 63 11 61 Q1 61 1 51 Q-1 31 1 11 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   background: linear-gradient(color-mix(in srgb, var(--fi-accent) 62%, white), color-mix(in srgb, var(--fi-accent) 88%, white));
 }
 
@@ -3081,13 +3086,13 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
   --fb-rise: 0em;
 }
 
-:is(zen-folder, tab-group):not([collapsed]) .zia-fb {
+:is(zen-folder, tab-group):not([collapsed]) > .tab-group-label-container .zia-fb {
   --fb-rise: -0.1em;
 }
 
 .zia-fb-sheet {
-  left: 0.17em;
-  right: 0.17em;
+  left: 0.2em;
+  right: 0.2em;
   top: calc(0.19em + var(--i) * 0.014em);
   height: 0.5em;
   border-radius: 0.04em;
@@ -3132,8 +3137,8 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 
 /* past eight: a sheet that drops in and out of sight, or comes out */
 .zia-fb-pass {
-  left: 0.17em;
-  right: 0.17em;
+  left: 0.2em;
+  right: 0.2em;
   top: 0.19em;
   height: 0.5em;
   border-radius: 0.04em;
@@ -3161,11 +3166,11 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 
 /* the glass front, as the folder's */
 .zia-fb-front {
-  left: 0.03em;
-  right: 0.03em;
+  left: 0.06em;
+  right: 0.06em;
   bottom: 0;
   height: 0.56em;
-  border-radius: 0.1em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 56' preserveAspectRatio='none'%3E%3Cpath d='M1 11 Q1 1 11 1 Q44 -1 77 1 Q87 1 87 11 Q89 28 87 45 Q87 55 77 55 Q44 57 11 55 Q1 55 1 45 Q-1 28 1 11 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   background: linear-gradient(180deg, color-mix(in srgb, var(--fi-accent) 55%, rgba(255, 255, 255, 0.55)), color-mix(in srgb, var(--fi-accent) 45%, rgba(255, 255, 255, 0.35)) 55%, rgba(255, 255, 255, 0.55));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.25);
 }
@@ -3173,17 +3178,18 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 /* the lid, in the same glass; it rides a touch higher the fuller the box,
    and lifts and tips back while the folder's open or a sheet goes by */
 .zia-fb-lid {
-  left: 0;
-  right: 0;
+  left: 0.03em;
+  right: 0.03em;
   height: 0.13em;
   bottom: calc(0.53em + var(--fb-full, 0) * 0.05em);
-  border-radius: 0.05em;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 94 13' preserveAspectRatio='none'%3E%3Cpath d='M0.6 5.6 Q0.6 0.6 5.6 0.6 Q47 -0.6 88.4 0.6 Q93.4 0.6 93.4 5.6 V7.4 Q93.4 12.4 88.4 12.4 Q47 13.6 5.6 12.4 Q0.6 12.4 0.6 7.4 Z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   background: linear-gradient(180deg, color-mix(in srgb, var(--fi-accent) 55%, rgba(255, 255, 255, 0.7)), color-mix(in srgb, var(--fi-accent) 62%, rgba(255, 255, 255, 0.45)));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 0.02em 0.035em rgba(0, 0, 0, 0.22);
   transition: transform 0.32s var(--fi-spring), bottom 0.35s var(--fi-soft);
+  will-change: transform;
 }
 
-:is(zen-folder, tab-group):not([collapsed]) .zia-fb-lid,
+:is(zen-folder, tab-group):not([collapsed]) > .tab-group-label-container .zia-fb-lid,
 .zia-fi[zia-fb-peek] .zia-fb-lid {
   transform: translate(-0.05em, -0.2em) rotate(-14deg);
 }
