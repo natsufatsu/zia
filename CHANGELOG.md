@@ -4,6 +4,30 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.89.0] — 2026-10-03
+
+### Changed
+
+- A tab without its own icon shows just a translucent square, without
+  Zen's logo in it.
+- Hiding or showing a space's pinned tabs and folders by clicking its
+  name springs like a folder opening and closing: the tabs below go a
+  little past and settle back (with folders' gentle spring on, Settings
+  → Sine Mods → Zia → Folders).
+- Zen's donate button is gone from the note Zen shows after an update.
+- A white folder's icon has no shadow behind it; coloured folders keep
+  theirs.
+
+### Fixed
+
+- Reload has its hover square again on Zen 1.23, like back and forward.
+- Zen 1.23 turned its "acrylic" look on for everyone, drawing the
+  sidebar part see-through under Zia's own, so it came out far too
+  transparent (and the compact sidebar and address bar pop-up changed
+  too). Zia switches it back off once, for anyone who hadn't chosen it
+  themselves; it takes from the next start. (It's
+  zen.theme.acrylic-elements in about:config, to turn back on.)
+
 ## [2.88.0] — 2026-10-03
 
 ### Added

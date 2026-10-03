@@ -1404,8 +1404,9 @@
   color: color-mix(in srgb, var(--zen-primary-color, white) var(--zia-space-name-tint), white) !important;
 }
 
-.tabbrowser-tab:not([busy], [crashed]) .tab-icon-image:is(:not([src]), :-moz-broken, [src="chrome://branding/content/icon32.png"]) {
-  content: url("chrome://sine/content/zia/icons/tab-default.svg") !important;
+/* A tab with no icon of its own shows a plain translucent square (no logo) */
+.tabbrowser-tab:not([busy], [crashed]) .tab-icon-image:is(:not([src]), [src=""], :-moz-broken, [src="chrome://branding/content/icon32.png"], [src="chrome://global/skin/icons/defaultFavicon.svg"]) {
+  content: url("chrome://sine/content/zia/icons/tab-blank.svg") !important;
 }
 
 
@@ -2837,6 +2838,12 @@ zen-workspace[collapsedpinnedtabs] :is(zen-folder, tab-group:not([split-view-gro
   bottom: var(--zia-hold-inset) !important;
 }
 
+/* Zen's donate button goes from the note it shows in the sidebar after an
+   update */
+.zen-sidebar-notification-link-container[data-l10n-id="zen-sidebar-notification-donate-tooltip"] {
+  display: none !important;
+}
+
 /* Folders: a glass folder in the folder's
    colour (or the space's), holding a sheet for each thing in it, up to
    three (zia.uc.js counts them). An empty folder is just the folder. The
@@ -3203,8 +3210,8 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 
 /* centred on the front, so it tips with it as the folder opens; on the
    box, on its front. White on every folder, with a close dark halo and a
-   soft shadow below so it holds up on the coloured and the pale tints
-   alike. An emoji keeps its own colours. */
+   soft shadow below so it holds up on the coloured tints (a white folder's
+   has none). An emoji keeps its own colours. */
 .zia-fi-mark {
   display: none;
   position: absolute;
@@ -3223,6 +3230,11 @@ zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
 
 :is(zen-folder, tab-group)[zia-fi-marked] > .tab-group-label-container .zia-fi-mark {
   display: block;
+}
+
+/* on a white folder (the default) the white icon needs no shadow */
+zen-folder:is(:not([zia-folder-color]), [zia-folder-color="white"]) > .tab-group-label-container .zia-fi-mark {
+  filter: none;
 }
 #zia-tab-card,
 #zia-folder-card {
@@ -5988,13 +6000,15 @@ zen-folder .tab-reset-button {
    starts and stops loading: the one swapped in isn't hovered until the
    pointer next moves, so the hover square went and snapped back with no
    fade (and reload, disabled for a moment after each load, lost it too).
-   It's drawn for the pair instead, which stays hovered throughout. */
+   It's drawn for the pair instead, which stays hovered throughout. (Zen
+   1.23 no longer sets Firefox's hover colour, so with none this is Zen's
+   own: the text colour at 7%, as back and forward get.) */
 #stop-reload-button:hover > :is(#reload-button, #stop-button) > .toolbarbutton-icon {
-  background-color: var(--toolbarbutton-hover-background) !important;
+  background-color: var(--toolbarbutton-hover-background, color-mix(in srgb, currentColor 7%, transparent)) !important;
 }
 
 #stop-reload-button:hover > :is(#reload-button, #stop-button):hover:active > .toolbarbutton-icon {
-  background-color: var(--toolbarbutton-active-background, var(--toolbarbutton-hover-background)) !important;
+  background-color: var(--toolbarbutton-active-background, color-mix(in srgb, currentColor 12%, transparent)) !important;
 }
 
 #back-button::before {

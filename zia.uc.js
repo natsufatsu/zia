@@ -1838,9 +1838,13 @@
     el?.localName === "zen-folder" || (el?.localName === "tab-group" && !el.hasAttribute("split-view-group"));
 
   function springFolderAnimation(element, keyframes, options) {
+    // (a space's pinned tabs and folders, hidden and shown by clicking its
+    // name, are a folder to Zen too: the same start, in the space's pinned
+    // section, and the same slide, so the tabs below spring the same way)
+    const spaceStart = element.classList?.contains("space-fake-collapsible-start");
     if (
       !element.classList?.contains("zen-tab-group-start") ||
-      !isFolder(element.parentElement?.parentElement) ||
+      !(spaceStart || isFolder(element.parentElement?.parentElement)) ||
       !Array.isArray(keyframes) ||
       keyframes.length !== 2 ||
       !(typeof options === "object" && options?.duration > 0)
@@ -1850,16 +1854,19 @@
     // Clicked open and shut quickly, Zen's own ends go stale (opening "from
     // 0 to 0", closing short of shut), so which way it's going comes from
     // the folder, and the ends from where open (0) and shut really are
-    const folder = element.parentElement.parentElement;
+    const folder = spaceStart ? element.closest("zen-workspace") : element.parentElement.parentElement;
+    if (!folder) {
+      return null;
+    }
     // With a tab selected inside, Zen shows just that tab (picked from the
     // closed folder's list, say, the folder stays "collapsed" while Zen
     // opens it round the tab), and the other tabs' own animations carry the
     // motion (springFolderItem): Zen's, as it was
-    if (folder.hasAttribute("has-active") || folder.contains(gBrowser.selectedTab)) {
+    if (!spaceStart && (folder.hasAttribute("has-active") || folder.contains(gBrowser.selectedTab))) {
       element.parentElement.ziaHold?.();
       return null;
     }
-    const closing = folder.hasAttribute("collapsed");
+    const closing = spaceStart ? folder.hasAttribute("collapsedpinnedtabs") : folder.hasAttribute("collapsed");
     // (a folder whose one showing tab was just dragged out of it already
     // looks shut: its room closes, without the bounce, 28-tab-dragging)
     const lentOut = (folder.ziaLentUntil || 0) > Date.now();
@@ -1910,7 +1917,7 @@
   // arrive, so the folder's box and everything below it rise past their
   // place and drop back.
   function bounceUpAfterClosing(container, animate) {
-    if (!container?.classList?.contains("tab-group-container")) {
+    if (!container?.classList?.contains("tab-group-container") && !container?.classList?.contains("zen-workspace-pinned-tabs-section")) {
       return;
     }
     animate.call(
@@ -5648,6 +5655,22 @@
       }
     } catch (err) {
       noteError("zen defaults: dim asleep", err);
+    }
+    // Zen 1.23 turned its "acrylic" look on for everyone: the sidebar drawn
+    // part see-through (and the compact sidebar and address pop-up
+    // differently again), under Zia's own. Switched off once, for anyone
+    // who hadn't chosen it themselves; Zen reads it as a window opens, so
+    // it takes from the next start. (It can be turned back on in
+    // about:config, zen.theme.acrylic-elements.)
+    try {
+      if (!Services.prefs.getBoolPref("zia.acrylic-reset", false)) {
+        if (!Services.prefs.prefHasUserValue("zen.theme.acrylic-elements")) {
+          Services.prefs.setBoolPref("zen.theme.acrylic-elements", false);
+        }
+        Services.prefs.setBoolPref("zia.acrylic-reset", true);
+      }
+    } catch (err) {
+      noteError("zen defaults: acrylic", err);
     }
     set("zia.essentials.fill-row", false);
     set("zia.essentials.split", true);
