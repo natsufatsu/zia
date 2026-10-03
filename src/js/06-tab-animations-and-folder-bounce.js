@@ -154,13 +154,22 @@
     const lentOut = (folder.ziaLentUntil || 0) > Date.now();
     const zenFrom = parseFloat(keyframes[0]?.marginTop);
     const zenTo = parseFloat(keyframes[1]?.marginTop);
+    // (a space's pinned section ends with the line above its other tabs,
+    // which stays when the section's hidden: shut by the section's whole
+    // height, the line went too, then came back a moment later, and the
+    // tabs below snapped down)
+    const line = spaceStart ? element.parentElement.querySelector(":scope > .pinned-tabs-container-separator") : null;
+    const lineHeight = line ? line.getBoundingClientRect().height : 0;
     const shut = -Math.max(
       1,
-      element.parentElement.getBoundingClientRect().height,
-      ...[closing ? -zenTo : -zenFrom].filter(Number.isFinite)
+      element.parentElement.getBoundingClientRect().height - lineHeight,
+      ...(spaceStart ? [] : [closing ? -zenTo : -zenFrom].filter(Number.isFinite))
     );
     const from = closing ? 0 : Number.isFinite(zenFrom) && zenFrom < 0 ? zenFrom : shut;
-    const to = closing ? (Number.isFinite(zenTo) && zenTo < 0 ? Math.min(zenTo, shut) : shut) : 0;
+    // (a space's own end is where Zen leaves it once done: ended anywhere
+    // else, the tabs below jumped the difference as Zen's took over)
+    const zenShut = Number.isFinite(zenTo) && zenTo < 0;
+    const to = closing ? (spaceStart && zenShut ? zenTo : zenShut ? Math.min(zenTo, shut) : shut) : 0;
     let bounce = true;
     try {
       bounce = Services.prefs.getBoolPref("zia.folders.bounce", true);
@@ -200,6 +209,14 @@
   // place and drop back.
   function bounceUpAfterClosing(container, animate) {
     if (!container?.classList?.contains("tab-group-container") && !container?.classList?.contains("zen-workspace-pinned-tabs-section")) {
+      return;
+    }
+    // A space's pinned section keeps the line above its other tabs showing
+    // as it hides, so it never shrinks to nothing and the slide's own
+    // overshoot already moves the line and the tabs below together; this on
+    // top bounced the tabs further than the line
+    const line = container.querySelector(":scope > .pinned-tabs-container-separator");
+    if (line && line.getBoundingClientRect().height > 0) {
       return;
     }
     animate.call(

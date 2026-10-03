@@ -1872,13 +1872,22 @@
     const lentOut = (folder.ziaLentUntil || 0) > Date.now();
     const zenFrom = parseFloat(keyframes[0]?.marginTop);
     const zenTo = parseFloat(keyframes[1]?.marginTop);
+    // (a space's pinned section ends with the line above its other tabs,
+    // which stays when the section's hidden: shut by the section's whole
+    // height, the line went too, then came back a moment later, and the
+    // tabs below snapped down)
+    const line = spaceStart ? element.parentElement.querySelector(":scope > .pinned-tabs-container-separator") : null;
+    const lineHeight = line ? line.getBoundingClientRect().height : 0;
     const shut = -Math.max(
       1,
-      element.parentElement.getBoundingClientRect().height,
-      ...[closing ? -zenTo : -zenFrom].filter(Number.isFinite)
+      element.parentElement.getBoundingClientRect().height - lineHeight,
+      ...(spaceStart ? [] : [closing ? -zenTo : -zenFrom].filter(Number.isFinite))
     );
     const from = closing ? 0 : Number.isFinite(zenFrom) && zenFrom < 0 ? zenFrom : shut;
-    const to = closing ? (Number.isFinite(zenTo) && zenTo < 0 ? Math.min(zenTo, shut) : shut) : 0;
+    // (a space's own end is where Zen leaves it once done: ended anywhere
+    // else, the tabs below jumped the difference as Zen's took over)
+    const zenShut = Number.isFinite(zenTo) && zenTo < 0;
+    const to = closing ? (spaceStart && zenShut ? zenTo : zenShut ? Math.min(zenTo, shut) : shut) : 0;
     let bounce = true;
     try {
       bounce = Services.prefs.getBoolPref("zia.folders.bounce", true);
@@ -1918,6 +1927,14 @@
   // place and drop back.
   function bounceUpAfterClosing(container, animate) {
     if (!container?.classList?.contains("tab-group-container") && !container?.classList?.contains("zen-workspace-pinned-tabs-section")) {
+      return;
+    }
+    // A space's pinned section keeps the line above its other tabs showing
+    // as it hides, so it never shrinks to nothing and the slide's own
+    // overshoot already moves the line and the tabs below together; this on
+    // top bounced the tabs further than the line
+    const line = container.querySelector(":scope > .pinned-tabs-container-separator");
+    if (line && line.getBoundingClientRect().height > 0) {
       return;
     }
     animate.call(
@@ -9199,6 +9216,33 @@
     root.style.setProperty("--zia-media-solid", cssColor(colorOver(tint, colorOver(paint, base))));
   }
 
+  // Light spaces (23-light-spaces.css): a space whose colour is light, which
+  // Zen marks zen-should-be-dark-mode="false", and also a window with no
+  // space colour at all in light mode: Zen leaves the mark off then and
+  // goes by the window's own light or dark, so Zia drew its dark look, white
+  // text on the pale window. Mirrored to :root[zia-light].
+  function watchLightSpace() {
+    const update = () => {
+      const mark = root.getAttribute("zen-should-be-dark-mode");
+      let light = mark === "false";
+      if (mark === null) {
+        try {
+          light = window.gZenThemePicker ? !window.gZenThemePicker.isDarkMode : window.matchMedia("(prefers-color-scheme: light)").matches;
+        } catch (err) {
+          light = false;
+        }
+      }
+      if (root.hasAttribute("zia-light") !== light) {
+        root.toggleAttribute("zia-light", light);
+      }
+    };
+    update();
+    new MutationObserver(update).observe(root, { attributes: true, attributeFilter: ["zen-should-be-dark-mode", "zen-default-theme"] });
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", update);
+    Services.obs.addObserver(update, "zen-theme-change");
+    window.addEventListener("unload", () => Services.obs.removeObserver(update, "zen-theme-change"), { once: true });
+  }
+
   function watchSidebarPaint() {
     syncSidebarPaint();
     const watcher = new MutationObserver(syncSidebarPaint);
@@ -9209,7 +9253,7 @@
       }
     }
     // (a light space has its own, white music card)
-    watcher.observe(root, { attributes: true, attributeFilter: ["zen-compact-mode", "zen-should-be-dark-mode"] });
+    watcher.observe(root, { attributes: true, attributeFilter: ["zen-compact-mode", "zen-should-be-dark-mode", "zia-light"] });
   }
 
   function keepWindowButtonsInSidebar() {
@@ -16525,6 +16569,7 @@
     safely("watchEmptyFolders", watchEmptyFolders);
     safely("watchEssentialRows", watchEssentialRows);
     safely("watchSplitEssentials", watchSplitEssentials);
+    safely("watchLightSpace", watchLightSpace);
     safely("watchSidebarPaint", watchSidebarPaint);
     safely("watchWindowButtonsSide", watchWindowButtonsSide);
     safely("addTabHoverCards", addTabHoverCards);

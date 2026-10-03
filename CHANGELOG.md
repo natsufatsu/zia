@@ -4,6 +4,19 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.90.0] — 2026-10-03
+
+### Changed
+
+- Light mode with no space colour gets the light look light spaces have
+  (dark text, white cards), rather than white text on the pale window.
+
+### Fixed
+
+- Hiding a space's pinned tabs and folders, the line above its other tabs
+  no longer slides away with them and snaps back a moment later, pushing
+  the tabs down, and the line and the tabs bounce together.
+
 ## [2.89.0] — 2026-10-03
 
 ### Changed
