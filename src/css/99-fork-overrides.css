@@ -1,3 +1,20 @@
+/* Fork appearance overrides. Keep these after all upstream styles. */
+
+/* Bring the visible text level with the favicon in the expanded sidebar. */
+:root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) .tab-label-container {
+  translate: 0 -1px;
+}
+
+
+/* The workspace label belongs to the flyout sidebar. Hide it explicitly
+   while that sidebar is closed, including during toolbar layout updates. */
+@media -moz-pref("zen.view.compact.hide-tabbar") {
+  :root[zen-compact-mode="true"]:not([zia-panel-open="true"]) #zia-workspace-slot {
+    display: none !important;
+  }
+}
+
+
 /* Hide media-only decorations while preserving the selected regular tab's
    glow and shine. Zen also draws music notes above essential favicons. */
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) .tab-icon-stack::after {

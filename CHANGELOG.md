@@ -4,6 +4,20 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.4] — 2026-10-03
+
+### Added
+
+- Portable build/preservation/browser checks and a tested upstream updater
+  that prepares isolated, resumable branches without publishing to main.
+- Explicit ownership, excluded-feature and protected-component metadata.
+- CI behavior/preservation checks and weekly/manual draft update PR preparation.
+
+### Changed
+
+- Separate sidebar appearance overrides and player workspace/opacity helpers
+  from shared sources while retaining the existing appearance and behavior.
+
 ## [2.86.3] — 2026-10-03
 
 ### Added

@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.86.2 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.86.3**.
+Current version: **2.86.4**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -103,6 +103,12 @@ Upstream glass folders, custom folder naming/styling/dragging and split
 essential tiles are excluded. The welcome tour only presents supported updates.
 Compact toolbar clipping now follows Zen 1.23's sidebar slide animation,
 including implicit hover, without restoring per-frame polling.
+
+Version 2.86.4 adds a repeatable upstream update command, portable preservation
+and browser checks, and automatic draft update PRs. Independent appearance
+overrides live in a final fork stylesheet; player workspace/opacity helpers
+are separate, with no JavaScript runtime change. See
+[Updating this fork](docs/fork-updates.md) for the commands and ownership rules.
 
 ## Install or update
 

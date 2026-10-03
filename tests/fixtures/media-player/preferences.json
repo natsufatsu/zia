@@ -1,0 +1,20 @@
+[
+  {
+    "type": "separator",
+    "label": "Background opacity"
+  },
+  {
+    "type": "string",
+    "label": "Collapsed opacity (0-100%)",
+    "property": "zia.media-player.opacity.collapsed",
+    "defaultValue": "40",
+    "placeholder": "40"
+  },
+  {
+    "type": "string",
+    "label": "Expanded opacity (0-100%)",
+    "property": "zia.media-player.opacity.expanded",
+    "defaultValue": "90",
+    "placeholder": "90"
+  }
+]

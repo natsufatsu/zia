@@ -6,3 +6,8 @@
 /.github export-ignore
 /.gitattributes export-ignore
 /tests export-ignore
+/fork.json export-ignore
+/.gitignore export-ignore
+
+# Keep builds and source checks consistent between Windows and Linux.
+* text=auto eol=lf
