@@ -4,6 +4,17 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.88.0] — 2026-10-03
+
+### Added
+
+- A folder given an icon of its own keeps the glass folder (and the
+  archive box past three tabs), wearing its icon on the glass front; it
+  tips with the front as the folder opens, white with a soft shadow so it
+  reads on any tint. Emoji icons keep their colours. The glass folder is
+  a touch larger for it. To show a folder's icon alone instead, as
+  before, right-click it and choose Show Icon Only.
+
 ## [2.87.4] — 2026-10-03
 
 ### Fixed
