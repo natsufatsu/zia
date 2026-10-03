@@ -10,7 +10,7 @@ async function waitFor(fn, name) {
 }
 (async () => {
   const prefs = ['zia.sidebar.space-name-in-list', 'zia.sidebar.hide-space-name',
-    'zia.tabs.no-glow', 'zia.essentials.two-per-row', 'zia.page.edge-to-edge', 'zia.swipe.dia-arrow'];
+    'zia.tabs.no-glow', 'zia.essentials.two-per-row', 'zia.page.edge-to-edge', 'zia.page.rounding', 'zia.swipe.dia-arrow'];
   const saved = prefs.map(key => ({key, had: Services.prefs.prefHasUserValue(key), value: Services.prefs.getBoolPref(key, false)}));
   const original = gb.selectedTab;
   const light = root.getAttribute('zen-should-be-dark-mode');
@@ -56,6 +56,23 @@ async function waitFor(fn, name) {
     check(win.getComputedStyle(root).getPropertyValue('--zia-card-gap').trim() === '0px', 'Edge-to-edge option kept page gap');
     Services.prefs.setBoolPref('zia.page.edge-to-edge', false);
     results.layoutOptions = true;
+
+    if (win.matchMedia('(-moz-platform: windows)').matches) {
+      Services.prefs.setBoolPref('zia.page.rounding', true);
+      await delay(100);
+      const probes = ['var(--zia-card-radius)', 'calc(var(--zen-native-inner-radius, 8px) / var(--zen-squircle-value, 1))']
+        .map(radius => {
+          const probe = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+          probe.style.cssText = 'position:absolute;pointer-events:none;border-radius:' + radius;
+          root.append(probe);
+          return probe;
+        });
+      try {
+        const radii = probes.map(probe => win.getComputedStyle(probe).borderTopLeftRadius);
+        check(parseFloat(radii[0]) > 0 && radii[0] === radii[1], 'Windows page corners differ from Zen inner radius: ' + radii);
+        results.windowsPageCorners = radii[0];
+      } finally { probes.forEach(probe => probe.remove()); }
+    }
 
     const swipe = win.gHistorySwipeAnimation;
     check(swipe?.ziaWrapped, 'Swipe integration was not initialized');

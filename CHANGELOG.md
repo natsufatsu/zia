@@ -4,11 +4,11 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.86.2] — 2026-10-03
+## [2.86.3] — 2026-10-03
 
 ### Added
 
-- Import compatible upstream updates through 2.86.1, including swipe history
+- Import compatible upstream updates through 2.86.2, including swipe history
   cards, workspace-name placement, outlined tab numbers, light spaces,
   layout options and PDF menu styling.
 
@@ -16,6 +16,7 @@ Every release of Zia, newest first. The format follows
 
 - Bring over consistent toolbar sampling, Zen 1.23 layout fixes, improved
   Glance exits, find-bar clearing and delayed copy-link insertion.
+- Use Zen's native inner page radius on Windows so corners match the window.
 - Follow Zen 1.23's translated compact sidebar when clipping the toolbar,
   including implicit hover and reversed slides, without per-frame polling.
 
@@ -26,6 +27,14 @@ Every release of Zia, newest first. The format follows
   compact-mode optimizations and the experimental real-time tint toggle.
 - Upstream custom folders, folder naming/dragging and split-essential
   tiles remain excluded from this fork.
+
+## [2.86.2] — 2026-10-03
+
+### Fixed
+
+- Windows: the page's corners came out too sharp after 2.85.0 matched
+  them to the window's. They're Zen's own corners there now, worked out
+  from the window's, which sit evenly inside it. Thanks to KRY.
 
 ## [2.86.1] — 2026-10-03
 
