@@ -145,9 +145,21 @@
   },
   {
     "type": "checkbox",
+    "label": "Hide the glow around the selected tab",
+    "property": "zia.tabs.no-glow",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
     "label": "Essentials are Zia's narrower tiles (off: Zen's own widths)",
     "property": "zia.essentials.zia-width",
     "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Two essentials to a row, so the sidebar can be made narrower",
+    "property": "zia.essentials.two-per-row",
+    "defaultValue": false
   },
   {
     "type": "checkbox",
@@ -199,6 +211,18 @@
     "type": "checkbox",
     "label": "Zia's rounded page corners (off: Zen's own)",
     "property": "zia.page.rounding",
+    "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "The page fills its space edge to edge, with no gap, rounded corners or shadow around it",
+    "property": "zia.page.edge-to-edge",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
+    "label": "Swiping back or forward shows Dia's round arrow, and holding it lists the pages (off: Firefox's arrow)",
+    "property": "zia.swipe.dia-arrow",
     "defaultValue": true
   },
   {

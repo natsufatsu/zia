@@ -95,6 +95,16 @@
       height: 48px;
       -moz-window-dragging: no-drag;
     }
+
+    /* Close reaches the screen's right edge as well, and the corner above
+       it, so a flick into the top-right corner of a full-size window
+       closes it, as in Windows (and Dia) */
+    &.titlebar-close::after {
+      inset-inline: 0 -48px;
+      top: -48px;
+      bottom: 0;
+      height: auto;
+    }
   }
 
   @media -moz-pref("zia.window-buttons.hide") {
@@ -106,6 +116,123 @@
   @media -moz-pref("zia.window-buttons.dim") {
     :root:not(#zia-none):not(#zia-none-2):not([inDOMFullscreen="true"]):not([popup-window]) #nav-bar {
       padding-inline-end: var(--zia-toolbar-end-gap) !important;
+    }
+  }
+}
+
+/* Zen's single toolbar (Look and Feel), with the address bar in the
+   sidebar: the bar above the page holds nothing but the window buttons, so
+   it isn't drawn as a toolbar (no site colour, no line under it, no top
+   corners), and the page itself is the rounded card, with all four corners
+   round. Drawn as the toolbar, it showed as a dark strip across the top. */
+:root[zen-single-toolbar="true"]:not(#zia-none):not([inDOMFullscreen="true"]):not([popup-window]) {
+  & #zen-appcontent-wrapper {
+    box-shadow: none !important;
+  }
+
+  & #zen-appcontent-navbar-wrapper {
+    background: transparent !important;
+    border-bottom: none !important;
+    border-radius: 0 !important;
+  }
+
+  & #tabbrowser-tabbox {
+    border-radius: var(--zia-card-radius) !important;
+    box-shadow: var(--zia-card-shadow) !important;
+  }
+
+  & #tabbrowser-tabbox #tabbrowser-tabpanels .browserSidebarContainer {
+    border-radius: var(--zia-card-radius) !important;
+  }
+
+  & #tabbrowser-tabpanels :is(.browserSidebarContainer, .browserStack, browser) {
+    clip-path: inset(0 round var(--zia-card-radius));
+  }
+}
+
+/* Optional: the page edge to edge, with no gap, rounded corners or shadow
+   around it. Zen's own zen.theme.content-element-separation = 0 does the
+   same, so that's followed too. */
+:root[zen-no-padding="true"]:not(#zia-none):not(#zia-none-2) {
+  --zia-card-gap: 0px;
+  --zia-card-top-gap: 0px;
+  --zia-card-radius: 0px;
+  --zia-card-shadow: none;
+}
+
+@media -moz-pref("zia.page.edge-to-edge") {
+  :root:not(#zia-none):not(#zia-none-2) {
+    --zia-card-gap: 0px;
+    --zia-card-top-gap: 0px;
+    --zia-card-radius: 0px;
+    --zia-card-shadow: none;
+  }
+}
+
+/* A page gone full screen inside the window (zia.uc.js): square, black and
+   edge to edge, as it is when it takes over the screen */
+:root[zia-page-fullscreen]:not(#zia-none):not(#zia-none-2):not(#zia-none-3) {
+  --zia-card-gap: 0px;
+  --zia-card-top-gap: 0px;
+  --zia-card-radius: 0px;
+  --zia-card-shadow: none;
+
+  & #tabbrowser-tabpanels :is(.browserSidebarContainer, .browserStack, browser) {
+    border-radius: 0 !important;
+    clip-path: none !important;
+    box-shadow: none !important;
+  }
+
+  & #tabbrowser-tabpanels browser[type="content"] {
+    background: #000 !important;
+  }
+}
+
+/* A glance open: the toolbar steps back, clear on the window's own
+   background in the sidebar's ink rather than the glanced site's colour
+   (it spanned the window while the glance is narrower). The page behind
+   is a quieter card, 8px corners and no shadow, and the glance in front a
+   rounder one, 16px. (Thanks to meteulku for the design.) */
+:root:not(#zia-none):not([inDOMFullscreen="true"]):not([popup-window]) #zen-appcontent-wrapper:has(.browserSidebarContainer.zen-glance-background) {
+  --zia-glance-ink: light-dark(rgb(40, 40, 44), rgb(251, 251, 254));
+  background: transparent !important;
+  box-shadow: none !important;
+
+  & #zen-appcontent-navbar-wrapper {
+    background-color: transparent !important;
+    border-bottom-color: transparent !important;
+    color-scheme: inherit !important;
+    color: var(--zia-glance-ink) !important;
+    --toolbox-textcolor: var(--zia-glance-ink) !important;
+    --toolbar-color: var(--zia-glance-ink) !important;
+    --toolbar-field-color: var(--zia-glance-ink) !important;
+    --toolbarbutton-icon-fill: var(--zia-glance-ink) !important;
+    --zia-toolbar-ink: var(--zia-glance-ink);
+
+    & toolbarbutton:not(.webextension-browser-action, [id$="-browser-action"], [id$="-BAP"]) {
+      color: var(--zia-glance-ink) !important;
+      fill: var(--zia-glance-ink) !important;
+    }
+  }
+
+  & #tabbrowser-tabpanels .browserSidebarContainer.zen-glance-background {
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    clip-path: inset(0 round 8px) !important;
+
+    & :is(.browserStack, browser) {
+      clip-path: inset(0 round 8px) !important;
+    }
+  }
+
+  & #tabbrowser-tabpanels .browserSidebarContainer.zen-glance-overlay {
+    & .browserContainer:not([fade-out="true"]),
+    & .browserStack {
+      border-radius: 16px !important;
+    }
+
+    & :is(.browserStack, browser) {
+      clip-path: inset(0 round 16px) !important;
     }
   }
 }

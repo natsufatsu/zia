@@ -348,7 +348,9 @@ The first folder takes a little while as the model downloads and the icon names 
 | Sound bars on playing tabs (off: Zen's speaker) | on |
 | Sound bars always move, even when your system asks for less motion | off |
 | Tint the selected tab's glow and the sound bars with the site's colours | off |
+| Hide the glow around the selected tab | off |
 | Essentials are Zia's narrower tiles (off: Zen's own widths) | on |
+| Two essentials to a row, so the sidebar can be made narrower | off |
 | The last essential stretches across the rest of its row | off |
 | Split essentials (experimental): drag a two-site split onto the essentials | on |
 | Asleep (unloaded) tabs, essentials and folders look dimmed | off |
@@ -358,6 +360,8 @@ The first folder takes a little while as the model downloads and the icon names 
 | **Page** | |
 | Toolbar takes the colour of the site (off: the theme's colour) | on |
 | Zia's rounded page corners (off: Zen's own) | on |
+| The page fills its space edge to edge, with no gap, rounded corners or shadow around it (Zen's `zen.theme.content-element-separation` = 0 does the same) | off |
+| Swiping back or forward shows Dia's round arrow, and holding it lists the pages (off: Firefox's arrow) | on |
 | Split view drop cards when dragging a tab onto the page (off: Zen's own) | on |
 | PDFs open in Zia's viewer look (off: Firefox's own) | on |
 | Hide the window buttons (minimise, maximise, close) on Windows and Linux | off |

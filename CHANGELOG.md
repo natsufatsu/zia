@@ -4,6 +4,70 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.85.0] — 2026-10-03
+
+### Added
+
+- Swiping back or forward with two fingers shows Dia's round arrow,
+  sliding in from the page's edge, level with its middle, in place of
+  Firefox's, with a tap on the trackpad as it comes fully in. Hold the
+  swipe and it opens, with another tap, into a card of the pages it goes
+  through, the next one first; it stays when you let go, to click the
+  page you want, and a click anywhere round it (or Escape) closes it. A
+  quick swipe goes back a page as before (Settings → Sine Mods → Zia →
+  Page, on by default).
+- Optional: hide the glow around the selected tab, keeping its highlight
+  (Settings → Sine Mods → Zia → Tabs, off by default).
+- Optional: two essentials to a row, however wide the sidebar, so it can
+  be made narrower (Settings → Sine Mods → Zia → Tabs, off by default).
+- Optional: the page edge to edge, with no gap, rounded corners or shadow
+  around it (Settings → Sine Mods → Zia → Page, off by default). Zen's
+  own `zen.theme.content-element-separation` set to 0 now does the same,
+  where before Zia kept its gap.
+
+### Changed
+
+- Windows: the page's corners match the window's own. Windows 11's
+  corner is 8px and the page sits a few pixels inside it, so the page's
+  8px corners looked rounder than the window round them; they're the
+  window's curve less that gap now, the two sitting evenly together.
+- While a glance is open, the toolbar steps back: clear on the window's
+  own background, in the sidebar's ink, rather than in the glanced site's
+  colour across the whole window. The page behind it is a quieter card
+  (8px corners, no shadow) and the glance a rounder one (16px). Thanks to
+  meteulku for the design.
+
+### Fixed
+
+- Zen 1.23: the buttons along the sidebar's foot (the library, the tab
+  list) came out bigger; they're the toolbar's 16px again, set by Zia so a
+  Zen update can't change them.
+- Light spaces (a pale space colour, or light mode): the sidebar was
+  drawn for dark spaces only, white text and white-tinted surfaces on a
+  cream sidebar. Its text is dark there now, with the selected tab and
+  essential white cards, and the tab numbers, folder names, space name,
+  separator and space dots to match.
+- Zen 1.23: the address bar pop-up's rows were taller and further apart
+  (Zen gave each a least height and a clear border); they're Zia's size
+  again.
+- Zen 1.23: the floating music notes Zen added over playing tabs and the
+  media card are hidden; Zia's sound bars already show what's playing.
+- Zen 1.23: switching spaces could cut off the selected tab's glow again,
+  as Zen now marks the sidebar rather than the window while it switches.
+- Windows: a click in the top-right corner of a full-size window, just
+  past the close button, landed in the gap beside the page and did
+  nothing. Close's click area now reaches the screen's right edge and the
+  corner above it, as in Windows and Dia.
+- A video gone full screen inside the window (rather than taking over the
+  screen) kept the page's rounded corners, with grey showing behind them.
+  Zia now notices any page going full screen and shows it square, black
+  and edge to edge.
+- With Zen's single toolbar (the address bar in the sidebar), a dark strip
+  ran across the top of the page: the bar there holds only the window
+  buttons, but Zia drew it as a toolbar in the site's colour, with a line
+  under it and the page's top corners squared off below. The bar is left
+  clear and the page is the rounded card, all four corners round.
+
 ## [2.84.3] — 2026-10-02
 
 ### Changed
