@@ -272,6 +272,8 @@
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
     safely("watchUnloadable", watchUnloadable);
+    safely("watchPageFullscreen", watchPageFullscreen);
+    safely("watchSwipeArrow", watchSwipeArrow);
     safely("revertTypedTextOnLeave", () => revertTypedTextOnLeave(urlbar));
     safely("neverShowScheme", neverShowScheme);
 

@@ -4,6 +4,302 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.2] — 2026-10-03
+
+### Added
+
+- Import compatible upstream updates through 2.86.1, including swipe history
+  cards, workspace-name placement, outlined tab numbers, light spaces,
+  layout options and PDF menu styling.
+
+### Fixed
+
+- Bring over consistent toolbar sampling, Zen 1.23 layout fixes, improved
+  Glance exits, find-bar clearing and delayed copy-link insertion.
+- Follow Zen 1.23's translated compact sidebar when clipping the toolbar,
+  including implicit hover and reversed slides, without per-frame polling.
+
+### Retained
+
+- Custom workspace media player, native folders and sidebar dragging,
+  selected-tab glow fixes, cached workspace icons, sliding folder previews,
+  compact-mode optimizations and the experimental real-time tint toggle.
+- Upstream custom folders, folder naming/dragging and split-essential
+  tiles remain excluded from this fork.
+
+## [2.86.1] — 2026-10-03
+
+### Fixed
+
+- PDF viewer: the ⋮ menu was still PDF.js's own, a square grey box with a
+  caret and tall rows (taller still with the pen's row open). It's Zia's
+  dark rounded panel now, with rounded rows, a quieter icon beside each,
+  and the chosen cursor, scrolling and spread in Zia blue. The pen tools'
+  pop-ups get the same panel.
+
+## [2.86.0] — 2026-10-03
+
+### Added
+
+- Optional: the space's name above the tabs, where Zen puts it, rather
+  than up at the top of the sidebar beside the window buttons (Settings →
+  Sine Mods → Zia → Sidebar, off by default). Thanks to $loth.
+
+## [2.85.2] — 2026-10-03
+
+### Fixed
+
+- The copy link button (the paperclip shown when you hover over the address
+  bar) could go missing for good: Zia puts it beside Zen's site settings
+  button and gave up if Zen hadn't added that button yet when Zia started,
+  as could happen just after installing Zia. Zia now waits for it, and if
+  the paperclip still isn't there, Zen's own copy button stays instead of
+  being hidden. Thanks to $loth.
+
+## [2.85.1] — 2026-10-03
+
+### Fixed
+
+- Updates: Sine could go on offering an older Zia, or none at all, as the
+  date Zia gives Sine for its last update hadn't moved since 2.72. It
+  moves with every release now.
+- The tap as the swipe arrow opens into its card of pages didn't play on
+  macOS, which only plays one while the trackpad's own events are being
+  handled; it plays with the swipe now.
+
+## [2.85.0] — 2026-10-03
+
+### Added
+
+- Swiping back or forward with two fingers shows Dia's round arrow,
+  sliding in from the page's edge, level with its middle, in place of
+  Firefox's, with a tap on the trackpad as it comes fully in. Hold the
+  swipe and it opens, with another tap, into a card of the pages it goes
+  through, the next one first; it stays when you let go, to click the
+  page you want, and a click anywhere round it (or Escape) closes it. A
+  quick swipe goes back a page as before (Settings → Sine Mods → Zia →
+  Page, on by default).
+- Optional: hide the glow around the selected tab, keeping its highlight
+  (Settings → Sine Mods → Zia → Tabs, off by default).
+- Optional: two essentials to a row, however wide the sidebar, so it can
+  be made narrower (Settings → Sine Mods → Zia → Tabs, off by default).
+- Optional: the page edge to edge, with no gap, rounded corners or shadow
+  around it (Settings → Sine Mods → Zia → Page, off by default). Zen's
+  own `zen.theme.content-element-separation` set to 0 now does the same,
+  where before Zia kept its gap.
+
+### Changed
+
+- Windows: the page's corners match the window's own. Windows 11's
+  corner is 8px and the page sits a few pixels inside it, so the page's
+  8px corners looked rounder than the window round them; they're the
+  window's curve less that gap now, the two sitting evenly together.
+- While a glance is open, the toolbar steps back: clear on the window's
+  own background, in the sidebar's ink, rather than in the glanced site's
+  colour across the whole window. The page behind it is a quieter card
+  (8px corners, no shadow) and the glance a rounder one (16px). Thanks to
+  meteulku for the design.
+
+### Fixed
+
+- Zen 1.23: the buttons along the sidebar's foot (the library, the tab
+  list) came out bigger; they're the toolbar's 16px again, set by Zia so a
+  Zen update can't change them.
+- Light spaces (a pale space colour, or light mode): the sidebar was
+  drawn for dark spaces only, white text and white-tinted surfaces on a
+  cream sidebar. Its text is dark there now, with the selected tab and
+  essential white cards, and the tab numbers, folder names, space name,
+  separator and space dots to match.
+- Zen 1.23: the address bar pop-up's rows were taller and further apart
+  (Zen gave each a least height and a clear border); they're Zia's size
+  again.
+- Zen 1.23: the floating music notes Zen added over playing tabs and the
+  media card are hidden; Zia's sound bars already show what's playing.
+- Zen 1.23: switching spaces could cut off the selected tab's glow again,
+  as Zen now marks the sidebar rather than the window while it switches.
+- Windows: a click in the top-right corner of a full-size window, just
+  past the close button, landed in the gap beside the page and did
+  nothing. Close's click area now reaches the screen's right edge and the
+  corner above it, as in Windows and Dia.
+- A video gone full screen inside the window (rather than taking over the
+  screen) kept the page's rounded corners, with grey showing behind them.
+  Zia now notices any page going full screen and shows it square, black
+  and edge to edge.
+- With Zen's single toolbar (the address bar in the sidebar), a dark strip
+  ran across the top of the page: the bar there holds only the window
+  buttons, but Zia drew it as a toolbar in the site's colour, with a line
+  under it and the page's top corners squared off below. The bar is left
+  clear and the page is the rounded card, all four corners round.
+
+## [2.84.3] — 2026-10-02
+
+### Changed
+
+- Tab number keys have no fill at all, just their outline, and their
+  corners are a little less round.
+
+## [2.84.2] — 2026-10-02
+
+### Changed
+
+- Tab numbers are outlined squircle keys in the system's own font, like
+  the shortcuts in Zen's pop-ups, rather than filled keys in a monospace
+  one. A single digit's key is always square (two digits widen it), and
+  the digits sit exactly in its middle.
+- Letting go of Cmd/Ctrl, the tab numbers slide back off to the right the
+  way they came in, rather than vanishing.
+
+## [2.84.1] — 2026-10-02
+
+### Changed
+
+- The welcome tour for a new install shows everything the update card
+  does too: glass folders, a glance kept in its tab, and Bookmarks and
+  History beside your tabs.
+
+## [2.84.0] — 2026-10-02
+
+### Added
+
+- Optional: hide the space's name at the top of the sidebar, keeping its
+  icon, so a long name no longer widens the sidebar as you switch spaces
+  (Settings → Sine Mods → Zia → Tabs, off by default).
+
+## [2.83.2] — 2026-10-02
+
+### Changed
+
+- The folder icon's sheets stack from left to right: one sits in the
+  middle, a second slides in behind it on the right and pushes it
+  left, a third goes in behind those two. The back one is a little
+  dimmer, so it reads as further back.
+
+### Fixed
+
+- With folder naming by the local model on, a folder still called *New
+  Folder* was renamed after restarting the browser (or bringing it back
+  with Cmd+Z): Zen announces restored folders as if they were new. Only
+  folders you make now get named.
+- A tab dropped into a folder put down its sheet in the two-sheet spot,
+  which then jumped wider: while Zen drops a tab in, the folder holds an
+  extra child for a moment, and it was counted. The sheets are counted
+  once the folder has settled, and move between spots smoothly.
+
+## [2.83.1] — 2026-10-02
+
+### Changed
+
+- The glass folder icon's corners are a little rounder, front and back.
+- An opening folder's front tips further open, so it reads clearly as
+  open, falling a touch past and settling back up. The spring was meant
+  to be there all along, but a more specific rule kept every part of the
+  icon easing plainly.
+
+## [2.83.0] — 2026-10-02
+
+### Added
+
+- The welcome card comes back once after this update, with what's new
+  since it last showed: glass folders, a glance's picture kept in its tab,
+  Bookmarks and History beside your tabs, and the toolbar in each site's
+  own ink. As before, it can be switched off after updates in settings,
+  and **Show what's new in this version again** brings it back (Show the
+  welcome tour again still shows the full tour).
+
+### Fixed
+
+- On a site with a thin strip of another colour along its top edge, the
+  toolbar kept flicking between the strip's colour and the page's, even
+  with nothing moving. Every reading of the site's colour now looks at the
+  same band at the top of the page, so they no longer disagree.
+
+## [2.82.3] — 2026-10-02
+
+### Fixed
+
+- On Windows, the minimise, maximise and close buttons lost their icons in
+  v2.81.2: the wider click area above them took the place Firefox draws
+  the icons in.
+
+## [2.82.2] — 2026-10-02
+
+### Changed
+
+- The folder icon of a folder left white (the default) is a touch
+  brighter.
+
+## [2.82.1] — 2026-10-02
+
+### Changed
+
+- A tab whose site is waiting to play (autoplay blocked) showed Zen's
+  music note in a plain black badge. It's now a small play button in the
+  same round badge as Zia's sound bars, and a click still plays it.
+
+## [2.82.0] — 2026-10-02
+
+### Added
+
+- Folders without an icon of their own show a glass folder in their
+  colour (or the space's) instead of Zia's rings, holding a sheet of paper
+  for each tab or folder in it, up to three: an empty folder is just the
+  folder. It opens and closes with the folder, the sheets fanning out, and
+  a tab dropped in drops a sheet in with it; dragged out, its sheet lifts
+  out and away.
+- Optional: Cmd/Ctrl+T can leave the address bar ready to type in, with
+  your search engine's page behind it, instead of the page's own search
+  box (Settings → Sine Mods → Zia → New tabs).
+
+### Changed
+
+- The toolbar's text and buttons take the site's own colour, as in Dia:
+  on a cream page they're a soft brown, on a white one a soft grey, the
+  buttons (and the icons you've given extensions) the same ink as the
+  address.
+- The find bar is as tall as the address bar, and a touch see-through
+  with the page blurred behind it.
+
+### Fixed
+
+- Find in page (Cmd/Ctrl+F) opened with your last search still in it (on
+  macOS, from the system's shared find clipboard): it opens empty now, as
+  in Dia. Text selected on the page still fills it in.
+- With the address bar's text centred, the floating address bar in the
+  middle of the window was centred too: only the toolbar's is now.
+- An empty folder's "Drag tabs here" slot shrank while a glance was open:
+  it was sized from the glance's small picture.
+- A new, empty folder (New Folder) briefly showed a loading placeholder
+  and got a plain folder icon, with naming folders by a local model on:
+  Zen's hidden placeholder tab counted as a tab to name it by.
+
+## [2.81.2] — 2026-10-01
+
+### Fixed
+
+- Windows: flicking the mouse to the top of the screen missed minimise,
+  maximise and close, landing in the gap above the page's card instead.
+  Their click area now reaches the window's top edge, as in Windows
+  itself; they look just the same.
+
+## [2.81.1] — 2026-10-01
+
+### Fixed
+
+- Dragging a tab onto the essentials did nothing: it no longer turned into
+  a tile on the way, and didn't become an essential when dropped. The
+  dragged tab's section was raised over the essentials (so their icons
+  didn't show through it), which hid them from Zen, and with separate
+  essentials per container Zia looked for them in an empty box.
+
+## [2.81.0] — 2026-10-01
+
+### Added
+
+- Glance's picture on a tab sinks back into the tab when the glance is
+  opened as a tab of its own, closed, or opened into a split, instead of
+  vanishing and covering the site's icon. Thanks to
+  [Zylaah](https://github.com/Zylaah).
+
 ## [2.80.4] — 2026-10-01
 
 ### Fixed

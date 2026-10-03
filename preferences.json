@@ -95,6 +95,12 @@
   },
   {
     "type": "checkbox",
+    "label": "Show what's new in this version again (turns itself back off)",
+    "property": "zia.welcome.whats-new-again",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
     "label": "A glance shows on its tab as a small picture of the page, as in Dia",
     "property": "zia.glance.thumbnail",
     "defaultValue": true
@@ -147,9 +153,21 @@
   },
   {
     "type": "checkbox",
+    "label": "Hide the glow around the selected tab",
+    "property": "zia.tabs.no-glow",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
     "label": "Essentials are Zia's narrower tiles (off: Zen's own widths)",
     "property": "zia.essentials.zia-width",
     "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Two essentials to a row, so the sidebar can be made narrower",
+    "property": "zia.essentials.two-per-row",
+    "defaultValue": false
   },
   {
     "type": "checkbox",
@@ -176,6 +194,18 @@
     "defaultValue": false
   },
   {
+    "type": "checkbox",
+    "label": "Hide the space's name at the top of the sidebar, keeping its icon (the sidebar no longer widens for a long name)",
+    "property": "zia.sidebar.hide-space-name",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
+    "label": "Show the space's name above the tabs, where Zen puts it, rather than at the top of the sidebar",
+    "property": "zia.sidebar.space-name-in-list",
+    "defaultValue": false
+  },
+  {
     "type": "separator",
     "label": "Page"
   },
@@ -195,6 +225,18 @@
     "type": "checkbox",
     "label": "Zia's rounded page corners (off: Zen's own)",
     "property": "zia.page.rounding",
+    "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "The page fills its space edge to edge, with no gap, rounded corners or shadow around it",
+    "property": "zia.page.edge-to-edge",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
+    "label": "Swiping back or forward shows Dia's round arrow, and holding it lists the pages (off: Firefox's arrow)",
+    "property": "zia.swipe.dia-arrow",
     "defaultValue": true
   },
   {
@@ -280,6 +322,12 @@
     "label": "New tabs open your default search engine's page (off: Zen's new tab page, or an extension's if you use one)",
     "property": "zia.newtab.search-engine",
     "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Cmd/Ctrl+T leaves the address bar ready to type in, the search page behind it (off: the page's own search box)",
+    "property": "zia.newtab.focus-address-bar",
+    "defaultValue": false
   },
   {
     "type": "separator",

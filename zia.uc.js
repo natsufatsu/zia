@@ -36,9 +36,14 @@
     return root.getAttribute("zia-urlbar-position") === "bottom" && root.getAttribute("zen-single-toolbar") !== "true";
   }
 
-  const STRIP_HEIGHT = 8;
+  // Every reading looks at the same band at the top of the page, 24px deep.
+  // The checker below used to read deeper than the rest, so on a page with
+  // a thin strip of another colour along its top edge the two disagreed,
+  // and the toolbar flicked between them for as long as the page was open.
+  const TOP_BAND = 24;
   const STRIP_SCALE = 0.5;
   const FULL_VIEW_SCALE = 0.125;
+  const TOP_BAND_ROWS = TOP_BAND * FULL_VIEW_SCALE;
   const SCROLL_SAMPLE_INTERVAL = 50;
   const scrollPositions = new WeakMap();
   const LIGHT_THRESHOLD = 150;
@@ -74,6 +79,7 @@
     appliedColorKey = key;
     if (!rgb) {
       root.style.removeProperty("--zia-site-bg");
+      updateInkTint(null);
       setFlag("zia-site-light", false);
       setFlag("zia-site-dark", true);
       setFlag("zia-site-mid", false);
@@ -83,6 +89,7 @@
       return;
     }
     root.style.setProperty("--zia-site-bg", cssColor(rgb));
+    updateInkTint(rgb);
     const brightness = brightnessOf(rgb);
     const light = wantsDarkInk(rgb);
     // A vivid colour (a strong red, say) is treated as mid even when it's a
@@ -98,6 +105,37 @@
     updateDarkSiteInk(rgb, mid ? INK_MAX : brightness);
   }
 
+  // The toolbar's text and buttons take the site's own hue, as in Dia: on
+  // a cream page they're a soft brown (Dia's own, measured) rather than a
+  // neutral grey. Grey pages (no hue to speak of) stay neutral.
+  function updateInkTint(rgb) {
+    if (!rgb) {
+      root.style.removeProperty("--zia-ink-h");
+      root.style.removeProperty("--zia-ink-s");
+      return;
+    }
+    const [r, g, b] = rgb.slice(0, 3).map((c) => c / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const d = max - min;
+    let h = 0;
+    let s = 0;
+    if (d > 0.0001) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      if (max === r) {
+        h = 60 * (((g - b) / d) % 6);
+      } else if (max === g) {
+        h = 60 * ((b - r) / d + 2);
+      } else {
+        h = 60 * ((r - g) / d + 4);
+      }
+    }
+    root.style.setProperty("--zia-ink-h", `${Math.round((h + 360) % 360)}`);
+    // a third of the site's saturation, as Dia does
+    root.style.setProperty("--zia-ink-s", `${Math.round(Math.min(s, 1) * 34)}%`);
+  }
+
   function updateDarkSiteInk(rgb, brightness, inkOnly = false) {
     if (!rgb || brightness >= INK_MAX) {
       root.style.removeProperty("--zia-dark-ink");
@@ -110,7 +148,7 @@
     // in Dia; the soft grey only from there up.
     const t = brightness <= BLACKISH ? 0 : Math.min(1, (brightness - BLACKISH) / (INK_MAX - 44 - BLACKISH));
     const level = brightness <= BLACKISH ? 251 : Math.round(150 + t * 26);
-    root.style.setProperty("--zia-dark-ink", `rgb(${level}, ${level}, ${level})`);
+    root.style.setProperty("--zia-dark-ink", `hsl(var(--zia-ink-h, 0) var(--zia-ink-s, 0%) ${((level / 255) * 100).toFixed(1)}%)`);
     if (inkOnly) {
       root.style.removeProperty("--zia-urlbar-hover-bg");
       return;
@@ -170,9 +208,9 @@
     }
   }
 
-  // `rows` is how deep a band to read when the scroll position isn't known
-  // (the whole view is drawn small, so one row is 8px of page)
-  async function sampleTopColor(browser, rows = 1) {
+  // When the scroll position isn't known the whole view is drawn small (one
+  // row is 8px of page) and its top rows read
+  async function sampleTopColor(browser) {
     const windowGlobal = browser?.browsingContext?.currentWindowGlobal;
     const width = browser?.clientWidth;
     if (!windowGlobal || !width) {
@@ -182,13 +220,13 @@
 
     const pos = scrollPositions.get(browser);
     const bitmap = pos
-      ? await windowGlobal.drawSnapshot(new DOMRect(pos.x, pos.y, width, STRIP_HEIGHT), STRIP_SCALE, backing)
+      ? await windowGlobal.drawSnapshot(new DOMRect(pos.x, pos.y, width, TOP_BAND), STRIP_SCALE, backing)
       : await windowGlobal.drawSnapshot(null, FULL_VIEW_SCALE, backing);
 
     sampleTopColor.canvas ||= document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
     const canvas = sampleTopColor.canvas;
     canvas.width = bitmap.width;
-    canvas.height = pos ? bitmap.height : Math.min(rows, bitmap.height);
+    canvas.height = pos ? bitmap.height : Math.min(TOP_BAND_ROWS, bitmap.height);
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
@@ -369,13 +407,12 @@
   // a few seconds after, and on scrolling, so a page that changes later (a
   // banner closing, a header recolouring itself, a slideshow) or whose very
   // top edge is a thin line of another colour could leave it wrong. Every
-  // few seconds, while the tab is showing and settled, Zia reads a slightly
-  // deeper band at the top of the page. If two readings in a row agree with
+  // few seconds, while the tab is showing and settled, Zia reads the top of
+  // the page again. If two readings in a row agree with
   // each other and not with the toolbar, the toolbar changes to match and
   // the site's remembered colour is corrected. It also checks when the
   // window comes back into view or is resized.
   const CHECK_EVERY = 3000;
-  const CHECK_ROWS = 3;
   const CHECK_DISTANCE = 24;
   let checkSuspect = null;
   let checking = false;
@@ -390,7 +427,7 @@
     const id = colorRequestId;
     let reading = null;
     try {
-      reading = await sampleTopColor(browser, CHECK_ROWS);
+      reading = await sampleTopColor(browser);
     } catch (err) {
       noteError("site colour: checkColor", err);
     } finally {
@@ -1446,6 +1483,10 @@
   let movedFromSpace = null;
   let spaceAttrObserver = null;
   const MIRRORED_SPACE_ATTRS = ["haspinnedtabs", "collapsedpinnedtabs"];
+  // The space's name left where Zen puts it, above the tabs, rather than
+  // moved up beside the window buttons
+  const SPACE_NAME_IN_LIST_PREF = "zia.sidebar.space-name-in-list";
+  const spaceNameInList = () => Services.prefs.getBoolPref(SPACE_NAME_IN_LIST_PREF, false);
 
   function createWorkspaceSlot() {
     const topButtons = document.getElementById("zen-sidebar-top-buttons");
@@ -1478,6 +1519,8 @@
     for (const type of ["ZenWorkspacesUIUpdate", "ZenWorkspaceDataChanged", "AfterWorkspacesSessionRestore"]) {
       window.addEventListener(type, onSpaceSwitch);
     }
+    Services.prefs.addObserver(SPACE_NAME_IN_LIST_PREF, onSpaceSwitch);
+    window.addEventListener("unload", () => Services.prefs.removeObserver(SPACE_NAME_IN_LIST_PREF, onSpaceSwitch));
     Services.prefs.addObserver("zen.workspaces.active", onSpaceSwitch);
     window.addEventListener("unload", () => Services.prefs.removeObserver("zen.workspaces.active", onSpaceSwitch));
     gBrowser.tabContainer.addEventListener("TabSelect", onSpaceSwitch);
@@ -1680,6 +1723,14 @@
       return;
     }
 
+    const inList = spaceNameInList();
+    setFlag("zia-space-name-in-list", inList);
+    if (inList) {
+      indicator = null;
+      spaceAttrObserver?.disconnect();
+      mirrorSpaceAttributes(null);
+    }
+
     if (movedIndicator && movedIndicator !== indicator && movedFromSpace?.isConnected) {
       removeSpaceLabel(movedIndicator);
       movedFromSpace.prepend(movedIndicator);
@@ -1691,6 +1742,11 @@
       workspaceSlot.append(indicator);
       movedIndicator = indicator;
       movedFromSpace = space;
+    }
+
+    if (inList) {
+      setFlag("zia-workspace-slot", false);
+      return;
     }
 
     syncSpaceLabel(indicator);
@@ -1815,8 +1871,39 @@
     }
   }
 
+  // Optional: Cmd/Ctrl+T leaves the address bar ready to type in, with the
+  // search page showing behind it (off: the page's own search box)
+  const focusAddressBarOnNewTab = () => Services.prefs.getBoolPref("zia.newtab.focus-address-bar", false);
+
+  function keepNewTabUrlbar(tab) {
+    const focus = () => {
+      if (gBrowser.selectedTab !== tab || tab.ziaTypedInPage) {
+        return;
+      }
+      if (!gURLBar.focused) {
+        gURLBar.focus();
+        gURLBar.select();
+      }
+    };
+    // the search page loading after can pull focus to its own box: put it
+    // back, until something's been typed or clicked in the page
+    tab.linkedBrowser?.addEventListener("mousedown", () => (tab.ziaTypedInPage = true), { once: true });
+    requestAnimationFrame(focus);
+    for (const ms of [250, 700, 1500]) {
+      setTimeout(() => {
+        if (document.activeElement === tab.linkedBrowser) {
+          focus();
+        }
+      }, ms);
+    }
+  }
+
   function closeNewTabUrlbar(tab) {
     if (!searchHomeUrl || !newTabSearchEnabled()) {
+      return;
+    }
+    if (focusAddressBarOnNewTab()) {
+      keepNewTabUrlbar(tab);
       return;
     }
     requestAnimationFrame(() => {
@@ -3738,13 +3825,75 @@
     update();
   }
 
+  // Find opens empty, as in Dia, rather than with the last search in it.
+  // (Text selected on the page still fills it in: Firefox does that just
+  // after this.)
+  function clearFindBarOnOpen(event) {
+    const findbar = event.target;
+    if (findbar?.localName !== "findbar") {
+      return;
+    }
+    // (not findbar.clear(): that collapses the page's selection too, which
+    // Firefox is about to read)
+    try {
+      const field = findbar._findField;
+      if (field?.value) {
+        field.value = "";
+        field.editor?.clearUndoRedo();
+        findbar._updateStatusUI?.();
+        findbar._enableFindButtons?.(false);
+      }
+    } catch (err) {
+      noteError("find bar: clearFindBarOnOpen", err);
+    }
+  }
+
+  // On macOS Firefox fills a find bar that opens with nothing selected from
+  // the system's shared find clipboard, the last search made anywhere: so it
+  // reopened with that search in it. Opened with nothing selected, it starts
+  // empty; text selected on the page still fills it in.
+  function skipClipboardPrefill(findbar) {
+    if (!findbar || findbar.__ziaNoClipboardPrefill || typeof findbar.onCurrentSelection !== "function") {
+      return;
+    }
+    findbar.__ziaNoClipboardPrefill = true;
+    const original = findbar.onCurrentSelection;
+    findbar.onCurrentSelection = function (selectionString, isInitialSelection) {
+      if (!isInitialSelection || selectionString) {
+        return original.call(this, selectionString, isInitialSelection);
+      }
+      // Firefox's own steps for an empty opening, minus the clipboard
+      try {
+        if (!this._startFindDeferred) {
+          return undefined;
+        }
+        this._findField.value = "";
+        this._enableFindButtons(false);
+        this._findField.select();
+        this._findField.focus();
+        this._startFindDeferred.resolve();
+        this._startFindDeferred = null;
+        return undefined;
+      } catch (err) {
+        noteError("find bar: skipClipboardPrefill", err);
+        return original.call(this, selectionString, isInitialSelection);
+      }
+    };
+  }
+
+  function dressFindBar(findbar) {
+    shortenFindCount(findbar);
+    skipClipboardPrefill(findbar);
+  }
+
   function watchFindBars() {
+    window.addEventListener("findbaropen", clearFindBarOnOpen, true);
     gBrowser.tabContainer.addEventListener("TabFindInitialized", (event) => {
-      shortenFindCount(gBrowser.getCachedFindBar?.(event.target));
+      dressFindBar(gBrowser.getCachedFindBar?.(event.target));
     });
     for (const tab of gBrowser.tabs) {
       if (gBrowser.isFindBarInitialized?.(tab)) {
-        shortenFindCount(gBrowser.getCachedFindBar(tab));
+        dressFindBar(gBrowser.getCachedFindBar(tab));
       }
     }
   }
@@ -4837,6 +4986,7 @@
       set(name, true);
     }
     set("zia.tabs.favicon-glow", false);
+    set("zia.swipe.dia-arrow", true);
     // Dimming asleep tabs was on by default for a few releases and is now
     // off: switched off once for anyone who had it from then.
     set("zia.tabs.dim-asleep", false);
@@ -6087,12 +6237,16 @@
     if (titlebar) watcher.observe(titlebar, { childList: true });
     window.addEventListener("unload", () => watcher.disconnect(), { once: true });
 
-    const SIDEBAR_SHOWN_ATTRS = ["zen-has-hover", "zen-user-show", "zen-has-empty-tab", "flash-popup", "has-popup-menu", "movingtab", "zen-compact-mode-active"];
+    // Zen 1.23 can reveal a sidebar using only the implicit-hover mark.
+    const SIDEBAR_SHOWN_ATTRS = ["zen-has-hover", "zen-has-implicit-hover", "zen-user-show", "zen-has-empty-tab", "flash-popup", "has-popup-menu", "movingtab", "zen-compact-mode-active"];
 
     function syncPanelOpen() {
       const shown = inCompactMode() && !!toolbox && SIDEBAR_SHOWN_ATTRS.some((name) => toolbox.hasAttribute(name));
       setFlag("zia-panel-open", shown);
-      followCover();
+      // Freeze a reversed slide at its new starting edge immediately; waiting
+      // for another frame lets the old clip advance while the sidebar waits.
+      cancelAnimationFrame(coverFrame);
+      cover();
     }
 
     // The top toolbar stays up while the sidebar is out, cut away only where
@@ -6121,6 +6275,7 @@
     }
     let coverFrame = 0;
     const clipAnimations = new Map();
+    const pendingMotions = new WeakSet();
     function applyClip(el, clip, from, to, motion) {
       clipAnimations.get(el)?.cancel();
       clipAnimations.delete(el);
@@ -6140,6 +6295,17 @@
         }
       }, () => {});
     }
+    // Zen 1.23 slides with translate rather than left/right. Its horizontal
+    // values are px, percentages, or an additive calc mixing the two.
+    function horizontalTranslate(value, width) {
+      if (value === "none") return 0;
+      const x = value.startsWith("calc(") ? value.slice(5, value.indexOf(")")) : value.split(/\s+/)[0];
+      const unit = /[+-]?\s*(?:\d*\.)?\d+(?:px|%)/g;
+      const terms = x.match(unit);
+      if (!terms || x.replace(unit, "").replace(/[\s+-]/g, "")) return NaN;
+      return terms.reduce((sum, term) => sum + parseFloat(term.replace(/\s/g, "")) *
+        (term.endsWith("%") ? width / 100 : 1), 0);
+    }
     function cover() {
       coverFrame = 0;
       const targets = toolbarElements();
@@ -6153,20 +6319,34 @@
         // getAnimations updates CSS transitions before reading their endpoints.
         const axis = root.getAttribute("zen-right-side") === "true" ? "right" : "left";
         motion = toolbox.getAnimations().find((animation) =>
-          animation.transitionProperty === axis && animation.playState !== "finished"
+          [axis, "translate"].includes(animation.transitionProperty) && animation.playState !== "finished"
         );
+        // Firefox can revise a reversed transition's starting keyframe when
+        // its pending start resolves. Re-read once then, rather than mirroring
+        // the provisional endpoint throughout the slide.
+        if (motion?.pending && !pendingMotions.has(motion)) {
+          pendingMotions.add(motion);
+          motion.ready.then(() => {
+            if (window.closed) return;
+            cancelAnimationFrame(coverFrame);
+            cover();
+          }, () => {});
+        }
         const box = toolbox.getBoundingClientRect();
         const left = box.left + (parseFloat(style.paddingLeft) || 0);
         const right = box.right - (parseFloat(style.paddingRight) || 0);
         over = { left, right, top: box.top, bottom: box.bottom, width: Math.max(0, right - left) };
         if (motion) {
           const frames = motion.effect.getKeyframes();
-          const origin = parseFloat(style[axis]);
-          const first = parseFloat(frames[0]?.[axis]);
-          const last = parseFloat(frames.at(-1)?.[axis]);
+          const translated = motion.transitionProperty === "translate";
+          const property = translated ? "translate" : axis;
+          const position = (value) => translated ? horizontalTranslate(value || "none", box.width) : parseFloat(value);
+          const origin = position(style[property]);
+          const first = position(frames[0]?.[property]);
+          const last = position(frames.at(-1)?.[property]);
           if ([origin, first, last].every(Number.isFinite)) {
             const shifted = (value) => {
-              const delta = (value - origin) * (axis === "left" ? 1 : -1);
+              const delta = (value - origin) * (translated || axis === "left" ? 1 : -1);
               return { ...over, left: over.left + delta, right: over.right + delta };
             };
             fromOver = shifted(first);
@@ -6202,7 +6382,7 @@
       panelWatcher = new MutationObserver(syncPanelOpen);
       panelWatcher.observe(toolbox, { attributes: true, attributeFilter: SIDEBAR_SHOWN_ATTRS });
       toolbox.addEventListener("transitionend", (event) => {
-        if (event.target === toolbox && ["left", "right", "visibility"].includes(event.propertyName)) followCover();
+        if (event.target === toolbox && ["left", "right", "translate", "visibility"].includes(event.propertyName)) followCover();
       });
     }
 
@@ -6251,7 +6431,12 @@
   // the tiles' least width). Its computed column list also holds the extra
   // columns a span wider than the grid creates; counting those grew the
   // span, which made more of them, until tiles were squeezed into slivers.
+  const TWO_PER_ROW_PREF = "zia.essentials.two-per-row";
+
   function gridColumns(grid) {
+    if (Services.prefs.getBoolPref(TWO_PER_ROW_PREF, false)) {
+      return 2;
+    }
     const style = getComputedStyle(grid);
     const width = grid.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
     const gap = parseFloat(style.columnGap) || 0;
@@ -6262,7 +6447,7 @@
   function fillEssentialRows() {
     const on =
       Services.prefs.getBoolPref(FILL_ROW_PREF, false) &&
-      Services.prefs.getBoolPref(ZIA_WIDTH_PREF, true) &&
+      (Services.prefs.getBoolPref(ZIA_WIDTH_PREF, true) || Services.prefs.getBoolPref(TWO_PER_ROW_PREF, false)) &&
       root.getAttribute("zen-sidebar-expanded") === "true";
     const wanted = new Map();
     if (on) {
@@ -6318,9 +6503,11 @@
     window.addEventListener("ZenWorkspacesUIUpdate", schedule);
     Services.prefs.addObserver(FILL_ROW_PREF, schedule);
     Services.prefs.addObserver(ZIA_WIDTH_PREF, schedule);
+    Services.prefs.addObserver(TWO_PER_ROW_PREF, schedule);
     window.addEventListener("unload", () => {
       Services.prefs.removeObserver(FILL_ROW_PREF, schedule);
       Services.prefs.removeObserver(ZIA_WIDTH_PREF, schedule);
+      Services.prefs.removeObserver(TWO_PER_ROW_PREF, schedule);
     });
     schedule();
   }
@@ -6564,9 +6751,27 @@
     showCopiedIcon(button, button.querySelector(button.localName === "button" ? "img" : "image"));
   }
 
+  // The paperclip goes beside Zen's site settings button, which Zen adds
+  // to the address bar itself, sometimes only after Zia has started (with
+  // Zia just installed into an open window, say); until then Zia waits for
+  // it, as Zen's own copy button is hidden for the paperclip (zia.css)
   function addCopyLinkButton() {
+    if (document.getElementById("zia-copy-link-button")) {
+      return;
+    }
     const siteData = document.getElementById("zen-site-data-icon-button");
-    if (!siteData || document.getElementById("zia-copy-link-button")) {
+    if (!siteData) {
+      const urlbar = document.getElementById("urlbar");
+      if (!urlbar || addCopyLinkButton.waiting) {
+        return;
+      }
+      addCopyLinkButton.waiting = new MutationObserver(() => {
+        if (document.getElementById("zen-site-data-icon-button")) {
+          addCopyLinkButton.waiting.disconnect();
+          safely("addCopyLinkButton", addCopyLinkButton);
+        }
+      });
+      addCopyLinkButton.waiting.observe(urlbar, { childList: true, subtree: true });
       return;
     }
     const button = document.createXULElement("hbox");
@@ -7192,8 +7397,10 @@
       if (!entry.own) {
         rules.push(`${selector}, ${selector} .toolbarbutton-icon {
           -moz-context-properties: fill, fill-opacity, stroke, stroke-opacity !important;
-          fill: var(--toolbarbutton-icon-fill, currentColor) !important;
-          stroke: var(--toolbarbutton-icon-fill, currentColor) !important;
+          fill: var(--zia-toolbar-ink, var(--toolbarbutton-icon-fill, currentColor)) !important;
+          stroke: var(--zia-toolbar-ink, var(--toolbarbutton-icon-fill, currentColor)) !important;
+          fill-opacity: 1 !important;
+          stroke-opacity: 1 !important;
         }`);
       }
     }
@@ -7737,12 +7944,20 @@
         key.setAttribute("aria-hidden", "true");
         tab.querySelector(":scope > .tab-stack > .tab-content")?.append(key);
       }
+      // the digits in a box of their own, trimmed to their height, so the
+      // key can centre them exactly (zia.css)
       if (key.textContent !== String(number)) {
-        key.textContent = String(number);
+        const digits = document.createElementNS(HTML_NS, "span");
+        digits.textContent = String(number);
+        key.replaceChildren(digits);
       }
+      // one digit keeps its key square; two widen it
+      key.toggleAttribute("zia-wide", number > 9);
     }
     return tabs;
   }
+
+  const TAB_NUMBERS_LEAVE_MS = 110;
 
   function watchTabNumbers() {
     const mac = AppConstants.platform === "macosx";
@@ -7759,13 +7974,22 @@
       tabs.forEach((tab, i) => keyOf(tab)?.toggleAttribute("zia-target", !!typed && Number(typed) === i + 1));
     };
 
+    // Letting go, the keys slide back off to the right the way they came
+    let leaving = null;
     const show = () => {
+      clearTimeout(leaving);
+      setFlag("zia-tab-numbers-leaving", false);
       tabs = numberTabs();
       setFlag("zia-tab-numbers", true);
     };
     const hide = () => {
       typed = "";
       markTarget();
+      if (root.hasAttribute("zia-tab-numbers") && !Services.prefs.getBoolPref(TAB_NUMBERS_ALWAYS_PREF, false)) {
+        setFlag("zia-tab-numbers-leaving", true);
+        clearTimeout(leaving);
+        leaving = setTimeout(() => setFlag("zia-tab-numbers-leaving", false), TAB_NUMBERS_LEAVE_MS);
+      }
       setFlag("zia-tab-numbers", false);
     };
     // Letting go: the tab typed, if any
@@ -7906,10 +8130,11 @@
   // seen that one gets the tour of what's new. Other releases leave it be.
   // Once closed it stays closed; it can be switched off after updates, or
   // asked for again, from Zia's settings.
-  const WELCOME_VERSION = "2.76.0";
+  const WELCOME_VERSION = "2.83.0";
   const WELCOME_SEEN_PREF = "zia.welcome.seen";
   const WELCOME_UPDATES_PREF = "zia.welcome.show";
   const WELCOME_AGAIN_PREF = "zia.welcome.again";
+  const WHATS_NEW_AGAIN_PREF = "zia.welcome.whats-new-again";
   const WELCOME_URL = "chrome://sine/content/zia/welcome/index.html";
 
   function showWelcome(mode) {
@@ -8015,20 +8240,22 @@
       }
     }
 
-    // "Show the welcome tour again" in settings: shows it, then turns
-    // itself back off
-    const again = () => {
-      if (!Services.prefs.getBoolPref(WELCOME_AGAIN_PREF, false)) {
-        return;
-      }
-      Services.prefs.setBoolPref(WELCOME_AGAIN_PREF, false);
-      if (Services.wm.getMostRecentWindow("navigator:browser") === window) {
-        showWelcome("install");
-      }
-    };
-    Services.prefs.addObserver(WELCOME_AGAIN_PREF, again);
-    window.addEventListener("unload", () => Services.prefs.removeObserver(WELCOME_AGAIN_PREF, again));
-    again();
+    // "Show the welcome tour again" and "Show what's new again" in
+    // settings: each shows its tour, then turns itself back off
+    for (const [pref, mode] of [[WELCOME_AGAIN_PREF, "install"], [WHATS_NEW_AGAIN_PREF, "update"]]) {
+      const again = () => {
+        if (!Services.prefs.getBoolPref(pref, false)) {
+          return;
+        }
+        Services.prefs.setBoolPref(pref, false);
+        if (Services.wm.getMostRecentWindow("navigator:browser") === window) {
+          showWelcome(mode);
+        }
+      };
+      Services.prefs.addObserver(pref, again);
+      window.addEventListener("unload", () => Services.prefs.removeObserver(pref, again));
+      again();
+    }
   }
 
   // A page peeked at with Glance shows on its tab as a small picture of the
@@ -8042,6 +8269,17 @@
   const GLANCE_THUMB_W = 36;
   const GLANCE_THUMB_H = 42;
   const GLANCE_THUMB_EVERY = 3000;
+  // the sink in chrome.css; the hover tip eases home first
+  const GLANCE_THUMB_SINK_MS = 300;
+  const GLANCE_THUMB_UNTIP_MS = 450;
+  const glanceHost = new WeakMap();
+  // A close is marked as soon as the picture starts sinking, so the glance
+  // mark coming off afterwards does not play the sink a second time.
+  // Splitting also drops the mark, then immediately rebuilds the tab strip.
+  // The sink waits out that rebuild, or the strip work eats into it and
+  // the drop looks quicker than a close or an expand.
+  const glanceClosing = new WeakSet();
+  let glanceSplitOpen = false;
 
   function glanceTabsOnNormalTabs() {
     return [...gBrowser.tabContainer.querySelectorAll(
@@ -8064,6 +8302,128 @@
     glanceTab.style.setProperty("--zia-glance-cut-top", px(tab.top - glance.top));
     glanceTab.style.setProperty("--zia-glance-cut-right", px(glance.right - tab.right));
     glanceTab.style.setProperty("--zia-glance-cut-bottom", px(glance.bottom - tab.bottom));
+    const host = background.closest(".tabbrowser-tab");
+    if (host && host !== glanceTab) {
+      glanceHost.set(glanceTab, host);
+    }
+  }
+
+  // Opening a glance into a real tab keeps the tab and drops the glance
+  // mark. The picture was drawn on that tab, so without this it stays
+  // in the stack and covers the site's icon.
+  function clearGlanceThumb(glanceTab) {
+    glanceTab.removeAttribute("zia-glance-thumb");
+    glanceTab.style.removeProperty("--zia-glance-cut-top");
+    glanceTab.style.removeProperty("--zia-glance-cut-right");
+    glanceTab.style.removeProperty("--zia-glance-cut-bottom");
+    glanceTab.querySelector(":scope > .tab-stack > .zia-glance-thumb")?.remove();
+  }
+
+  // The tab the glance was sitting on. Zen has already moved the glance
+  // out by the time its mark comes off, so this is remembered while the
+  // picture is still nested, and the previous tab is the fallback.
+  function glanceHostTab(glanceTab) {
+    const remembered = glanceHost.get(glanceTab);
+    if (remembered?.isConnected && !remembered.hasAttribute("zen-essential")) {
+      return remembered;
+    }
+    const nested = glanceTab.parentElement?.closest(".tabbrowser-tab");
+    if (nested && nested !== glanceTab && !nested.hasAttribute("zen-essential")) {
+      return nested;
+    }
+    const previous = glanceTab.previousElementSibling;
+    if (previous?.classList?.contains("tabbrowser-tab") && !previous.hasAttribute("zen-essential")) {
+      return previous;
+    }
+    return null;
+  }
+
+  // A copy stays on the parent tab and sinks through its bottom edge.
+  // The real canvas leaves at once, so the opened tab's icon stays clear.
+  // Closing passes true: Zen has already hidden the picture, and this copy
+  // sinks while the page flies back. The later mark removal must not play it again.
+  function sinkGlanceThumb(glanceTab, closing = false, defer = false) {
+    if (!closing && (glanceClosing.has(glanceTab) || glanceTab.style.display === "none")) {
+      glanceHost.delete(glanceTab);
+      clearGlanceThumb(glanceTab);
+      return false;
+    }
+    const canvas = glanceTab.querySelector(":scope > .tab-stack > .zia-glance-thumb");
+    const parent = glanceHostTab(glanceTab);
+    const content = parent?.querySelector(":scope > .tab-stack > .tab-content");
+    glanceHost.delete(glanceTab);
+    const thumbsOn = Services.prefs.getBoolPref(GLANCE_THUMB_PREF, true);
+    if (!canvas || !parent?.isConnected || !content || !thumbsOn ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      clearGlanceThumb(glanceTab);
+      return false;
+    }
+    if (closing) {
+      glanceClosing.add(glanceTab);
+    }
+
+    const copy = document.createElementNS(HTML_NS, "canvas");
+    copy.className = "zia-glance-thumb";
+    copy.width = canvas.width;
+    copy.height = canvas.height;
+    copy.getContext("2d").drawImage(canvas, 0, 0);
+
+    const card = document.createElementNS(HTML_NS, "div");
+    card.className = "zia-glance-thumb-exit-card";
+    card.append(copy);
+
+    const exit = document.createElementNS(HTML_NS, "div");
+    exit.className = "zia-glance-thumb-exit";
+    for (const name of ["--zia-glance-cut-top", "--zia-glance-cut-right", "--zia-glance-cut-bottom"]) {
+      const value = glanceTab.style.getPropertyValue(name);
+      if (value) {
+        exit.style.setProperty(name, value);
+      }
+    }
+    exit.append(card);
+    content.querySelector(":scope > .zia-glance-thumb-exit")?.remove();
+
+    // hovering tips the card further and dims it; that eases back, then
+    // the card sinks
+    const fromHover = parent.matches(":hover");
+    if (fromHover) {
+      card.style.rotate = "-16deg";
+      copy.style.filter = "brightness(0.4)";
+      card.style.animationDelay = `${GLANCE_THUMB_UNTIP_MS}ms`;
+    }
+    const drop = () => exit.remove();
+    const play = () => {
+      const live = parent.querySelector(":scope > .tab-stack > .tab-content");
+      if (!live?.isConnected) {
+        return;
+      }
+      live.querySelector(":scope > .zia-glance-thumb-exit")?.remove();
+      card.style.animationPlayState = "running";
+      live.append(exit);
+      if (fromHover) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            card.style.rotate = "";
+            copy.style.filter = "";
+          });
+        });
+      }
+      card.addEventListener("animationend", (event) => {
+        if (event.animationName === "zia-glance-sink") {
+          drop();
+        }
+      });
+      setTimeout(drop, GLANCE_THUMB_SINK_MS + (fromHover ? GLANCE_THUMB_UNTIP_MS : 0) + 80);
+    };
+    // held off the tab until the strip has finished moving, so the sink
+    // starts after that work instead of during it
+    clearGlanceThumb(glanceTab);
+    if (defer) {
+      requestAnimationFrame(() => requestAnimationFrame(play));
+    } else {
+      play();
+    }
+    return true;
   }
 
   // The canvas that sits over a glance tab's tile
@@ -8103,7 +8463,9 @@
     } catch (err) {
       return;
     }
-    if (!bitmap || !canvas.isConnected) {
+    // Expanded into a normal tab while the shot was being taken: the
+    // canvas is already gone, and a late paint must not put it back.
+    if (!bitmap || !canvas.isConnected || !glanceTab.hasAttribute("zen-glance-tab")) {
       bitmap?.close();
       return;
     }
@@ -8140,6 +8502,54 @@
     const markOff = () => setFlag("zia-glance-thumb-off", !on());
     markOff();
     Services.prefs.addObserver(GLANCE_THUMB_PREF, markOff);
+    gBrowser.tabContainer.addEventListener(
+      "GlanceClose",
+      (event) => {
+        if (event.target?.classList?.contains("tabbrowser-tab")) {
+          glanceClosing.add(event.target);
+        }
+      },
+      true
+    );
+    // Zen's close flies the page back into the tab and hides the picture
+    // immediately. The picture sinks while that flight plays. A first click
+    // that only asks for confirmation does not hide the tab, so it does not sink.
+    const manager = window.gZenGlanceManager;
+    if (manager?.closeGlance && !manager.closeGlance.ziaGlanceSink) {
+      const originalClose = manager.closeGlance;
+      const closeGlance = function (options) {
+        const glanceTab = options?.noAnimation
+          ? null
+          : glanceTabsOnNormalTabs().find((tab) => tab.selected || glanceHost.get(tab)?.selected);
+        const result = originalClose.call(this, options);
+        if (glanceTab?.style.display === "none") {
+          sinkGlanceThumb(glanceTab, true);
+        }
+        return result;
+      };
+      closeGlance.ziaGlanceSink = true;
+      manager.closeGlance = closeGlance;
+    }
+    if (manager?.fullyOpenGlance && !manager.fullyOpenGlance.ziaGlanceSink) {
+      const originalOpen = manager.fullyOpenGlance;
+      const fullyOpenGlance = function (options) {
+        const splitting = !!options?.forSplit;
+        if (splitting) {
+          glanceSplitOpen = true;
+        }
+        try {
+          return originalOpen.call(this, options);
+        } finally {
+          if (splitting) {
+            queueMicrotask(() => {
+              glanceSplitOpen = false;
+            });
+          }
+        }
+      };
+      fullyOpenGlance.ziaGlanceSink = true;
+      manager.fullyOpenGlance = fullyOpenGlance;
+    }
     const photographShowing = () => {
       if (!on() || document.hidden) {
         return;
@@ -8156,9 +8566,25 @@
       }
     };
 
-    // A glance opening: photographed as it appears, as it loads, and after
+    // A glance opening: photographed as it appears, as it loads, and after.
+    // Opening it into a normal tab takes the mark off the same tab; the
+    // picture sinks back into the tab it came from.
     new MutationObserver((records) => {
-      if (records.some((r) => r.target.hasAttribute?.("zen-glance-tab"))) {
+      let opened = false;
+      for (const record of records) {
+        const tab = record.target;
+        if (!tab.classList?.contains("tabbrowser-tab")) {
+          continue;
+        }
+        if (tab.hasAttribute("zen-glance-tab")) {
+          opened = true;
+        } else {
+          const splitting = glanceSplitOpen;
+          glanceSplitOpen = false;
+          sinkGlanceThumb(tab, false, splitting);
+        }
+      }
+      if (opened) {
         // cut where the tab ends before it's first drawn, not after
         glanceTabsOnNormalTabs().forEach(cutGlanceAtTab);
         [150, 600, 1500].forEach((ms) => setTimeout(photographShowing, ms));
@@ -8808,6 +9234,330 @@
       controller.ziaSlides = true;
     }
   }
+  // A page that's gone full screen (a YouTube video, say) is shown square
+  // and edge to edge. Zen and Zia only count the window as full screen when
+  // it takes over the screen; when a video goes full screen inside the
+  // window instead, the page kept its rounded card, and the video's corners
+  // were rounded off with grey behind them.
+  function watchPageFullscreen() {
+    const update = () => setFlag("zia-page-fullscreen", !!document.fullscreenElement);
+    const soon = () => requestAnimationFrame(update);
+    window.addEventListener("MozDOMFullscreen:Entered", soon);
+    window.addEventListener("MozDOMFullscreen:Exited", soon);
+    document.addEventListener("fullscreenchange", soon);
+    update();
+  }
+  // Swiping back or forward with two fingers: Dia's round arrow slides in
+  // from the page's edge, level with the middle of the page, in place of
+  // Firefox's, with a tap as it comes fully in. Hold the swipe there and it
+  // opens, with another tap, into a card of the pages it goes back (or
+  // forward) through, the next one first; the card stays once the fingers
+  // lift, to click the page wanted, and a click anywhere else closes it.
+  // A quick swipe just goes back a page, as before. Firefox does the
+  // navigating; Zia wraps its swipe animation (gHistorySwipeAnimation) and
+  // gesture handling (gGestureSupport) to follow the gesture.
+  const SWIPE_PREF = "zia.swipe.dia-arrow";
+  const SWIPE_HOLD_MS = 450;
+  const SWIPE_MAX_PAGES = 8;
+  const SWIPE_ROW = 34;
+  const SWIPE_LEAVE_MS = 260;
+
+  function swipePages(forward) {
+    const pages = [];
+    try {
+      const history = gBrowser.selectedBrowser.browsingContext.sessionHistory;
+      const step = forward ? 1 : -1;
+      for (let i = history.index + step; i >= 0 && i < history.count && pages.length < SWIPE_MAX_PAGES; i += step) {
+        const entry = history.getEntryAtIndex(i);
+        const url = entry.URI?.spec || "";
+        pages.push({ title: entry.title || url, url });
+      }
+    } catch (err) {
+      noteError("swipe arrow: history", err);
+    }
+    return pages;
+  }
+
+  function swipeChevron() {
+    const svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2.6");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    const path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", "M14 5.5l-5.5 6.5l5.5 6.5");
+    svg.append(path);
+    return svg;
+  }
+
+  // a tap on the trackpad, if Zen's haptics are on
+  function swipeTap() {
+    try {
+      if (Services.prefs.getBoolPref("zen.haptic-feedback.enabled", true)) {
+        window.zenHaptic?.();
+      }
+    } catch (err) {
+      noteError("swipe arrow: tap", err);
+    }
+  }
+
+  function watchSwipeArrow() {
+    const swipe = window.gHistorySwipeAnimation;
+    if (!swipe || swipe.ziaWrapped) {
+      return;
+    }
+    swipe.ziaWrapped = true;
+    const on = () => Services.prefs.getBoolPref(SWIPE_PREF, true);
+    // Firefox's own arrow is hidden while Zia's is on (zia.css)
+    const mark = () => setFlag("zia-swipe-arrow", on());
+    mark();
+    Services.prefs.addObserver(SWIPE_PREF, mark);
+    window.addEventListener("unload", () => Services.prefs.removeObserver(SWIPE_PREF, mark));
+
+    // between a swipe starting and ending; Firefox calls its animation's
+    // methods for every swipe, whether or not its own arrow is shown
+    let swiping = false;
+    let el = null;
+    let backdrop = null;
+    let holdTimer = null;
+    let side = null;
+    let pinned = false;
+    // macOS only plays a tap while a trackpad event is being handled, so
+    // the card's tap goes with the swipe's own updates: the card opens on
+    // one once the hold is long enough, or, held quite still (no updates
+    // coming), on a timer, its tap then waiting for the next update or
+    // the fingers lifting
+    let willSince = 0;
+    let tapOwed = false;
+    const payTap = () => {
+      if (tapOwed) {
+        tapOwed = false;
+        swipeTap();
+      }
+    };
+
+    const clearHold = () => {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+    };
+
+    const fade = (node) => {
+      if (!node) {
+        return;
+      }
+      node.setAttribute("leaving", "");
+      setTimeout(() => node.remove(), SWIPE_LEAVE_MS);
+    };
+
+    const discard = () => {
+      clearHold();
+      pinned = false;
+      el?.remove();
+      backdrop?.remove();
+      el = null;
+      backdrop = null;
+      side = null;
+    };
+
+    const close = () => {
+      clearHold();
+      pinned = false;
+      fade(el);
+      backdrop?.remove();
+      el = null;
+      backdrop = null;
+      side = null;
+    };
+
+    const goTo = (depth, forward) => {
+      try {
+        const history = gBrowser.selectedBrowser.browsingContext.sessionHistory;
+        const target = history.index + (forward ? depth : -depth);
+        if (target >= 0 && target < history.count) {
+          gBrowser.gotoIndex(target);
+        }
+      } catch (err) {
+        noteError("swipe arrow: go to page", err);
+      }
+    };
+
+    const build = (forward) => {
+      discard();
+      const stack = gBrowser.selectedBrowser?.closest(".browserStack");
+      if (!stack) {
+        return;
+      }
+      side = forward ? "forward" : "back";
+      el = document.createElementNS(HTML_NS, "div");
+      el.id = "zia-swipe";
+      el.setAttribute("side", side);
+      const arrow = document.createElementNS(HTML_NS, "div");
+      arrow.className = "zia-swipe-arrow";
+      arrow.append(swipeChevron());
+      const list = document.createElementNS(HTML_NS, "div");
+      list.className = "zia-swipe-pages";
+      el.append(arrow, list);
+      stack.append(el);
+    };
+
+    // The card of pages, the next one first. It stays from here on, a click
+    // on a page going to it and a click anywhere round it closing it.
+    const open = (fromEvent = false) => {
+      clearHold();
+      if (!el || el.hasAttribute("open")) {
+        return;
+      }
+      const pages = swipePages(side === "forward");
+      if (!pages.length) {
+        return;
+      }
+      const forward = side === "forward";
+      const list = el.querySelector(".zia-swipe-pages");
+      list.replaceChildren(
+        ...pages.map((page, i) => {
+          const row = document.createElementNS(HTML_NS, "div");
+          row.className = "zia-swipe-page";
+          row.toggleAttribute("selected", i === 0);
+          const icon = document.createElementNS(HTML_NS, "img");
+          icon.alt = "";
+          icon.src = `page-icon:${page.url}`;
+          icon.addEventListener("error", () => icon.setAttribute("src", "chrome://global/skin/icons/defaultFavicon.svg"), { once: true });
+          const title = document.createElementNS(HTML_NS, "span");
+          title.textContent = page.title;
+          row.append(icon, title);
+          row.addEventListener("click", () => {
+            close();
+            goTo(i + 1, forward);
+          });
+          return row;
+        })
+      );
+      el.style.setProperty("--zia-swipe-h", `${pages.length * SWIPE_ROW + 12}px`);
+      el.setAttribute("open", "");
+      pinned = true;
+      // behind the card, over the page: a click anywhere round it closes it
+      backdrop = document.createElementNS(HTML_NS, "div");
+      backdrop.id = "zia-swipe-backdrop";
+      backdrop.addEventListener("mousedown", close);
+      el.before(backdrop);
+      // the arrow turning into the card
+      tapOwed = true;
+      if (fromEvent) {
+        payTap();
+      }
+    };
+
+    const follow = (animation, update) => {
+      if (!on() || !swiping) {
+        return;
+      }
+      payTap();
+      if (pinned) {
+        return;
+      }
+      const back = !!animation._willGoBack?.(update);
+      const forward = !back && !!animation._willGoForward?.(update);
+      if (!back && !forward) {
+        if (el) {
+          el.style.setProperty("--p", "0");
+          el.removeAttribute("will");
+        }
+        clearHold();
+        return;
+      }
+      const wanted = forward ? "forward" : "back";
+      if (!el || side !== wanted) {
+        build(forward);
+      }
+      if (!el) {
+        return;
+      }
+      const progress = Math.min(Math.abs(update?.delta || 0) * 4, 1);
+      el.style.setProperty("--p", `${progress}`);
+      const will = progress >= 1;
+      if (will && !el.hasAttribute("will")) {
+        // the arrow fully in: letting go now goes back
+        swipeTap();
+        willSince = Date.now();
+      }
+      el.toggleAttribute("will", will);
+      if (will) {
+        if (Date.now() - willSince >= SWIPE_HOLD_MS) {
+          open(true);
+        } else if (!holdTimer) {
+          holdTimer = setTimeout(open, SWIPE_HOLD_MS + 120);
+        }
+      } else {
+        clearHold();
+      }
+    };
+
+    const leave = () => {
+      payTap();
+      // the card stays once the fingers lift
+      if (pinned) {
+        return;
+      }
+      close();
+    };
+
+    window.addEventListener(
+      "keydown",
+      (event) => {
+        if (pinned && event.key === "Escape") {
+          close();
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      },
+      true
+    );
+
+    const start = swipe.startAnimation;
+    swipe.startAnimation = function () {
+      discard();
+      swiping = true;
+      tapOwed = false;
+      return start.apply(this, arguments);
+    };
+    const update = swipe.updateAnimation;
+    swipe.updateAnimation = function (aSwipeUpdate) {
+      const result = update.apply(this, arguments);
+      try {
+        follow(this, aSwipeUpdate);
+      } catch (err) {
+        noteError("swipe arrow: update", err);
+      }
+      return result;
+    };
+    const stop = swipe.stopAnimation;
+    swipe.stopAnimation = function () {
+      swiping = false;
+      try {
+        leave();
+      } catch (err) {
+        noteError("swipe arrow: stop", err);
+      }
+      return stop.apply(this, arguments);
+    };
+    gBrowser.tabContainer.addEventListener("TabSelect", discard);
+
+    // Letting go with the card open: no going back, the card stays to pick
+    // from; otherwise Firefox's one page back
+    const gestures = window.gGestureSupport;
+    const coordinate = gestures?._coordinateSwipeEventWithAnimation;
+    if (gestures && coordinate) {
+      gestures._coordinateSwipeEventWithAnimation = function (aEvent, aDir) {
+        if (on() && pinned) {
+          swipe.stopAnimation();
+          return;
+        }
+        return coordinate.apply(this, arguments);
+      };
+    }
+  }
   function safely(name, fn) {
     try {
       const result = fn();
@@ -9082,6 +9832,8 @@
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
     safely("watchUnloadable", watchUnloadable);
+    safely("watchPageFullscreen", watchPageFullscreen);
+    safely("watchSwipeArrow", watchSwipeArrow);
     safely("revertTypedTextOnLeave", () => revertTypedTextOnLeave(urlbar));
     safely("neverShowScheme", neverShowScheme);
 

@@ -10,6 +10,17 @@
   const GLANCE_THUMB_W = 36;
   const GLANCE_THUMB_H = 42;
   const GLANCE_THUMB_EVERY = 3000;
+  // the sink in chrome.css; the hover tip eases home first
+  const GLANCE_THUMB_SINK_MS = 300;
+  const GLANCE_THUMB_UNTIP_MS = 450;
+  const glanceHost = new WeakMap();
+  // A close is marked as soon as the picture starts sinking, so the glance
+  // mark coming off afterwards does not play the sink a second time.
+  // Splitting also drops the mark, then immediately rebuilds the tab strip.
+  // The sink waits out that rebuild, or the strip work eats into it and
+  // the drop looks quicker than a close or an expand.
+  const glanceClosing = new WeakSet();
+  let glanceSplitOpen = false;
 
   function glanceTabsOnNormalTabs() {
     return [...gBrowser.tabContainer.querySelectorAll(
@@ -32,6 +43,128 @@
     glanceTab.style.setProperty("--zia-glance-cut-top", px(tab.top - glance.top));
     glanceTab.style.setProperty("--zia-glance-cut-right", px(glance.right - tab.right));
     glanceTab.style.setProperty("--zia-glance-cut-bottom", px(glance.bottom - tab.bottom));
+    const host = background.closest(".tabbrowser-tab");
+    if (host && host !== glanceTab) {
+      glanceHost.set(glanceTab, host);
+    }
+  }
+
+  // Opening a glance into a real tab keeps the tab and drops the glance
+  // mark. The picture was drawn on that tab, so without this it stays
+  // in the stack and covers the site's icon.
+  function clearGlanceThumb(glanceTab) {
+    glanceTab.removeAttribute("zia-glance-thumb");
+    glanceTab.style.removeProperty("--zia-glance-cut-top");
+    glanceTab.style.removeProperty("--zia-glance-cut-right");
+    glanceTab.style.removeProperty("--zia-glance-cut-bottom");
+    glanceTab.querySelector(":scope > .tab-stack > .zia-glance-thumb")?.remove();
+  }
+
+  // The tab the glance was sitting on. Zen has already moved the glance
+  // out by the time its mark comes off, so this is remembered while the
+  // picture is still nested, and the previous tab is the fallback.
+  function glanceHostTab(glanceTab) {
+    const remembered = glanceHost.get(glanceTab);
+    if (remembered?.isConnected && !remembered.hasAttribute("zen-essential")) {
+      return remembered;
+    }
+    const nested = glanceTab.parentElement?.closest(".tabbrowser-tab");
+    if (nested && nested !== glanceTab && !nested.hasAttribute("zen-essential")) {
+      return nested;
+    }
+    const previous = glanceTab.previousElementSibling;
+    if (previous?.classList?.contains("tabbrowser-tab") && !previous.hasAttribute("zen-essential")) {
+      return previous;
+    }
+    return null;
+  }
+
+  // A copy stays on the parent tab and sinks through its bottom edge.
+  // The real canvas leaves at once, so the opened tab's icon stays clear.
+  // Closing passes true: Zen has already hidden the picture, and this copy
+  // sinks while the page flies back. The later mark removal must not play it again.
+  function sinkGlanceThumb(glanceTab, closing = false, defer = false) {
+    if (!closing && (glanceClosing.has(glanceTab) || glanceTab.style.display === "none")) {
+      glanceHost.delete(glanceTab);
+      clearGlanceThumb(glanceTab);
+      return false;
+    }
+    const canvas = glanceTab.querySelector(":scope > .tab-stack > .zia-glance-thumb");
+    const parent = glanceHostTab(glanceTab);
+    const content = parent?.querySelector(":scope > .tab-stack > .tab-content");
+    glanceHost.delete(glanceTab);
+    const thumbsOn = Services.prefs.getBoolPref(GLANCE_THUMB_PREF, true);
+    if (!canvas || !parent?.isConnected || !content || !thumbsOn ||
+        matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      clearGlanceThumb(glanceTab);
+      return false;
+    }
+    if (closing) {
+      glanceClosing.add(glanceTab);
+    }
+
+    const copy = document.createElementNS(HTML_NS, "canvas");
+    copy.className = "zia-glance-thumb";
+    copy.width = canvas.width;
+    copy.height = canvas.height;
+    copy.getContext("2d").drawImage(canvas, 0, 0);
+
+    const card = document.createElementNS(HTML_NS, "div");
+    card.className = "zia-glance-thumb-exit-card";
+    card.append(copy);
+
+    const exit = document.createElementNS(HTML_NS, "div");
+    exit.className = "zia-glance-thumb-exit";
+    for (const name of ["--zia-glance-cut-top", "--zia-glance-cut-right", "--zia-glance-cut-bottom"]) {
+      const value = glanceTab.style.getPropertyValue(name);
+      if (value) {
+        exit.style.setProperty(name, value);
+      }
+    }
+    exit.append(card);
+    content.querySelector(":scope > .zia-glance-thumb-exit")?.remove();
+
+    // hovering tips the card further and dims it; that eases back, then
+    // the card sinks
+    const fromHover = parent.matches(":hover");
+    if (fromHover) {
+      card.style.rotate = "-16deg";
+      copy.style.filter = "brightness(0.4)";
+      card.style.animationDelay = `${GLANCE_THUMB_UNTIP_MS}ms`;
+    }
+    const drop = () => exit.remove();
+    const play = () => {
+      const live = parent.querySelector(":scope > .tab-stack > .tab-content");
+      if (!live?.isConnected) {
+        return;
+      }
+      live.querySelector(":scope > .zia-glance-thumb-exit")?.remove();
+      card.style.animationPlayState = "running";
+      live.append(exit);
+      if (fromHover) {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            card.style.rotate = "";
+            copy.style.filter = "";
+          });
+        });
+      }
+      card.addEventListener("animationend", (event) => {
+        if (event.animationName === "zia-glance-sink") {
+          drop();
+        }
+      });
+      setTimeout(drop, GLANCE_THUMB_SINK_MS + (fromHover ? GLANCE_THUMB_UNTIP_MS : 0) + 80);
+    };
+    // held off the tab until the strip has finished moving, so the sink
+    // starts after that work instead of during it
+    clearGlanceThumb(glanceTab);
+    if (defer) {
+      requestAnimationFrame(() => requestAnimationFrame(play));
+    } else {
+      play();
+    }
+    return true;
   }
 
   // The canvas that sits over a glance tab's tile
@@ -71,7 +204,9 @@
     } catch (err) {
       return;
     }
-    if (!bitmap || !canvas.isConnected) {
+    // Expanded into a normal tab while the shot was being taken: the
+    // canvas is already gone, and a late paint must not put it back.
+    if (!bitmap || !canvas.isConnected || !glanceTab.hasAttribute("zen-glance-tab")) {
       bitmap?.close();
       return;
     }
@@ -108,6 +243,54 @@
     const markOff = () => setFlag("zia-glance-thumb-off", !on());
     markOff();
     Services.prefs.addObserver(GLANCE_THUMB_PREF, markOff);
+    gBrowser.tabContainer.addEventListener(
+      "GlanceClose",
+      (event) => {
+        if (event.target?.classList?.contains("tabbrowser-tab")) {
+          glanceClosing.add(event.target);
+        }
+      },
+      true
+    );
+    // Zen's close flies the page back into the tab and hides the picture
+    // immediately. The picture sinks while that flight plays. A first click
+    // that only asks for confirmation does not hide the tab, so it does not sink.
+    const manager = window.gZenGlanceManager;
+    if (manager?.closeGlance && !manager.closeGlance.ziaGlanceSink) {
+      const originalClose = manager.closeGlance;
+      const closeGlance = function (options) {
+        const glanceTab = options?.noAnimation
+          ? null
+          : glanceTabsOnNormalTabs().find((tab) => tab.selected || glanceHost.get(tab)?.selected);
+        const result = originalClose.call(this, options);
+        if (glanceTab?.style.display === "none") {
+          sinkGlanceThumb(glanceTab, true);
+        }
+        return result;
+      };
+      closeGlance.ziaGlanceSink = true;
+      manager.closeGlance = closeGlance;
+    }
+    if (manager?.fullyOpenGlance && !manager.fullyOpenGlance.ziaGlanceSink) {
+      const originalOpen = manager.fullyOpenGlance;
+      const fullyOpenGlance = function (options) {
+        const splitting = !!options?.forSplit;
+        if (splitting) {
+          glanceSplitOpen = true;
+        }
+        try {
+          return originalOpen.call(this, options);
+        } finally {
+          if (splitting) {
+            queueMicrotask(() => {
+              glanceSplitOpen = false;
+            });
+          }
+        }
+      };
+      fullyOpenGlance.ziaGlanceSink = true;
+      manager.fullyOpenGlance = fullyOpenGlance;
+    }
     const photographShowing = () => {
       if (!on() || document.hidden) {
         return;
@@ -124,9 +307,25 @@
       }
     };
 
-    // A glance opening: photographed as it appears, as it loads, and after
+    // A glance opening: photographed as it appears, as it loads, and after.
+    // Opening it into a normal tab takes the mark off the same tab; the
+    // picture sinks back into the tab it came from.
     new MutationObserver((records) => {
-      if (records.some((r) => r.target.hasAttribute?.("zen-glance-tab"))) {
+      let opened = false;
+      for (const record of records) {
+        const tab = record.target;
+        if (!tab.classList?.contains("tabbrowser-tab")) {
+          continue;
+        }
+        if (tab.hasAttribute("zen-glance-tab")) {
+          opened = true;
+        } else {
+          const splitting = glanceSplitOpen;
+          glanceSplitOpen = false;
+          sinkGlanceThumb(tab, false, splitting);
+        }
+      }
+      if (opened) {
         // cut where the tab ends before it's first drawn, not after
         glanceTabsOnNormalTabs().forEach(cutGlanceAtTab);
         [150, 600, 1500].forEach((ms) => setTimeout(photographShowing, ms));

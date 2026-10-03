@@ -56,12 +56,16 @@
     if (titlebar) watcher.observe(titlebar, { childList: true });
     window.addEventListener("unload", () => watcher.disconnect(), { once: true });
 
-    const SIDEBAR_SHOWN_ATTRS = ["zen-has-hover", "zen-user-show", "zen-has-empty-tab", "flash-popup", "has-popup-menu", "movingtab", "zen-compact-mode-active"];
+    // Zen 1.23 can reveal a sidebar using only the implicit-hover mark.
+    const SIDEBAR_SHOWN_ATTRS = ["zen-has-hover", "zen-has-implicit-hover", "zen-user-show", "zen-has-empty-tab", "flash-popup", "has-popup-menu", "movingtab", "zen-compact-mode-active"];
 
     function syncPanelOpen() {
       const shown = inCompactMode() && !!toolbox && SIDEBAR_SHOWN_ATTRS.some((name) => toolbox.hasAttribute(name));
       setFlag("zia-panel-open", shown);
-      followCover();
+      // Freeze a reversed slide at its new starting edge immediately; waiting
+      // for another frame lets the old clip advance while the sidebar waits.
+      cancelAnimationFrame(coverFrame);
+      cover();
     }
 
     // The top toolbar stays up while the sidebar is out, cut away only where
@@ -90,6 +94,7 @@
     }
     let coverFrame = 0;
     const clipAnimations = new Map();
+    const pendingMotions = new WeakSet();
     function applyClip(el, clip, from, to, motion) {
       clipAnimations.get(el)?.cancel();
       clipAnimations.delete(el);
@@ -109,6 +114,17 @@
         }
       }, () => {});
     }
+    // Zen 1.23 slides with translate rather than left/right. Its horizontal
+    // values are px, percentages, or an additive calc mixing the two.
+    function horizontalTranslate(value, width) {
+      if (value === "none") return 0;
+      const x = value.startsWith("calc(") ? value.slice(5, value.indexOf(")")) : value.split(/\s+/)[0];
+      const unit = /[+-]?\s*(?:\d*\.)?\d+(?:px|%)/g;
+      const terms = x.match(unit);
+      if (!terms || x.replace(unit, "").replace(/[\s+-]/g, "")) return NaN;
+      return terms.reduce((sum, term) => sum + parseFloat(term.replace(/\s/g, "")) *
+        (term.endsWith("%") ? width / 100 : 1), 0);
+    }
     function cover() {
       coverFrame = 0;
       const targets = toolbarElements();
@@ -122,20 +138,34 @@
         // getAnimations updates CSS transitions before reading their endpoints.
         const axis = root.getAttribute("zen-right-side") === "true" ? "right" : "left";
         motion = toolbox.getAnimations().find((animation) =>
-          animation.transitionProperty === axis && animation.playState !== "finished"
+          [axis, "translate"].includes(animation.transitionProperty) && animation.playState !== "finished"
         );
+        // Firefox can revise a reversed transition's starting keyframe when
+        // its pending start resolves. Re-read once then, rather than mirroring
+        // the provisional endpoint throughout the slide.
+        if (motion?.pending && !pendingMotions.has(motion)) {
+          pendingMotions.add(motion);
+          motion.ready.then(() => {
+            if (window.closed) return;
+            cancelAnimationFrame(coverFrame);
+            cover();
+          }, () => {});
+        }
         const box = toolbox.getBoundingClientRect();
         const left = box.left + (parseFloat(style.paddingLeft) || 0);
         const right = box.right - (parseFloat(style.paddingRight) || 0);
         over = { left, right, top: box.top, bottom: box.bottom, width: Math.max(0, right - left) };
         if (motion) {
           const frames = motion.effect.getKeyframes();
-          const origin = parseFloat(style[axis]);
-          const first = parseFloat(frames[0]?.[axis]);
-          const last = parseFloat(frames.at(-1)?.[axis]);
+          const translated = motion.transitionProperty === "translate";
+          const property = translated ? "translate" : axis;
+          const position = (value) => translated ? horizontalTranslate(value || "none", box.width) : parseFloat(value);
+          const origin = position(style[property]);
+          const first = position(frames[0]?.[property]);
+          const last = position(frames.at(-1)?.[property]);
           if ([origin, first, last].every(Number.isFinite)) {
             const shifted = (value) => {
-              const delta = (value - origin) * (axis === "left" ? 1 : -1);
+              const delta = (value - origin) * (translated || axis === "left" ? 1 : -1);
               return { ...over, left: over.left + delta, right: over.right + delta };
             };
             fromOver = shifted(first);
@@ -171,7 +201,7 @@
       panelWatcher = new MutationObserver(syncPanelOpen);
       panelWatcher.observe(toolbox, { attributes: true, attributeFilter: SIDEBAR_SHOWN_ATTRS });
       toolbox.addEventListener("transitionend", (event) => {
-        if (event.target === toolbox && ["left", "right", "visibility"].includes(event.propertyName)) followCover();
+        if (event.target === toolbox && ["left", "right", "translate", "visibility"].includes(event.propertyName)) followCover();
       });
     }
 

@@ -1,10 +1,46 @@
 # Variant scope
 
-- Base: Zia 2.80.4, commit `3345528607617b17be853f756c57fbe394ab11f7`.
+- Base: Zia 2.86.1, commit `8d9ce87` (original base: 2.80.4, `3345528`).
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
-- Previous variant: 2.80.17, commit `001f621`.
+- Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.80.18.
+- Current variant: 2.86.2.
+
+## Upstream 2.86.1 import (2.86.2)
+
+Imported the upstream page/toolbar, address bar, find bar, Glance preview,
+PDF menu, outlined tab-number, welcome-tour and compatible sidebar updates.
+The toolbar sampler now consistently reads a 24px band in both normal and
+experimental mode, fixing conflicting readings on thin strips. Experimental
+sampling/filter timing and its off-by-default setting are unchanged.
+
+New optional settings cover workspace name hiding/placement, two essentials
+per row, selected-tab glow suppression, edge-to-edge pages and new-tab
+address-bar focus. Swipe history cards follow upstream's default-on setting.
+The swipe tap reads Zen's haptic preference directly, as this fork removed
+the custom drag haptics/muting helpers. Light sidebar rules retain native
+folder styling and honour the optional no-glow setting.
+
+Excluded the new glass folder CSS/JS and updates to removed folder naming,
+empty-slot and custom drag logic. The custom player and split-drop module,
+first-row/audio glows, native folder preview sliding and cached workspace
+icons are retained. The workspace-location observer uses the fork's existing
+coalesced updates, preserving cached synchronous icon changes. The welcome
+tour omits glass folders and the removed split-essential action.
+
+Compact toolbar clipping also follows Zen 1.23's `translate` transitions
+and implicit-hover reveal state, retaining the previous `left`/`right`
+support. It mirrors the native animation without per-frame geometry reads.
+Live left/right reveal, hide, reversal and resize checks pass with at most
+four inline mutations per phase.
+
+`tests/upstream-2861-live.js` covers delayed copy-link insertion, workspace
+placement/name settings, dark/light glow toggles, two-column essentials,
+edge-to-edge pages, swipe history cards and stable thin-strip tinting. Run
+it in the development workspace with `python tools/check_urlbar_live.py
+--full-zia --inspect --upstream-check --tab-number-check`. Existing real-time
+tint, workspace icon, folder preview, selected glow, media and split checks
+remain applicable. The import is validated with Zen 1.23b.
 
 ## Experimental real-time tint (2.80.18)
 

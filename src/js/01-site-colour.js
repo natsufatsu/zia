@@ -1,6 +1,11 @@
-  const STRIP_HEIGHT = 8;
+  // Every reading looks at the same band at the top of the page, 24px deep.
+  // The checker below used to read deeper than the rest, so on a page with
+  // a thin strip of another colour along its top edge the two disagreed,
+  // and the toolbar flicked between them for as long as the page was open.
+  const TOP_BAND = 24;
   const STRIP_SCALE = 0.5;
   const FULL_VIEW_SCALE = 0.125;
+  const TOP_BAND_ROWS = TOP_BAND * FULL_VIEW_SCALE;
   const SCROLL_SAMPLE_INTERVAL = 50;
   const scrollPositions = new WeakMap();
   const LIGHT_THRESHOLD = 150;
@@ -36,6 +41,7 @@
     appliedColorKey = key;
     if (!rgb) {
       root.style.removeProperty("--zia-site-bg");
+      updateInkTint(null);
       setFlag("zia-site-light", false);
       setFlag("zia-site-dark", true);
       setFlag("zia-site-mid", false);
@@ -45,6 +51,7 @@
       return;
     }
     root.style.setProperty("--zia-site-bg", cssColor(rgb));
+    updateInkTint(rgb);
     const brightness = brightnessOf(rgb);
     const light = wantsDarkInk(rgb);
     // A vivid colour (a strong red, say) is treated as mid even when it's a
@@ -60,6 +67,37 @@
     updateDarkSiteInk(rgb, mid ? INK_MAX : brightness);
   }
 
+  // The toolbar's text and buttons take the site's own hue, as in Dia: on
+  // a cream page they're a soft brown (Dia's own, measured) rather than a
+  // neutral grey. Grey pages (no hue to speak of) stay neutral.
+  function updateInkTint(rgb) {
+    if (!rgb) {
+      root.style.removeProperty("--zia-ink-h");
+      root.style.removeProperty("--zia-ink-s");
+      return;
+    }
+    const [r, g, b] = rgb.slice(0, 3).map((c) => c / 255);
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+    const d = max - min;
+    let h = 0;
+    let s = 0;
+    if (d > 0.0001) {
+      s = d / (1 - Math.abs(2 * l - 1));
+      if (max === r) {
+        h = 60 * (((g - b) / d) % 6);
+      } else if (max === g) {
+        h = 60 * ((b - r) / d + 2);
+      } else {
+        h = 60 * ((r - g) / d + 4);
+      }
+    }
+    root.style.setProperty("--zia-ink-h", `${Math.round((h + 360) % 360)}`);
+    // a third of the site's saturation, as Dia does
+    root.style.setProperty("--zia-ink-s", `${Math.round(Math.min(s, 1) * 34)}%`);
+  }
+
   function updateDarkSiteInk(rgb, brightness, inkOnly = false) {
     if (!rgb || brightness >= INK_MAX) {
       root.style.removeProperty("--zia-dark-ink");
@@ -72,7 +110,7 @@
     // in Dia; the soft grey only from there up.
     const t = brightness <= BLACKISH ? 0 : Math.min(1, (brightness - BLACKISH) / (INK_MAX - 44 - BLACKISH));
     const level = brightness <= BLACKISH ? 251 : Math.round(150 + t * 26);
-    root.style.setProperty("--zia-dark-ink", `rgb(${level}, ${level}, ${level})`);
+    root.style.setProperty("--zia-dark-ink", `hsl(var(--zia-ink-h, 0) var(--zia-ink-s, 0%) ${((level / 255) * 100).toFixed(1)}%)`);
     if (inkOnly) {
       root.style.removeProperty("--zia-urlbar-hover-bg");
       return;
@@ -132,9 +170,9 @@
     }
   }
 
-  // `rows` is how deep a band to read when the scroll position isn't known
-  // (the whole view is drawn small, so one row is 8px of page)
-  async function sampleTopColor(browser, rows = 1) {
+  // When the scroll position isn't known the whole view is drawn small (one
+  // row is 8px of page) and its top rows read
+  async function sampleTopColor(browser) {
     const windowGlobal = browser?.browsingContext?.currentWindowGlobal;
     const width = browser?.clientWidth;
     if (!windowGlobal || !width) {
@@ -144,13 +182,13 @@
 
     const pos = scrollPositions.get(browser);
     const bitmap = pos
-      ? await windowGlobal.drawSnapshot(new DOMRect(pos.x, pos.y, width, STRIP_HEIGHT), STRIP_SCALE, backing)
+      ? await windowGlobal.drawSnapshot(new DOMRect(pos.x, pos.y, width, TOP_BAND), STRIP_SCALE, backing)
       : await windowGlobal.drawSnapshot(null, FULL_VIEW_SCALE, backing);
 
     sampleTopColor.canvas ||= document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
     const canvas = sampleTopColor.canvas;
     canvas.width = bitmap.width;
-    canvas.height = pos ? bitmap.height : Math.min(rows, bitmap.height);
+    canvas.height = pos ? bitmap.height : Math.min(TOP_BAND_ROWS, bitmap.height);
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(bitmap, 0, 0);
     bitmap.close();
@@ -331,13 +369,12 @@
   // a few seconds after, and on scrolling, so a page that changes later (a
   // banner closing, a header recolouring itself, a slideshow) or whose very
   // top edge is a thin line of another colour could leave it wrong. Every
-  // few seconds, while the tab is showing and settled, Zia reads a slightly
-  // deeper band at the top of the page. If two readings in a row agree with
+  // few seconds, while the tab is showing and settled, Zia reads the top of
+  // the page again. If two readings in a row agree with
   // each other and not with the toolbar, the toolbar changes to match and
   // the site's remembered colour is corrected. It also checks when the
   // window comes back into view or is resized.
   const CHECK_EVERY = 3000;
-  const CHECK_ROWS = 3;
   const CHECK_DISTANCE = 24;
   let checkSuspect = null;
   let checking = false;
@@ -352,7 +389,7 @@
     const id = colorRequestId;
     let reading = null;
     try {
-      reading = await sampleTopColor(browser, CHECK_ROWS);
+      reading = await sampleTopColor(browser);
     } catch (err) {
       noteError("site colour: checkColor", err);
     } finally {

@@ -139,10 +139,11 @@
   }
 }
 
-:root:not([zia-glance-thumb-off]) .tabbrowser-tab:not([zen-essential]):has(> .tab-stack > .tab-content > .tabbrowser-tab[zen-glance-tab]) > .tab-stack > .tab-content {
+:root:not([zia-glance-thumb-off]) .tabbrowser-tab:not([zen-essential]):has(> .tab-stack > .tab-content > :is(.tabbrowser-tab[zen-glance-tab], .zia-glance-thumb-exit)) > .tab-stack > .tab-content {
   /* the close button stays just where it always is, and the glance goes
-   before it, centred under it (36px picture, 22px button) */
-  & > .tabbrowser-tab[zen-glance-tab]:not(#zia-none) {
+   before it, centred under it (36px picture, 22px button). The exit copy
+   keeps that seat while it sinks. */
+  & > :is(.tabbrowser-tab[zen-glance-tab], .zia-glance-thumb-exit):not(#zia-none) {
     order: 1;
     margin-inline-end: calc((36px + var(--zia-close-size)) / -2) !important;
   }
@@ -161,7 +162,7 @@
 }
 
 /* ...and only while the tab is hovered, as the picture is otherwise bare */
-:root:not([zia-glance-thumb-off]) .tabbrowser-tab:not([zen-essential]):not(:hover):has(> .tab-stack > .tab-content > .tabbrowser-tab[zen-glance-tab]) > .tab-stack > .tab-content > .tab-close-button {
+:root:not([zia-glance-thumb-off]) .tabbrowser-tab:not([zen-essential]):not(:hover):has(> .tab-stack > .tab-content > :is(.tabbrowser-tab[zen-glance-tab], .zia-glance-thumb-exit)) > .tab-stack > .tab-content > .tab-close-button {
   opacity: 0 !important;
   pointer-events: none !important;
 }
@@ -178,6 +179,19 @@
 
 :root:not([zia-glance-thumb-off]) .tabbrowser-tab[zen-glance-tab] > .tab-stack > .zia-glance-thumb {
   transition: filter 0.15s ease;
+}
+
+@keyframes zia-glance-sink {
+  /* one small lift, then down through the tab */
+  0% {
+    transform: none;
+  }
+  32% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(34px) rotate(4deg);
+  }
 }
 
 @keyframes zia-glance-rise {
@@ -203,6 +217,56 @@
   }
 }
 
+/* Opening the glance into a real tab: the picture's tab is already a
+   normal tab, so a copy stays here and sinks through the tab's bottom
+   edge (zia.uc.js). */
+:root:not([zia-glance-thumb-off]) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content > .zia-glance-thumb-exit:not(#zia-none) {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  margin-inline-start: 6px !important;
+  overflow: visible !important;
+  pointer-events: none;
+  align-self: center;
+  --zia-glance-edge: calc(var(--zia-shine-width, 1px) + 0.5px);
+  clip-path: inset(
+    calc(var(--zia-glance-cut-top, -2px) + var(--zia-glance-edge))
+    calc(var(--zia-glance-cut-right, -4px) + var(--zia-glance-edge))
+    calc(var(--zia-glance-cut-bottom, -2px) + var(--zia-glance-edge))
+    -12px round calc(var(--zia-tab-radius) - var(--zia-glance-edge))
+  );
+
+  & > .zia-glance-thumb-exit-card {
+    position: relative;
+    overflow: visible !important;
+    height: 42px !important;
+    rotate: -8deg;
+    translate: 0 3px;
+    transition: rotate 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: zia-glance-sink 0.30s ease-in-out both;
+  }
+
+  & > .zia-glance-thumb-exit-card > .zia-glance-thumb {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.18), 0 2px 6px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    transition: filter 0.15s ease;
+  }
+}
+
 :root[zia-glance-thumb-off] .zia-glance-thumb {
+  display: none !important;
+}
+
+/* The picture lives on the glance tab. Once that tab is a normal tab the
+   canvas is no longer sized to the tile, so it would paint over the icon
+   until the script removes it. */
+.tabbrowser-tab:not([zen-glance-tab]) > .tab-stack > .zia-glance-thumb {
   display: none !important;
 }

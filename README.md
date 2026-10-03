@@ -1,9 +1,9 @@
 # Zia - custom media player edition
 
-A fork of [Zia](https://github.com/z1n-k/zia) 2.80.4 with the layout,
+A fork of [Zia](https://github.com/z1n-k/zia) 2.86.1 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.80.18**.
+Current version: **2.86.2**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, folder hover cards, naming,
@@ -88,6 +88,21 @@ backgrounds. The normal tinting mode remains the default. Captures never
 overlap, pause in hidden/minimized windows, and do not update saved site
 colours. The setting takes effect immediately and needs the site-coloured
 toolbar enabled.
+
+Version 2.86.2 imports compatible upstream changes through 2.86.1: consistent
+24px toolbar colour sampling, site-tinted toolbar ink, Zen 1.23 fixes, improved
+Glance thumbnail exits, outlined tab-number keys, light sidebar support,
+PDF menu styling and delayed copy-link recovery. New settings include workspace
+name placement/hiding, two essentials per row, hiding the selected-tab glow,
+edge-to-edge pages, new-tab address-bar focus and swipe history cards.
+
+The custom workspace media player, native folders and sidebar dragging,
+workspace SVG cache, selected audio/first-row glow fixes, sliding folder
+previews, compact sidebar optimizations and optional real-time tint remain.
+Upstream glass folders, custom folder naming/styling/dragging and split
+essential tiles are excluded. The welcome tour only presents supported updates.
+Compact toolbar clipping now follows Zen 1.23's sidebar slide animation,
+including implicit hover, without restoring per-frame polling.
 
 ## Install or update
 
