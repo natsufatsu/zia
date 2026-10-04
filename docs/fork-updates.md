@@ -13,12 +13,20 @@ From a clean checkout:
 python scripts/update_upstream.py --live --zen "C:/Program Files/Zen Browser/zen.exe"
 ```
 
-The command fetches upstream and prepares a branch in a separate temporary
-Git worktree. It preserves fork-owned modules/documentation, keeps explicitly
-excluded files absent, merges shared source and preferences normally, rebuilds
-the installed files, updates the version/base metadata and runs checks. It
-prints the branch, worktree and result. It never changes the current checkout
-or pushes/merges into `main`.
+The command fetches upstream and checks out its complete latest commit in a
+separate temporary Git worktree. It then applies your recorded changes and
+fixes to that fresh source, adds your separate modules, rebuilds the installed
+files, updates the version/base metadata and runs checks. It prints the branch,
+worktree, starting upstream commit and result. Your current checkout stays
+untouched; preparing a candidate does not publish it to `main`.
+
+Shared files use explicit per-file patches generated from the recorded
+upstream base to the committed fork. This includes player replacements and
+excluded-feature deletions: they cannot silently overwrite newer upstream
+code. Unchanged files, new upstream features and upstream deletions come from
+the latest checkout. Only new fork files and the fork README/changelog are
+copied; package identity is applied to the latest `theme.json` field by field.
+The build regenerates `zia.uc.js` and `chrome.css` from the resulting sources.
 
 On a machine without Zen, omit `--live`. The candidate still gets static,
 syntax, behavior and preservation checks, but needs the live check below before
@@ -26,23 +34,35 @@ publication. `--target REF` uses an already fetched commit without networking.
 `--branch NAME` and `--worktree NEW_DIRECTORY` select the candidate's location.
 `--report FILE` saves the result as JSON.
 
-If there are shared-source conflicts, the candidate stays in its worktree
-with the merge pending. Resolve and stage those files, then resume:
+If a patch cannot apply, its file stays at the latest upstream version and the
+candidate stops. The report lists failed paths and saved patch files under the
+worktree's Git metadata directory. Adapt each change to the new upstream code,
+stage it, then explicitly acknowledge each resolved path when resuming:
 
 ```sh
-python scripts/update_upstream.py --resume "PATH_TO_CANDIDATE" --live --zen "PATH_TO_ZEN"
+git -C "PATH_TO_CANDIDATE" add src/js/04-space-label.js
+python scripts/update_upstream.py --resume "PATH_TO_CANDIDATE" --resolved src/js/04-space-label.js --live --zen "PATH_TO_ZEN"
 ```
 
-The same command resumes after a failed check without incrementing the version
-twice. A changed upstream structure, preference or retained component can
+Repeat `--resolved FILE` for multiple paths. If upstream introduces a file at
+the same path as a custom module, that collision also requires review. After a
+failed check, resume without `--resolved`; the version is not incremented twice.
+A changed upstream structure, preference or retained component can
 require deliberate adjustment of `fork.json` or the checks. Inspect the actual
 change before updating a protected hash; do not regenerate all hashes merely
 to make an update pass.
 
 After the candidate passes, review its diff and release notes. Then merge that
-branch into `main` with a normal merge or fast-forward and push. Preserve merge
-ancestry: avoid squashing/rebasing upstream import merges. Sine installs `main`,
-so preparing a candidate does not update your browser.
+branch into `main` with a normal merge or fast-forward and push. The final
+commit records both histories so publication can fast-forward. These parents
+record history only; the source tree was built from upstream plus patches,
+without a content merge. Avoid squashing/rebasing update candidates. Sine
+installs `main`, so preparing a candidate does not update your browser.
+
+To verify that the current fork can be recreated from its recorded upstream
+base, use `--rebuild --target BASE_COMMIT` with a new branch/worktree. This
+preserves its version and does not fetch a newer release. A normal run reports
+`up-to-date` when the upstream commit has not changed.
 
 ## Run checks independently
 
@@ -54,7 +74,7 @@ python scripts/check.py --live --zen "PATH_TO_ZEN"
 
 The first check verifies generated files, retained component fixtures, native
 folders/dragging, excluded startup hooks, default preferences and protected
-styles/modules. It also runs the Node behavior tests and disposable Git merge
+styles/modules. It also runs the Node behavior tests and disposable Git patch
 tests for the updater. CI runs this command on pushes and pull requests.
 
 Live checks launch two isolated headless Zen profiles and serve local test
@@ -69,7 +89,8 @@ checks coexistence with Quick Save Image; it is not required.
 
 The **Prepare upstream update** GitHub workflow checks weekly and can also be
 run manually from the Actions tab. A clean import opens a **draft** PR after
-static checks. A conflict or failed check produces a report instead. The
+static checks. A conflict or failed check produces a report and saved patches
+in the workflow artifacts instead. The
 workflow never merges into `main`, and its draft PR explicitly requires live
 Zen validation. It does not pretend GitHub ran browser/visual checks.
 
@@ -86,19 +107,21 @@ is required. Existing remote update branches are never force-pushed.
   patches in shared files; adding overrides cannot reliably undo all of it.
 - `src/js/07a-fork-media-workspace.js`: workspace colours and opacity helpers.
 - `src/js/01a-realtime-tint.js`: opt-in smoothed tint, off by default.
-- `src/js/09-split-drop-cards.js` and `src/css/09-music-player.css`: complete
-  retained replacements. The updater keeps these fork versions.
+- `src/js/09-split-drop-cards.js` and `src/css/09-music-player.css`: retained
+  component replacements, reapplied as patches with conflict checks.
 - Workspace caching, compact clipping, selected glows and shared native-folder
   fixes retain their small integration patches and browser regression checks.
 - `fork.json`: upstream base, changed/shared files, fork additions, excluded
-  features, whole-file ownership, component provenance and protected hashes.
+  features, documentation overlays, component provenance and protected hashes.
 - `tests/fixtures/`: pinned, licensed player/split references, excluded from
   installed archives. Upgrade these only when upgrading those components.
 
 Add new custom files to `forkFiles`; record intentional shared-source changes
-in `modifiedFiles`. Whole-file ownership is for complete replacements only:
-marking a shared module owned would prevent future upstream fixes in that
-module from being imported. Keep `forkFiles` and `ownedFiles` explicit.
+in `modifiedFiles`. Commit those changes before running the updater: Git
+history plus the recorded base is the patch source, so there is no second
+patch directory to keep in sync. Shared runtime files always use patches;
+`documentationOverlays` is restricted to README/changelog. After a successful
+update, the new upstream base becomes the reference for the next patch set.
 
 When adding appearance changes, run the live checks before recording any new
 protected hashes. Keep the final stylesheet last in the build. If upstream

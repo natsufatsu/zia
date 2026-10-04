@@ -4,19 +4,20 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.4.
+- Current variant: 2.86.5.
 
-## Update workflow (2.86.4)
+## Update workflow (2.86.5)
 
 `fork.json` records the imported upstream commit, shared patches, replacements,
 excluded files/hooks/preferences, retained component provenance and protected
 hashes/defaults. Portable checks read that Git commit and checked-in fixtures;
 they no longer require development workspace paths or standalone checkouts.
 
-`scripts/update_upstream.py` prepares an isolated worktree, retains declared
-replacements, merges shared files, regenerates outputs and runs checks. Source
-conflicts and failed checks stop in a resumable candidate. It never publishes
-to main. CI runs preservation, Node behavior and updater merge tests; the
+`scripts/update_upstream.py` checks out the complete latest upstream source in
+an isolated worktree, then applies the fork's patches and separate modules,
+regenerates outputs and runs checks. Shared replacements also use patches;
+incompatible upstream changes stop for review. CI runs preservation, Node
+behavior and upstream-first construction tests; the
 weekly/manual GitHub workflow opens draft PRs only after those pass. Live Zen
 validation remains required before publication.
 
@@ -24,7 +25,7 @@ The text alignment, compact workspace hiding and media-only decorations are
 now in `src/css/99-fork-overrides.css`. Player workspace/opacity helpers are in
 `src/js/07a-fork-media-workspace.js`; the compiled JavaScript remains identical
 to 2.86.3. Mixed upstream/fork modules keep their integration patches. See
-`docs/fork-updates.md` for usage and how to maintain the ownership manifest.
+`docs/fork-updates.md` for usage and how to maintain the patch manifest.
 
 ## Upstream 2.86.2 import (2.86.3)
 

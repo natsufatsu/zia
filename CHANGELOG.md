@@ -4,6 +4,18 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.5] — 2026-10-04
+
+### Changed
+
+- Prepare updates from the complete latest upstream source, then apply custom
+  patches and modules. Shared replacements cannot discard new upstream code.
+- Stop on incompatible patches or custom-module path collisions, with saved
+  patches and explicit manual-resolution support.
+- Verify fresh-base reconstruction, upstream additions/deletions, conflicts,
+  resumable checks and repeated updates using real Git repositories.
+- Retain the current runtime, sidebar appearance and fixes.
+
 ## [2.86.4] — 2026-10-03
 
 ### Added

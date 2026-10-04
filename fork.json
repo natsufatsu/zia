@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "upstream": {
     "url": "https://github.com/z1n-k/zia.git",
     "branch": "main",
@@ -101,20 +101,9 @@
     "tests/upstream-2861-live.js",
     "tests/workspace-icon-live.js"
   ],
-  "ownedFiles": [
+  "documentationOverlays": [
     "README.md",
-    "VARIANT.md",
-    "CHANGELOG.md",
-    "theme.json",
-    "scripts/build.sh",
-    ".github/workflows/build-check.yml",
-    "src/css/09-music-player.css",
-    "src/js/09-split-drop-cards.js",
-    "src/js/22-folder-names-local-model.js",
-    "src/js/23-folder-colours.js",
-    "src/js/23-folder-empty.js",
-    "src/js/24b-split-essentials.js",
-    "src/js/28-tab-dragging.js"
+    "CHANGELOG.md"
   ],
   "removedHooks": [
     "addFolderBounce",

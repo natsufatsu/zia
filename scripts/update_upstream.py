@@ -1,4 +1,4 @@
-"""Prepare an upstream merge in a separate worktree; never publish to main."""
+"""Start with upstream, apply the fork's patches, and check a separate candidate."""
 from pathlib import Path
 import argparse
 import datetime
@@ -10,6 +10,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 GENERATED = {"chrome.css", "zia.uc.js"}
+DOCUMENTATION = {"README.md", "CHANGELOG.md"}
 
 
 def git(root, *args, check=True):
@@ -42,111 +43,187 @@ def report(result, report_path):
     print(json.dumps(result, indent=2), flush=True)
 
 
-def prepare(root=ROOT, target_ref=None, worktree=None, branch=None, zen=None,
-            live=False, skip_tool_tests=False, report_path=None, resume=False):
-    if not resume and git(root, "status", "--porcelain").stdout.strip():
-        raise RuntimeError("Commit or stash local changes first. The updater requires a clean checkout.")
-    config = json.loads((root / "fork.json").read_text(encoding="utf-8"))
+def state_path(root):
+    return Path(git(root, "rev-parse", "--path-format=absolute", "--git-path", "zia-update/state.json").stdout.strip())
+
+
+def save_state(root, state):
+    path = state_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write(path, json.dumps(state, indent=2) + "\n")
+
+
+def names(root, ref):
+    return set(git(root, "ls-tree", "-r", "--name-only", ref).stdout.splitlines())
+
+
+def validate_policy(root, config, source):
+    if config.get("schema") != 2 or "ownedFiles" in config:
+        raise RuntimeError("The updater requires the upstream-first schema 2 policy.")
     baseline = config["upstream"]["commit"]
-    if not resume:
-        git(root, "merge-base", "--is-ancestor", baseline, "HEAD")
-    if resume:
-        target = git(root, "rev-parse", "--verify", "MERGE_HEAD").stdout.strip()
-    elif target_ref:
-        if target_ref.startswith("-"):
-            raise ValueError("Target ref cannot start with '-'")
-        target = git(root, "rev-parse", "--verify", f"{target_ref}^{{commit}}").stdout.strip()
-    else:
-        remote = config["upstream"]
-        git(root, "fetch", "--no-tags", remote["url"], f"refs/heads/{remote['branch']}")
-        target = git(root, "rev-parse", "FETCH_HEAD").stdout.strip()
-    if git(root, "merge-base", "--is-ancestor", target, "HEAD", check=False).returncode == 0:
-        result = {"status": "up-to-date", "upstream": target}
-        report(result, report_path)
-        return result
-    if git(root, "merge-base", "--is-ancestor", baseline, target, check=False).returncode:
-        raise RuntimeError("Upstream history no longer descends from the recorded base; review it manually.")
-    upstream_manifest = json.loads(blob(root, target, "theme.json"))
-    ours_manifest = json.loads((root / "theme.json").read_text(encoding="utf-8"))
-    previous_manifest = json.loads(blob(root, baseline, "theme.json"))
-    version = next_version(ours_manifest["version"], upstream_manifest["version"])
-    branch = git(root, "branch", "--show-current").stdout.strip() if resume else branch or f"updates/upstream-{target[:8]}"
-    git(root, "check-ref-format", "--branch", branch)
-    if resume:
-        worktree = root
-    elif worktree is None:
-        worktree = Path(tempfile.mkdtemp(prefix="zia-update-")) / "checkout"
-    worktree = Path(worktree).resolve()
-    if not resume and worktree.exists():
-        raise RuntimeError(f"Worktree path already exists: {worktree}")
-    if not resume:
-        git(root, "worktree", "add", "-b", branch, str(worktree), "HEAD")
-    comparison_base = git(root, "merge-base", "HEAD", target).stdout.strip() if resume and baseline == target else baseline
-    result = {"status": "needs-review", "branch": branch, "worktree": str(worktree),
-              "upstream": target, "version": version, "liveChecked": False,
-              "upstreamChanges": git(root, "diff", "--name-only", comparison_base, target).stdout.splitlines()}
-    if not resume:
-        merge = git(worktree, "merge", "--no-commit", "--no-ff", target, check=False)
-        if merge.returncode and git(worktree, "rev-parse", "--verify", "MERGE_HEAD", check=False).returncode:
-            result["checkFailure"] = merge.stderr.strip() or merge.stdout.strip()
-            report(result, report_path)
-            return result
-    # Entire replacements and fork documentation intentionally remain ours.
-    # Shared source files and preferences always require normal three-way merging.
-    owned = set(config["ownedFiles"])
-    before_files = set(git(root, "ls-tree", "-r", "--name-only", "HEAD").stdout.splitlines())
-    for name in owned if not resume else []:
-        if name in before_files:
-            git(worktree, "restore", "--source=HEAD", "--staged", "--worktree", "--", name)
-    for name in config["excludedFiles"]:
-        if (worktree / name).exists():
-            git(worktree, "rm", "-f", "--", name)
-    conflicts = set(git(worktree, "diff", "--name-only", "--diff-filter=U").stdout.splitlines())
-    for name in conflicts & GENERATED:
-        git(worktree, "restore", "--source=HEAD", "--staged", "--worktree", "--", name)
-    unresolved = sorted(conflicts - GENERATED - owned - set(config["excludedFiles"]))
-    if unresolved:
-        result["conflicts"] = unresolved
-        result["instructions"] = "Resolve and stage source conflicts, then run python scripts/update_upstream.py --resume WORKTREE --live."
-        report(result, report_path)
-        return result
-    # After a check failure, the merge is still pending but metadata is already
-    # prepared. Resume checks without adding another version/changelog entry.
-    metadata_prepared = resume and baseline == target
-    if metadata_prepared:
-        version = ours_manifest["version"]
-        result["version"] = version
-    # Preserve fork package identity; incorporate untouched upstream metadata.
-    for key, value in upstream_manifest.items():
-        if key not in {"version", "updatedAt"} and ours_manifest.get(key) == previous_manifest.get(key):
-            ours_manifest[key] = value
-    ours_manifest["version"] = version
-    ours_manifest["updatedAt"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    write(worktree / "theme.json", json.dumps(ours_manifest, indent=2) + "\n")
-    config["upstream"]["commit"] = target
-    config["upstream"]["version"] = upstream_manifest["version"]
+    modified, added, excluded = (set(config[key]) for key in ("modifiedFiles", "forkFiles", "excludedFiles"))
+    overlays = set(config["documentationOverlays"])
+    if not overlays <= DOCUMENTATION or not overlays <= modified:
+        raise RuntimeError("Only fork README/changelog may replace shared files without a source patch.")
+    if modified & added or excluded & (modified | added):
+        raise RuntimeError("Fork file classifications overlap.")
+    base_names, fork_names = names(root, baseline), names(root, source)
+    if fork_names != (base_names - excluded) | added:
+        raise RuntimeError("Fork additions/removals differ from fork.json; classify them before updating.")
+    changed = set(git(root, "diff", "--no-renames", "--name-only", baseline, source).stdout.splitlines())
+    if changed - modified - added - excluded:
+        raise RuntimeError(f"Unclassified fork edits: {sorted(changed - modified - added - excluded)}")
+    return sorted((modified - GENERATED - overlays - {"theme.json"}) | excluded), sorted(added), sorted(overlays)
+
+
+def apply_customizations(root, worktree, state, config):
+    """Copy only new fork files/docs; shared runtime always goes through patches."""
+    patches, additions, overlays = validate_policy(root, config, state["source"])
+    target_names = names(root, state["target"])
+    pending = {}
+    for name in additions:
+        if name in target_names:
+            # An upstream file with a new fork module's name needs explicit review.
+            pending[name] = "Upstream now supplies this path; the fork file was not copied over it."
+        else:
+            git(worktree, "restore", "--source=" + state["source"], "--staged", "--worktree", "--", name)
+    for name in overlays:
+        git(worktree, "restore", "--source=" + state["source"], "--staged", "--worktree", "--", name)
+    patch_dir = state_path(worktree).parent / "patches"
+    patch_dir.mkdir(exist_ok=True)
+    patch_records = []
+    for index, name in enumerate(patches):
+        patch = subprocess.check_output(["git", "diff", "--no-ext-diff", "--no-textconv", "--no-renames",
+                                         "--binary", "--full-index", state["baseline"], state["source"], "--", name], cwd=root)
+        if not patch:
+            continue
+        path = patch_dir / f"{index:03d}.patch"
+        path.write_bytes(patch)
+        patch_records.append({"file": name, "patch": str(path)})
+        applied = git(worktree, "apply", "--index", "--whitespace=nowarn", str(path), check=False)
+        if applied.returncode:
+            pending[name] = applied.stderr.strip() or applied.stdout.strip()
+    state["patches"] = patch_records
+    state["pending"] = pending
+    save_state(worktree, state)
+
+
+def prepare_metadata(worktree, state):
+    config = json.loads((worktree / "fork.json").read_text(encoding="utf-8"))
+    upstream = json.loads(blob(worktree, state["target"], "theme.json"))
+    previous = json.loads(blob(worktree, state["baseline"], "theme.json"))
+    ours = json.loads(blob(worktree, state["source"], "theme.json"))
+    # Begin with the latest package metadata, then apply fork identity fields.
+    manifest = dict(upstream)
+    for key in set(ours) | set(previous):
+        if key not in {"version", "updatedAt"} and ours.get(key) != previous.get(key):
+            if key in ours:
+                manifest[key] = ours[key]
+            else:
+                manifest.pop(key, None)
+    manifest["version"] = state["version"]
+    manifest["updatedAt"] = ours.get("updatedAt") if state["rebuild"] else datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    if manifest["updatedAt"] is None:
+        manifest.pop("updatedAt")
+    write(worktree / "theme.json", json.dumps(manifest, indent=2) + "\n")
+    config["upstream"]["commit"] = state["target"]
+    config["upstream"]["version"] = upstream["version"]
     write(worktree / "fork.json", json.dumps(config, indent=2) + "\n")
     readme = (worktree / "README.md").read_text(encoding="utf-8")
-    readme = re.sub(r"(A fork of \[Zia\]\([^\n]+\) )\d+\.\d+\.\d+", r"\g<1>" + upstream_manifest["version"], readme, count=1)
-    readme = re.sub(r"Current version: \*\*\d+\.\d+\.\d+\*\*", f"Current version: **{version}**", readme, count=1)
+    readme = re.sub(r"(A fork of \[Zia\]\([^\n]+\) )\d+\.\d+\.\d+", r"\g<1>" + upstream["version"], readme, count=1)
+    readme = re.sub(r"Current version: \*\*\d+\.\d+\.\d+\*\*", f"Current version: **{state['version']}**", readme, count=1)
     write(worktree / "README.md", readme)
     scope = (worktree / "VARIANT.md").read_text(encoding="utf-8")
-    scope = re.sub(r"(- Base: Zia )\d+\.\d+\.\d+, commit `[^`]+`", r"\g<1>" + upstream_manifest["version"] + f", commit `{target[:7]}`", scope, count=1)
-    scope = re.sub(r"- Current variant: \d+\.\d+\.\d+\.", f"- Current variant: {version}.", scope, count=1)
+    scope = re.sub(r"(- Base: Zia )\d+\.\d+\.\d+, commit `[^`]+`", r"\g<1>" + upstream["version"] + f", commit `{state['target'][:7]}`", scope, count=1)
+    scope = re.sub(r"- Current variant: \d+\.\d+\.\d+\.", f"- Current variant: {state['version']}.", scope, count=1)
     write(worktree / "VARIANT.md", scope)
-    changelog = (worktree / "CHANGELOG.md").read_text(encoding="utf-8")
-    index = re.search(r"^## \[", changelog, re.M)
-    if index is None:
-        raise RuntimeError("Changelog format changed; complete the candidate manually")
-    compare = config['upstream']['url'].removesuffix('.git') + f"/compare/{baseline}...{target}"
-    entry = (f"## [{version}] — {datetime.date.today().isoformat()}\n\n### Updated\n\n"
-             f"- Import compatible upstream changes through {upstream_manifest['version']}.\n"
-             f"  [Upstream changes]({compare}).\n"
-             "- Retain the fork's sidebar appearance, player, native folders/dragging,\n"
-             "  previous fixes and off-by-default real-time tint.\n\n")
-    if not metadata_prepared:
+    if not state["rebuild"]:
+        changelog = (worktree / "CHANGELOG.md").read_text(encoding="utf-8")
+        index = re.search(r"^## \[", changelog, re.M)
+        if index is None:
+            raise RuntimeError("Changelog format changed; complete the candidate manually")
+        compare = config['upstream']['url'].removesuffix('.git') + f"/compare/{state['baseline']}...{state['target']}"
+        entry = (f"## [{state['version']}] — {datetime.date.today().isoformat()}\n\n### Updated\n\n"
+                 f"- Build from upstream {upstream['version']} and reapply the fork's custom patches/modules.\n"
+                 f"  [Upstream changes]({compare}).\n"
+                 "- Preserve the sidebar appearance, player, native folders/dragging,\n"
+                 "  previous fixes and off-by-default real-time tint.\n\n")
         write(worktree / "CHANGELOG.md", changelog[:index.start()] + entry + changelog[index.start():])
+    state["metadataPrepared"] = True
+    save_state(worktree, state)
+
+
+def prepare(root=ROOT, target_ref=None, worktree=None, branch=None, zen=None,
+            live=False, skip_tool_tests=False, report_path=None, resume=False,
+            resolved=(), rebuild=False):
+    root = Path(root).resolve()
+    if resume:
+        path = state_path(root)
+        if not path.exists():
+            raise RuntimeError("No pending upstream-first candidate state found in this worktree.")
+        state = json.loads(path.read_text(encoding="utf-8"))
+        worktree = root
+        if git(root, "rev-parse", "HEAD").stdout.strip() != state["target"]:
+            raise RuntimeError("Candidate HEAD changed; review it before resuming.")
+        if set(resolved) - set(state["pending"]):
+            raise RuntimeError("--resolved must name a pending patch or file collision.")
+        for name in resolved:
+            if git(root, "diff", "--quiet", "--", name, check=False).returncode:
+                raise RuntimeError(f"Stage the manually resolved file first: {name}")
+            del state["pending"][name]
+        save_state(root, state)
+    else:
+        if git(root, "status", "--porcelain").stdout.strip():
+            raise RuntimeError("Commit or stash local changes first. The updater requires a clean checkout.")
+        config = json.loads((root / "fork.json").read_text(encoding="utf-8"))
+        source = git(root, "rev-parse", "HEAD").stdout.strip()
+        baseline = config["upstream"]["commit"]
+        git(root, "merge-base", "--is-ancestor", baseline, source)
+        validate_policy(root, config, source)
+        if target_ref:
+            if target_ref.startswith("-"):
+                raise ValueError("Target ref cannot start with '-'")
+            target = git(root, "rev-parse", "--verify", f"{target_ref}^{{commit}}").stdout.strip()
+        else:
+            remote = config["upstream"]
+            git(root, "fetch", "--no-tags", remote["url"], f"refs/heads/{remote['branch']}")
+            target = git(root, "rev-parse", "FETCH_HEAD").stdout.strip()
+        if git(root, "merge-base", "--is-ancestor", baseline, target, check=False).returncode:
+            raise RuntimeError("Upstream history no longer descends from the recorded base; review it manually.")
+        if target == baseline and not rebuild:
+            result = {"status": "up-to-date", "upstream": target, "strategy": "upstream-first"}
+            report(result, report_path)
+            return result
+        if rebuild and target != baseline:
+            raise RuntimeError("--rebuild verifies the recorded base only; use a normal update for a newer target.")
+        upstream = json.loads(blob(root, target, "theme.json"))
+        ours = json.loads(blob(root, source, "theme.json"))
+        branch = branch or f"updates/{'rebuild' if rebuild else 'upstream'}-{target[:8]}"
+        git(root, "check-ref-format", "--branch", branch)
+        worktree = Path(worktree or Path(tempfile.mkdtemp(prefix="zia-update-")) / "checkout").resolve()
+        if worktree.exists():
+            raise RuntimeError(f"Worktree path already exists: {worktree}")
+        # This checkout is literally the complete latest upstream tree.
+        git(root, "worktree", "add", "-b", branch, str(worktree), target)
+        state = {"source": source, "baseline": baseline, "target": target, "branch": branch,
+                 "rebuild": rebuild, "version": ours["version"] if rebuild else next_version(ours["version"], upstream["version"]),
+                 "metadataPrepared": False, "pending": {}}
+        save_state(worktree, state)
+        apply_customizations(root, worktree, state, config)
+    result = {"status": "needs-review", "strategy": "upstream-first", "branch": state["branch"],
+              "worktree": str(worktree), "sourceFork": state["source"], "startingCommit": state["target"],
+              "upstream": state["target"], "version": state["version"], "liveChecked": False,
+              "patches": state.get("patches", []),
+              "upstreamChanges": git(worktree, "diff", "--name-only", state["baseline"], state["target"]).stdout.splitlines()}
+    if state["pending"]:
+        result["conflicts"] = sorted(state["pending"])
+        result["patchFailures"] = state["pending"]
+        result["instructions"] = "Adapt each failed patch on this upstream checkout, stage the resolution, then resume with --resolved FILE for each resolved path."
+        report(result, report_path)
+        return result
     try:
+        if not state["metadataPrepared"]:
+            prepare_metadata(worktree, state)
         subprocess.run([sys.executable, "scripts/build.py"], cwd=worktree, check=True)
         command = [sys.executable, "scripts/check.py"]
         if skip_tool_tests:
@@ -158,7 +235,12 @@ def prepare(root=ROOT, target_ref=None, worktree=None, branch=None, zen=None,
         subprocess.run(command, cwd=worktree, check=True)
         git(worktree, "add", "-A")
         git(worktree, "diff", "--cached", "--check")
-        git(worktree, "commit", "-m", f"Import upstream {upstream_manifest['version']} as fork {version}")
+        tree = git(worktree, "write-tree").stdout.strip()
+        # Record both histories for fast-forward publication, but commit only
+        # the tree constructed above. No content merge or old-source restoration.
+        commit = git(worktree, "commit-tree", tree, "-p", state["source"], "-p", state["target"],
+                     "-m", f"Reapply fork customizations to upstream as {state['version']}").stdout.strip()
+        git(worktree, "update-ref", f"refs/heads/{state['branch']}", commit, state["target"])
     except (subprocess.CalledProcessError, RuntimeError) as error:
         result["checkFailure"] = str(error)
         result["instructions"] = "Fix the candidate, then run python scripts/update_upstream.py --resume WORKTREE --live."
@@ -166,7 +248,8 @@ def prepare(root=ROOT, target_ref=None, worktree=None, branch=None, zen=None,
         return result
     result["status"] = "prepared"
     result["liveChecked"] = bool(live or zen)
-    result["commit"] = git(worktree, "rev-parse", "HEAD").stdout.strip()
+    result["commit"] = commit
+    state_path(worktree).unlink()
     result["instructions"] = "Review this branch and run scripts/check.py --live before merging into main." if not result["liveChecked"] else "Review this branch before merging into main."
     report(result, report_path)
     return result
@@ -180,11 +263,14 @@ def main():
     parser.add_argument("--live", action="store_true", help="Run isolated Zen checks too")
     parser.add_argument("--zen", help="Zen executable; also enables live checks")
     parser.add_argument("--report", type=Path, help="Write a JSON report outside the worktree")
-    parser.add_argument("--resume", type=Path, help="Resume an existing candidate after resolving/staging conflicts or fixing checks")
+    parser.add_argument("--resume", type=Path, help="Resume a candidate after adapting failed patches or fixing checks")
+    parser.add_argument("--resolved", action="append", default=[], metavar="FILE", help="Acknowledge a staged manual patch/collision resolution; repeat per file")
+    parser.add_argument("--rebuild", action="store_true", help="Reconstruct the current version from its recorded upstream base")
     args = parser.parse_args()
     result = prepare(root=args.resume.resolve() if args.resume else ROOT, target_ref=args.target,
                      worktree=args.worktree, branch=args.branch, live=args.live,
-                     zen=args.zen, report_path=args.report, resume=bool(args.resume))
+                     zen=args.zen, report_path=args.report, resume=bool(args.resume),
+                     resolved=args.resolved, rebuild=args.rebuild)
     return 2 if result["status"] == "needs-review" else 0
 
 

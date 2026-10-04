@@ -49,6 +49,8 @@ def between(source, start, end):
 def check():
     if sys.flags.optimize:
         raise RuntimeError("Run checks without Python -O: assertions must be enabled")
+    assert CONFIG['schema'] == 2 and 'ownedFiles' not in CONFIG, "Use the upstream-first patch policy"
+    assert set(CONFIG['documentationOverlays']) <= {'README.md', 'CHANGELOG.md'}, "Source files cannot be copied over upstream"
     base, variant = files(BASE), files(VARIANT)
     OMITTED = set(CONFIG["excludedFiles"])
     expected_files = (set(base) - OMITTED) | ADDED
