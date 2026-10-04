@@ -4,6 +4,23 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.6] ? 2026-10-04
+
+### Added
+
+- Zia hover previews for collapsed folders on the restored 2.86.4 fork,
+  including tab selection, close/mute controls, New Tab and scrollable lists.
+- Upstream preview padding improvements, clamped placement on either sidebar
+  and compact-sidebar holding while the pointer is inside the card.
+- Browser checks for folder-card placement, contents, actions and dismissal.
+
+### Retained
+
+- Native folder styling, icons, methods and sidebar dragging; the searchable
+  native popup returns when **Tab and folder hover cards** is disabled.
+- Existing alignment/glow fixes, workspace-icon caching, real-time tint,
+  custom player and all other 2.86.4 behavior.
+
 ## [2.86.4] — 2026-10-03
 
 ### Added

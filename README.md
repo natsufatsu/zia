@@ -3,11 +3,14 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.86.2 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.86.4**.
+Current version: **2.86.6**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
-Zia's group boxes, colors, collapse animations, folder hover cards, naming,
-extra group menus and custom sidebar dragging are removed.
+Zia's group boxes, colors, collapse animations, naming, extra group menus
+and custom sidebar dragging are removed. Collapsed folders show Zia's tab
+preview when hovered, with tab selection, close/mute controls and New Tab.
+The existing **Tab and folder hover cards** setting controls these previews;
+turning it off restores Zen's searchable folder popup.
 
 Page drops use **Zia Split Tabs 1.0.7**: animated left/right targets, Zen's
 rectangular icon-and-title preview, and movement updated once per animation
@@ -110,6 +113,10 @@ overrides live in a final fork stylesheet; player workspace/opacity helpers
 are separate, with no JavaScript runtime change. See
 [Updating this fork](docs/fork-updates.md) for the commands and ownership rules.
 
+Version 2.86.6 adds only folder hover previews to the restored 2.86.4 fork,
+including upstream preview padding improvements. Native folders, dragging,
+alignment fixes and all existing custom modules remain intact.
+
 ## Install or update
 
 1. Enable unofficial JavaScript mods in Sine.
@@ -135,7 +142,9 @@ Checked in an isolated Windows profile with Zen 1.22.3b:
 - No glow box or animated media badge on playing essential tabs.
 - Selected-tab glow and border shine on first-row, playing, muted and split tabs,
   with both white and favicon-colored glows.
-- Native folder preview placement near the top and bottom of either sidebar,
+- Folder hover cards near the top and bottom of either sidebar, scrollable
+  contents, tab selection, close/New Tab actions and compact-sidebar holding.
+- Native fallback preview placement near the top and bottom of either sidebar,
   with short and scrolling folder lists; native search and dismissal still work.
 - Workspace icons remain visible while switching, including delayed SVG loads,
   cached swaps and switches made before a previous icon finishes loading.

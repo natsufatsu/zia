@@ -37,9 +37,13 @@ async function close() {
   const hadSide = Services.prefs.prefHasUserValue(sidePref), savedSide = Services.prefs.getBoolPref(sidePref, false);
   const savedFlip = popup.getAttribute('flip');
   const nativeOpen = win.__nativeTabMethods.folderPopup;
+  const featurePref = 'zia.features.tab-hover-cards';
+  const hadFeature = Services.prefs.prefHasUserValue(featurePref), savedFeature = Services.prefs.getBoolPref(featurePref, true);
   check(savedFlip === 'slide', 'Folder preview must slide at screen edges');
   check(win.gZenFolders.openTabsPopup === nativeOpen, 'Native folder popup method was replaced');
   try {
+    // Disabling Zia's cards restores the native searchable folder popup.
+    Services.prefs.setBoolPref(featurePref, false);
     if (compact) {
       toolbox.setAttribute('zen-user-show', 'true');
       await delay(400);
@@ -93,6 +97,8 @@ async function close() {
     popup.setAttribute('flip', savedFlip);
     if (hadSide) Services.prefs.setBoolPref(sidePref, savedSide);
     else Services.prefs.clearUserPref(sidePref);
+    if (hadFeature) Services.prefs.setBoolPref(featurePref, savedFeature);
+    else Services.prefs.clearUserPref(featurePref);
     for (const folder of folders) await folder.delete();
     if (compact && !wasRevealed) toolbox.removeAttribute('zen-user-show');
   }

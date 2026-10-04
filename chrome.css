@@ -1814,7 +1814,8 @@ zen-essentials-promo {
     translate: 0 1px;
   }
 }
-#zia-tab-card {
+#zia-tab-card,
+#zia-folder-card {
   clip-path: inset(0 round var(--zia-tab-card-radius));
   position: fixed;
   z-index: 2147483647;
@@ -1830,11 +1831,13 @@ zen-essentials-promo {
   -moz-window-dragging: no-drag;
 }
 
-#zia-tab-card[hidden] {
+#zia-tab-card[hidden],
+#zia-folder-card[hidden] {
   display: none;
 }
 
-#zia-tab-card::after {
+#zia-tab-card::after,
+#zia-folder-card::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -1844,15 +1847,18 @@ zen-essentials-promo {
   pointer-events: none;
 }
 
-#zia-tab-card[zia-open] {
+#zia-tab-card[zia-open],
+#zia-folder-card[zia-open] {
   animation: zia-tab-card-in 0.26s cubic-bezier(0.2, 0.9, 0.3, 1.2);
 }
 
-#zia-tab-card[zia-snap] {
+#zia-tab-card[zia-snap],
+#zia-folder-card[zia-snap] {
   animation: none;
 }
 
-#zia-tab-card[zia-closing] {
+#zia-tab-card[zia-closing],
+#zia-folder-card[zia-closing] {
   animation: zia-tab-card-out 0.12s ease-in forwards;
   pointer-events: none;
 }
@@ -1867,6 +1873,133 @@ zen-essentials-promo {
     opacity: 0;
     transform: scale(0.85);
   }
+}
+
+#zia-folder-card {
+  width: 222px;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.zia-folder-card-list {
+  /* the rows sit as far in from the card's edges, all round, as a tab's
+     icon sits in from the tab's edge (measured off a tab: zia.uc.js); at
+     the top and bottom, less the margin each row already has */
+  --zia-folder-card-inset: 9.5px;
+  padding: calc(var(--zia-folder-card-inset) - var(--zia-folder-card-gap)) var(--zia-folder-card-inset);
+  /* ten rows exactly: each is the tab's height with a margin above and
+     below, and between two rows those margins are one, so ten take ten
+     heights and eleven margins. The margin is the space between two tabs
+     in the sidebar (their gap above and below each). */
+  --zia-folder-card-gap: calc(2 * var(--zia-tab-gap));
+  max-height: calc(10 * var(--zia-tab-height) + 11 * var(--zia-folder-card-gap) + 2 * (var(--zia-folder-card-inset) - var(--zia-folder-card-gap)));
+  box-sizing: border-box;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.zia-folder-card-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  height: var(--zia-tab-height);
+  margin-block: var(--zia-folder-card-gap);
+
+  padding-inline: 9px 6px;
+  border-radius: var(--zia-tab-radius);
+  corner-shape: round !important;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: var(--zia-text-size);
+  font-weight: var(--zia-tab-weight);
+  cursor: default;
+}
+
+.zia-folder-card-row:hover {
+  background-color: rgba(255, 255, 255, 0.13);
+}
+
+.zia-folder-card-row[zia-selected] {
+  /* dark on the card's lighter grey, as on a folder's box in the sidebar */
+  background-color: var(--zia-active-tab-bg-folder);
+  color: rgb(255, 255, 255);
+  position: relative;
+
+  /* the selected tab's thin edge, without its glow */
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--zia-shine-width);
+    border-radius: inherit;
+    corner-shape: round;
+    pointer-events: none;
+    background: var(--zia-tab-shine-layers);
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+  }
+}
+
+.zia-folder-card-act:is([zia-act="close"], [zia-act="unload"]) {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-inline-start: auto;
+  padding: 4px;
+  border-radius: var(--zia-close-radius);
+  corner-shape: round !important;
+  opacity: 0;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+
+  .zia-folder-card-row:hover > & {
+    opacity: 0.8;
+  }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+    opacity: 1 !important;
+  }
+}
+
+.zia-folder-card-act[zia-act="mute"] {
+  border-radius: 4px;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+}
+
+.zia-folder-card-row[zia-new-tab] {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.zia-folder-card-icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+}
+
+.zia-folder-card-sound {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-inline: 2px 6px;
+  -moz-context-properties: fill, fill-opacity;
+  fill: currentColor;
+}
+
+.zia-folder-card-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 @keyframes zia-tab-card-in {
@@ -2120,7 +2253,8 @@ zen-essentials-promo {
    see-through, with what's behind them blurred, like the compact sidebar
    and the address bar pop-up. */
 @media -moz-pref("zia.cards.blur") {
-  #zia-tab-card{
+  #zia-tab-card,
+  #zia-folder-card {
     background-color: color-mix(in srgb, var(--zia-tab-card-bg) 76%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }

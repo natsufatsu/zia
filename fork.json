@@ -85,6 +85,7 @@
     "tests/fixtures/split-tabs/LICENSE",
     "tests/fixtures/split-tabs/chrome.css",
     "tests/fixtures/split-tabs/zia-split-tabs.uc.js",
+    "tests/folder-hover-card-live.js",
     "tests/folder-preview-live.js",
     "tests/live/full_zia_compact_clipping_live_checks.js",
     "tests/live/full_zia_live_checks.js",

@@ -139,7 +139,7 @@ def check():
     expected_prefs = [dict(p) for p in original_prefs if p.get('property') not in removed_prefs and p.get('label') != 'Folders']
     for pref in expected_prefs:
         if pref.get('property') == 'zia.features.tab-hover-cards':
-            pref['label'] = 'Tab hover cards'
+            pref['label'] = 'Tab and folder hover cards'
     assert [p for p in new_prefs if p not in additions and p.get("property") != "zia.toolbar.realtime-tint"] == expected_prefs, "Unrelated options changed"
     assert [p for p in new_prefs if p in additions] == additions
     assert [p for p in new_prefs if p.get('property') == 'zia.toolbar.realtime-tint'][0]['defaultValue'] is False

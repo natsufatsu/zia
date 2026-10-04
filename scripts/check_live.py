@@ -55,10 +55,10 @@ class Marionette:
             raise RuntimeError(json.dumps(result[2]))
         return result[3]
 
-    def script(self, script, args=None, asynchronous=False):
+    def script(self, script, args=None, asynchronous=False, timeout=20000):
         response = self.command("WebDriver:ExecuteAsyncScript" if asynchronous else "WebDriver:ExecuteScript", {
             "script": script, "args": args or [], "newSandbox": True,
-            "sandbox": "system", "scriptTimeout": 20000,
+            "sandbox": "system", "scriptTimeout": timeout,
         })
         return response.get("value", response) if isinstance(response, dict) else response
 
@@ -74,7 +74,7 @@ def run():
     parser.add_argument("--compact-clipping-check", action="store_true", help="Check animated toolbar clipping against the native sidebar edge")
     parser.add_argument("--tab-number-check", action="store_true", help="Check tab badge visibility through a Ctrl press/release")
     parser.add_argument("--tab-glow-check", action="store_true", help="Check selected first-row, audio and split-tab glows")
-    parser.add_argument("--folder-preview-check", action="store_true", help="Check native folder preview positioning")
+    parser.add_argument("--folder-preview-check", action="store_true", help="Check folder hover cards and native fallback previews")
     parser.add_argument("--upstream-check", action="store_true", help="Check imported upstream fixes and options")
     parser.add_argument("--realtime-tint-check", action="store_true", help="Check live tint sampling and smoothing")
     parser.add_argument("--workspace-icon-check", action="store_true", help="Check workspace icon swaps without blank frames")
@@ -291,6 +291,10 @@ def run():
                                                            "frames": len(icon_checks.get("frames", []))}), flush=True)
                 assert not icon_checks.get("error"), icon_checks
             if args.folder_preview_check:
+                hover_checks = client.script((ROOT / "tests/folder-hover-card-live.js").read_text(encoding="utf-8"), asynchronous=True, timeout=40000)
+                (run_dir / "folder-hover-card-results.json").write_text(json.dumps(hover_checks, indent=2), encoding="utf-8")
+                print("Folder hover card checks:", json.dumps(hover_checks), flush=True)
+                assert not hover_checks.get("error"), hover_checks
                 folder_checks = client.script((ROOT / "tests/folder-preview-live.js").read_text(encoding="utf-8"), asynchronous=True)
                 (run_dir / "folder-preview-results.json").write_text(json.dumps(folder_checks, indent=2), encoding="utf-8")
                 print("Folder preview checks:", json.dumps(folder_checks), flush=True)

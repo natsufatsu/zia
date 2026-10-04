@@ -119,7 +119,7 @@
   },
   {
     "type": "checkbox",
-    "label": "Tab hover cards",
+    "label": "Tab and folder hover cards",
     "property": "zia.features.tab-hover-cards",
     "defaultValue": true
   },

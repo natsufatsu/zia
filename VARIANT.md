@@ -4,7 +4,27 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.4.
+- Current variant: 2.86.6.
+
+## Folder hover previews (2.86.6)
+
+Based on the restored 2.86.4 tree. Import only the folder-card portions of
+upstream `27-hover-cards.js` and `07-hover-cards.css` through `ec48a6f`, including
+preview padding measured from a sidebar tab. Preserve the fork's ordinary-tab
+source, native folder styling, native dragging and all other modules.
+
+Hovering a collapsed folder opens its tab list, with tab selection, close/mute
+controls and New Tab. Placement clamps to the window on either sidebar and
+long lists scroll. Entering the preview holds a compact sidebar open. The
+existing tab-hover-card setting now reads **Tab and folder hover cards**.
+Disabling it dismisses the card and restores Zen's searchable popup.
+
+Suppress the duplicate native popup using its cancelable `popupshowing` event;
+no Zen folder method is wrapped or replaced. Folder colors, naming, animated
+icons, custom dragging and split-essential behavior remain excluded.
+`tests/folder-hover-card-live.js` exercises placement, contents, scrolling,
+selection, mute/close/New Tab, compact sidebar holding and feature disabling.
+The original native preview checks run with the feature disabled.
 
 ## Update workflow (2.86.4)
 
@@ -103,8 +123,9 @@ of the original stationary bars. Sidebar sound-bar rendering is unchanged.
 ## Native groups and dragging
 
 Removed Zia's folder/group styling, collapse animations, color menus, naming,
-empty-folder slots, extra icon menu and folder hover-card replacement. The tab
-hover-card feature remains, and Zen's folder popup is no longer intercepted.
+empty-folder slots and extra icon menu. Tab and folder hover cards are retained
+as of 2.86.6. Zen's folder popup remains available when those cards are disabled,
+and its folder methods remain unchanged.
 Shared CSS/JS modules retain their unrelated tab, workspace and URL bar code.
 
 Removed the upstream custom sidebar drag implementation, drag-image method
