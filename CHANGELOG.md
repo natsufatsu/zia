@@ -4,6 +4,65 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.91.1] — 2026-10-04
+
+### Fixed
+
+- With New Tab at the top of the tabs, dragging an essential back into
+  the list no longer opens a space above New Tab, where a tab can't go;
+  the space opens under it, where the tab lands, as it does for a tab.
+
+## [2.91.0] — 2026-10-04
+
+### Changed
+
+- A folder's hover card (the card listing its tabs) keeps its tabs as
+  far in from its edges, all round, as a tab's icon sits in from the
+  tab's edge in the sidebar.
+
+### Fixed
+
+- Clicking the address bar now always selects the whole address. Now
+  and then it selected only the start ("youtub"), because the text
+  moved under the pointer as the bar opened while the button was still
+  down.
+- The address bar pop-up's last row has the same gap below it as at the
+  sides again, with the list scrolling or not, rather than the extra
+  space at the bottom since Zen's update. The pop-up ends under the last
+  row that fits whole, and the list scrolls on from there.
+
+## [2.90.4] — 2026-10-04
+
+### Fixed
+
+- Showing the sidebar again by clicking (leaving compact mode), it no
+  longer slides in a little high and drops into place as it settles.
+
+## [2.90.3] — 2026-10-04
+
+### Fixed
+
+- In a split, the sidebar button at the start of each pane's toolbar
+  shows and hides the sidebar again.
+
+## [2.90.2] — 2026-10-04
+
+### Changed
+
+- In Settings → Sine Mods → Zia, the loading bar option reads "colour"
+  and "(off: Zia blue)" like the rest, and the Multiview icon's choices
+  match the tab numbers' ("The space's colour").
+- The readme's settings table follows the order of the settings
+  themselves, and its list of Zen settings Zia changes is complete:
+  Zen's tab drop on the page, Zen's acrylic look, picture-in-picture's
+  improved controls and the address bar's `https://` trimming are listed
+  with the rest.
+
+### Removed
+
+- Leftover code, a style and two icons nothing used any more, so the
+  download is a little smaller. Nothing looks or works differently.
+
 ## [2.90.1] — 2026-10-03
 
 ### Fixed

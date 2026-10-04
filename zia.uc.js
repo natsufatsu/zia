@@ -1033,8 +1033,67 @@
       },
       true
     );
+    // The click that opens the bar selects the whole address. The bar moves
+    // and grows as it opens, though, so with the button still down the text
+    // slid under a pointer that hadn't moved and Firefox took it for a drag,
+    // selecting only part of it ("youtub"). Unless the pointer itself moved,
+    // that click selects the whole address however the text moved under it.
+    let pressedAt = null;
+    urlbar.addEventListener(
+      "mousedown",
+      (event) => {
+        pressedAt = holdWholeSelection ? { x: event.screenX, y: event.screenY } : null;
+        lastPointer = null;
+      },
+      true
+    );
+    // While that click is held, a drag Firefox reads into the moving text is
+    // undone as it happens, before it's drawn (only fixed on release, the
+    // part-selection showed for a moment first). A real drag moves the
+    // pointer, and is left alone.
+    let lastPointer = null;
+    window.addEventListener(
+      "mousemove",
+      (event) => {
+        lastPointer = pressedAt ? { x: event.screenX, y: event.screenY } : null;
+      },
+      true
+    );
+    const holdWhole = () => {
+      const press = pressedAt;
+      if (!press || !gURLBar.focused || urlbarTyping) {
+        return;
+      }
+      if (lastPointer && Math.hypot(lastPointer.x - press.x, lastPointer.y - press.y) > 4) {
+        return;
+      }
+      if (input.selectionStart !== 0 || input.selectionEnd !== input.value.length) {
+        input.select();
+      }
+    };
+    input.addEventListener("selectionchange", holdWhole);
+    input.addEventListener("select", holdWhole);
+    window.addEventListener(
+      "mouseup",
+      (event) => {
+        const press = pressedAt;
+        pressedAt = null;
+        if (!press || event.button !== 0 || Math.hypot(event.screenX - press.x, event.screenY - press.y) > 4) {
+          return;
+        }
+        const wholeLater = () => {
+          if (gURLBar.focused && !urlbarTyping && (input.selectionStart !== 0 || input.selectionEnd !== input.value.length)) {
+            input.select();
+          }
+        };
+        wholeLater();
+        requestAnimationFrame(wholeLater);
+      },
+      true
+    );
     const release = () => {
       holdWholeSelection = false;
+      pressedAt = null;
     };
     urlbar.addEventListener("keydown", release, true);
     input.addEventListener("input", release);
@@ -4650,6 +4709,25 @@
     return button;
   }
 
+  // The pane's own sidebar button. Zen's button sits in the main toolbar,
+  // which a split hides, and calling doCommand on a hidden toolbarbutton
+  // does nothing, so this goes to Zen's command (or its manager) instead.
+  function toggleCompactMode() {
+    const command = document.getElementById("cmd_zenCompactModeToggle");
+    if (command) {
+      command.doCommand();
+      return;
+    }
+    const manager = window.gZenCompactModeManager;
+    if (typeof manager?.toggle === "function") {
+      manager.toggle();
+    } else if (manager && "preference" in manager) {
+      manager.preference = !manager.preference;
+    } else {
+      document.getElementById("zen-toggle-compact-mode")?.click();
+    }
+  }
+
   function createPaneBar(container) {
     const bar = document.createElementNS(HTML_NS, "div");
     bar.className = "zia-pane-bar";
@@ -4663,9 +4741,7 @@
     });
 
     bar.appendChild(
-      paneButton("sidebar", "Toggle sidebar", () => {
-        document.getElementById("zen-toggle-compact-mode")?.doCommand?.();
-      })
+      paneButton("sidebar", "Toggle sidebar", toggleCompactMode)
     );
     bar.appendChild(paneButton("back", "Back", () => paneBrowser(container)?.goBack()));
     bar.appendChild(paneButton("forward", "Forward", () => paneBrowser(container)?.goForward()));
@@ -5599,6 +5675,13 @@
   const POP_SCROLL_TRIM = 10;
   let popBottomTrim = null;
 
+  // The pop-up's bottom edge. Its background is scaled up from 0.8 (from the
+  // top) as the pop-up opens, so measured mid-way its bottom read short and
+  // the fit came out wrong: its top and unscaled height don't move.
+  function popUpBottom(background) {
+    return background.getBoundingClientRect().top + background.offsetHeight;
+  }
+
   function fitPopoverBottom(passesLeft = 8) {
     const urlbar = gURLBar.textbox || document.getElementById("urlbar");
     if (!urlbar?.hasAttribute("breakout-extend") || urlbarAtBottom()) {
@@ -5615,11 +5698,37 @@
       return;
     }
 
-    const scrolls = [view, ...view.querySelectorAll("*")].some((el) => el.scrollHeight > el.clientHeight + 1);
-    if (scrolls) {
+    const scroller = [view, ...view.querySelectorAll("*")].find((el) => el.scrollHeight > el.clientHeight + 1);
+    if (scroller) {
       root.setAttribute("zia-pop-scrolls", "true");
-      popBottomTrim = POP_SCROLL_TRIM;
-      urlbar.style.setProperty("--zia-pop-bottom-trim", `${POP_SCROLL_TRIM}px`);
+      // A list that scrolls is cut off at the pop-up's edge, and how far down
+      // that falls is up to Zen (it changed with Zen 1.23). Trimmed by a set
+      // amount, the last whole row could end well above the edge, or the next
+      // one start just short of it. The pop-up ends instead under the last
+      // row that fits whole, at rest, with the same gap as at the sides; the
+      // space added at the list's end (the trim again) gives the last row the
+      // same gap once it's scrolled to.
+      const trim = popBottomTrim ?? (parseFloat(getComputedStyle(urlbar).getPropertyValue("--zia-pop-bottom-trim")) || 0);
+      const untrimmed = popUpBottom(background) + trim;
+      let end = null;
+      for (const row of rows) {
+        const box = row.getBoundingClientRect();
+        // (where it sits with the list scrolled to the top)
+        const bottom = box.bottom + scroller.scrollTop + POP_BOTTOM_WANT;
+        if (box.height && bottom <= untrimmed + 0.5) {
+          end = Math.max(end ?? bottom, bottom);
+        }
+      }
+      const want = end === null ? POP_SCROLL_TRIM : Math.max(0, untrimmed - end);
+      if (Math.abs(want - trim) > 0.3) {
+        popBottomTrim = want;
+        urlbar.style.setProperty("--zia-pop-bottom-trim", `${want}px`);
+        if (passesLeft > 0) {
+          requestAnimationFrame(() => fitPopoverBottom(passesLeft - 1));
+        }
+      } else {
+        popBottomTrim = trim;
+      }
       return;
     }
     root.removeAttribute("zia-pop-scrolls");
@@ -5627,7 +5736,7 @@
     if (popBottomTrim === null) {
       popBottomTrim = parseFloat(getComputedStyle(urlbar).getPropertyValue("--zia-pop-bottom-trim")) || 0;
     }
-    const error = background.getBoundingClientRect().bottom - last.getBoundingClientRect().bottom - POP_BOTTOM_WANT;
+    const error = popUpBottom(background) - last.getBoundingClientRect().bottom - POP_BOTTOM_WANT;
     if (Math.abs(error) > 0.3 && passesLeft > 0) {
       popBottomTrim += error * POP_STEP;
       urlbar.style.setProperty("--zia-pop-bottom-trim", `${popBottomTrim}px`);
@@ -5745,18 +5854,6 @@
       noteError("zen defaults: set (2)", err);
     }
   }
-
-  // Options in Sine's settings. All on, except the favicon glow.
-  const ZIA_OPTIONS = [
-    "zia.urlbar.dia-style",
-    "zia.newtab.real-tab",
-    "zia.tabs.sound-bars",
-    "zia.toolbar.site-color",
-    "zia.split.drop-cards",
-    "zia.page.rounding",
-  ];
-  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color", "zia.split.drop-cards"];
-
 
   // ---------- Picture-in-picture: Dia's look, and tucking into the screen edge
   const PIP_PLAYER_URL = "chrome://global/content/pictureinpicture/player.xhtml";
@@ -6171,6 +6268,18 @@
     window.addEventListener("unload", () => Services.prefs.removeObserver(URLBAR_POSITION_PREF, apply));
   }
 
+  // Options in Sine's settings that are on by default (the rest are set
+  // one by one in applyZenDefaults), and the ones watched as they change.
+  const ZIA_OPTIONS = [
+    "zia.urlbar.dia-style",
+    "zia.newtab.real-tab",
+    "zia.tabs.sound-bars",
+    "zia.toolbar.site-color",
+    "zia.split.drop-cards",
+    "zia.page.rounding",
+  ];
+  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color", "zia.split.drop-cards"];
+
   function watchOptions() {
     const urlbar = gURLBar?.textbox || document.getElementById("urlbar");
     const apply = () => {
@@ -6201,7 +6310,7 @@
     });
   }
 
-  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "folder-icon-suggest", "tab-hover-cards"];
+  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "folder-icon-suggest", "tab-hover-cards", "tab-numbers"];
 
   function featureOn(name) {
     try {
@@ -9816,10 +9925,32 @@
 
     const list = document.createElementNS(XHTML_NS, "div");
     list.className = "zia-folder-card-list";
+    const inset = tabEdgeInset();
+    if (inset) {
+      list.style.setProperty("--zia-folder-card-inset", `${inset}px`);
+    }
     const scrolled = card.querySelector(".zia-folder-card-list")?.scrollTop || 0;
     list.append(...rows);
     card.replaceChildren(list);
     list.scrollTop = scrolled;
+  }
+
+  // How far a tab's icon sits in from the tab's edge in the sidebar: the
+  // folder card keeps its tabs that far in from its own edges, all round.
+  function tabEdgeInset() {
+    try {
+      const tab = gBrowser.visibleTabs.find((t) => !t.pinned && !t.hasAttribute("zen-essential") && t.getBoundingClientRect().width);
+      const edge = tab?.querySelector(".tab-background")?.getBoundingClientRect();
+      // (the icon itself: the box it sits in can reach further out)
+      const icon = [".tab-icon-image", ".tab-icon-stack"]
+        .map((selector) => tab?.querySelector(selector)?.getBoundingClientRect())
+        .find((box) => box?.width);
+      const inset = edge && icon?.width ? Math.round((icon.left - edge.left) * 2) / 2 : 0;
+      return inset >= 4 && inset <= 16 ? inset : 0;
+    } catch (err) {
+      noteError("hover cards: tab inset", err);
+      return 0;
+    }
   }
 
   function newTabButtonIcon() {
@@ -10888,21 +11019,6 @@
         }
         clearTimeout(node.ziaMorphOutTimer);
         node.ziaMorphOutTimer = setTimeout(() => node.removeAttribute("zia-morph-out"), 450);
-      }
-    };
-
-    const unmorphWidth = (tab) => {
-      for (const node of [tab, tab?.group?.hasAttribute("split-view-group") ? tab.group : null]) {
-        if (!node?.hasAttribute("zia-morph")) {
-          continue;
-        }
-        node.setAttribute("zia-morph-done", "true");
-        node.removeAttribute("zia-morph");
-        for (const name of ["--zia-morph-bg-start", "--zia-morph-bg-end", "--zia-morph-content-start", "--zia-morph-content-end"]) {
-          node.style.removeProperty(name);
-        }
-        node.getBoundingClientRect();
-        node.removeAttribute("zia-morph-done");
       }
     };
 
@@ -12919,7 +13035,12 @@
         }
       }
       if (listRoom.button && listRoom.buttonBottom != null) {
-        const delta = listRoom.buttonBottom > y ? listRoom.pitch : 0;
+        // New Tab at the top of the tabs (Zen's option) sits under the
+        // separator and can't have a tab dropped above it: it moves with the
+        // separator, as for a tab dragged within the list, rather than making
+        // way as New Tab at the foot of the list does.
+        const onTop = Services.prefs.getBoolPref("zen.view.show-newtab-button-top", false);
+        const delta = onTop ? listRoom.sepDelta : listRoom.buttonBottom > y ? listRoom.pitch : 0;
         if (listRoom.buttonDelta !== delta) {
           listRoom.buttonDelta = delta;
           place(listRoom.button, delta, false);

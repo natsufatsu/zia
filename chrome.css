@@ -284,13 +284,7 @@
     }
   }
 
-  @media -moz-pref("zia.window-buttons.hide") {
-    :root:not(#zia-none):not(#zia-none-2):not([inDOMFullscreen="true"]):not([popup-window]) #nav-bar {
-      padding-inline-end: var(--zia-toolbar-end-gap) !important;
-    }
-  }
-
-  @media -moz-pref("zia.window-buttons.dim") {
+  @media -moz-pref("zia.window-buttons.hide"), -moz-pref("zia.window-buttons.dim") {
     :root:not(#zia-none):not(#zia-none-2):not([inDOMFullscreen="true"]):not([popup-window]) #nav-bar {
       padding-inline-end: var(--zia-toolbar-end-gap) !important;
     }
@@ -3307,13 +3301,17 @@ zen-folder:is(:not([zia-folder-color]), [zia-folder-color="white"]) > .tab-group
 }
 
 .zia-folder-card-list {
-  padding: 6px;
+  /* the rows sit as far in from the card's edges, all round, as a tab's
+     icon sits in from the tab's edge (measured off a tab: zia.uc.js); at
+     the top and bottom, less the margin each row already has */
+  --zia-folder-card-inset: 9.5px;
+  padding: calc(var(--zia-folder-card-inset) - var(--zia-folder-card-gap)) var(--zia-folder-card-inset);
   /* ten rows exactly: each is the tab's height with a margin above and
      below, and between two rows those margins are one, so ten take ten
      heights and eleven margins. The margin is the space between two tabs
      in the sidebar (their gap above and below each). */
   --zia-folder-card-gap: calc(2 * var(--zia-tab-gap));
-  max-height: calc(10 * var(--zia-tab-height) + 11 * var(--zia-folder-card-gap) + 12px);
+  max-height: calc(10 * var(--zia-tab-height) + 11 * var(--zia-folder-card-gap) + 2 * (var(--zia-folder-card-inset) - var(--zia-folder-card-gap)));
   box-sizing: border-box;
   overflow-y: auto;
   scrollbar-width: none;
@@ -4383,7 +4381,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 }
 
 #zia-split-drop {
-  --zia-drop-pull: 0px;
   position: fixed;
   left: var(--zia-drop-left, 0px);
   top: var(--zia-drop-top, 0px);
@@ -5541,6 +5538,14 @@ tooltip[default="true"] {
 
 :root[zen-compact-mode="true"] #titlebar > #zen-sidebar-top-buttons {
   margin-block-start: calc(var(--zia-top-row-space) - 8px) !important;
+}
+
+/* While Zen slides the sidebar in or out on switching compact mode, the
+   top row keeps the spacing it has outside compact mode: with compact's,
+   the row and everything under it rode 5.5px high through the slide and
+   dropped into place as it ended. */
+:root[zen-compact-mode="true"][zen-compact-animating] #navigator-toolbox[animate="true"] #titlebar > #zen-sidebar-top-buttons {
+  margin-block-start: calc(var(--zia-top-row-space) - 2.5px) !important;
 }
 
 :root[zen-compact-mode="true"]:not([zen-single-toolbar="true"]) #navigator-toolbox:not([animate="true"]) {

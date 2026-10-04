@@ -757,21 +757,6 @@
       }
     };
 
-    const unmorphWidth = (tab) => {
-      for (const node of [tab, tab?.group?.hasAttribute("split-view-group") ? tab.group : null]) {
-        if (!node?.hasAttribute("zia-morph")) {
-          continue;
-        }
-        node.setAttribute("zia-morph-done", "true");
-        node.removeAttribute("zia-morph");
-        for (const name of ["--zia-morph-bg-start", "--zia-morph-bg-end", "--zia-morph-content-start", "--zia-morph-content-end"]) {
-          node.style.removeProperty(name);
-        }
-        node.getBoundingClientRect();
-        node.removeAttribute("zia-morph-done");
-      }
-    };
-
     const newTabButton = () =>
       window.gZenWorkspaces?.activeWorkspaceElement?.newTabButton ||
       document.querySelector("#tabs-newtab-button, #vertical-tabs-newtab-button");
@@ -2785,7 +2770,12 @@
         }
       }
       if (listRoom.button && listRoom.buttonBottom != null) {
-        const delta = listRoom.buttonBottom > y ? listRoom.pitch : 0;
+        // New Tab at the top of the tabs (Zen's option) sits under the
+        // separator and can't have a tab dropped above it: it moves with the
+        // separator, as for a tab dragged within the list, rather than making
+        // way as New Tab at the foot of the list does.
+        const onTop = Services.prefs.getBoolPref("zen.view.show-newtab-button-top", false);
+        const delta = onTop ? listRoom.sepDelta : listRoom.buttonBottom > y ? listRoom.pitch : 0;
         if (listRoom.buttonDelta !== delta) {
           listRoom.buttonDelta = delta;
           place(listRoom.button, delta, false);
