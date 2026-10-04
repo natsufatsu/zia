@@ -85,7 +85,10 @@ async function leave(card) {
           const addBox = add.getBoundingClientRect();
           check(Math.abs(addBox.height - rowBox.height) < 1, 'New Tab row is taller than tab rows');
           check(win.getComputedStyle(add).fontSize === win.getComputedStyle(rows[0]).fontSize, 'New Tab text size differs from tabs');
-          check(addBox.left === rowBox.left && addBox.width === rowBox.width, 'New Tab row horizontal alignment differs from tabs');
+          const tabList = card.querySelector('.zia-folder-card-list');
+          const scrollbarWidth = tabList.offsetWidth - tabList.clientWidth;
+          check(addBox.left === rowBox.left && Math.abs(addBox.width - rowBox.width - scrollbarWidth) < 1,
+            'New Tab row horizontal alignment differs from tabs after accounting for the scrollbar');
           const field = card.querySelector('.zia-folder-card-search-field'), search = card.querySelector('.zia-folder-card-search');
           check(win.getComputedStyle(search).borderRadius === '0px' && win.getComputedStyle(search).borderTopWidth === '0px',
             'Native search input pill returned');
@@ -98,6 +101,9 @@ async function leave(card) {
           if (size === 12) {
             const list = card.querySelector('.zia-folder-card-list');
             check(list.scrollHeight > list.clientHeight, 'Long folder preview does not scroll');
+            const listStyle = win.getComputedStyle(list);
+            check(listStyle.scrollbarWidth === 'thin' && listStyle.scrollbarColor !== 'auto',
+              'Folder preview lost its themed thin scrollbar');
             const add = card.querySelector('[zia-new-tab]'), searchBar = card.querySelector('.zia-folder-card-search-bar');
             check(!list.contains(add), 'New Tab still belongs to the scrolling list');
             const addTop = add.getBoundingClientRect().top, searchTop = searchBar.getBoundingClientRect().top;

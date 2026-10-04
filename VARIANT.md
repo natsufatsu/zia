@@ -4,7 +4,13 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.10.
+- Current variant: 2.86.11.
+
+## Folder preview scrollbar (2.86.11)
+
+Show a thin native scrollbar when the folder list overflows. Use a translucent
+white thumb on a transparent track, brightening when the list is hovered.
+Search and New Tab stay fixed, and row icons keep their existing alignment.
 
 ## Folder copy icon (2.86.10)
 

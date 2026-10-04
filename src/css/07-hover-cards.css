@@ -82,7 +82,12 @@
   height: calc(var(--zia-folder-card-rows) * var(--zia-tab-height) + (var(--zia-folder-card-rows) + 1) * var(--zia-folder-card-gap));
   box-sizing: border-box;
   overflow-y: auto;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+
+  &:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.4) transparent;
+  }
 }
 
 .zia-folder-card-search-bar {
