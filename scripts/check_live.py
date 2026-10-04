@@ -56,10 +56,16 @@ class Marionette:
         return result[3]
 
     def script(self, script, args=None, asynchronous=False, timeout=20000):
-        response = self.command("WebDriver:ExecuteAsyncScript" if asynchronous else "WebDriver:ExecuteScript", {
-            "script": script, "args": args or [], "newSandbox": True,
-            "sandbox": "system", "scriptTimeout": timeout,
-        })
+        # Long preview checks must reach their script deadline before the socket does.
+        previous_timeout = self.connection.gettimeout()
+        self.connection.settimeout(timeout / 1000 + 5)
+        try:
+            response = self.command("WebDriver:ExecuteAsyncScript" if asynchronous else "WebDriver:ExecuteScript", {
+                "script": script, "args": args or [], "newSandbox": True,
+                "sandbox": "system", "scriptTimeout": timeout,
+            })
+        finally:
+            self.connection.settimeout(previous_timeout)
         return response.get("value", response) if isinstance(response, dict) else response
 
 

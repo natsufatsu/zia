@@ -4,7 +4,14 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.9.
+- Current variant: 2.86.10.
+
+## Folder copy icon (2.86.10)
+
+Replace the Copy links text with the tab hover card's paperclip icon in a
+32px square button, retaining an accessible label and tooltip. Reuse the
+existing animated checkmark confirmation. The narrower button gives search
+more room; all-folder URL copying and keyboard isolation remain unchanged.
 
 ## Compact folder preview controls (2.86.9)
 
@@ -12,7 +19,8 @@ Use a rectangular search field with the search icon inside it and an adjacent
 Copy links button styled to the supplied reference. Explicitly reset Zen's
 native input theme so it cannot add a second rounded border inside the field.
 Copy every non-closing, non-placeholder folder tab URL in folder order,
-one per line, independently of search filtering. Briefly show Copied on success.
+one per line, independently of search filtering. Since 2.86.10 the button uses
+an icon and checkmark confirmation instead of text.
 
 Restore the original New Tab row markup and shared row styles. Keep it fixed
 below the scrolling list, with the original tab gap and bottom inset; remove

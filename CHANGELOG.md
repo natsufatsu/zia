@@ -4,6 +4,13 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.10] - 2026-10-04
+
+### Changed
+
+- Use the tab hover preview's paperclip copy icon in a compact square button
+  beside folder search, with the same animated checkmark confirmation.
+
 ## [2.86.9] - 2026-10-04
 
 ### Added

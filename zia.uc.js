@@ -6998,9 +6998,9 @@
     copy.type = "button";
     copy.tabIndex = -1;
     copy.className = "zia-folder-card-copy";
-    copy.textContent = "Copy links";
     copy.title = "Copy all tab URLs in this folder";
-    let copiedTimer;
+    copy.setAttribute("aria-label", copy.title);
+    copy.append(folderCardIcon("chrome://sine/content/zia/icons/ui/card-paperclip.svg", "zia-folder-card-copy-icon"));
     copy.addEventListener("click", (event) => {
       event.stopPropagation();
       const urls = folderTabURLs(card.ziaFolder);
@@ -7010,9 +7010,7 @@
       card.dispatchEvent(new CustomEvent("zia-card-acting"));
       try {
         Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(urls.join("\n"));
-        clearTimeout(copiedTimer);
-        copy.textContent = "Copied";
-        copiedTimer = setTimeout(() => copy.textContent = "Copy links", 1200);
+        showCopiedIcon(copy, copy.querySelector("img"));
       } catch (err) {
         noteError("hover cards: copy folder links", err);
       }
@@ -7089,7 +7087,11 @@
     const copy = card.querySelector(".zia-folder-card-copy");
     copy.disabled = !folderTabURLs(folder).length;
     if (!sameFolder) {
-      copy.textContent = "Copy links";
+      clearTimeout(copy.ziaCopiedTimer);
+      copy.removeAttribute("zia-copied");
+      const icon = copy.querySelector("img");
+      icon.ziaPop?.cancel();
+      icon.setAttribute("src", "chrome://sine/content/zia/icons/ui/card-paperclip.svg");
     }
     card.ziaFolder = folder;
     // (its colour, for the card to take when that's on: chrome.css)

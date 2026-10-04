@@ -147,13 +147,22 @@ async function leave(card) {
     query('folder tab 11');
     const selectedResult = visibleRows()[0].ziaTab;
     const copy = searchedCard.querySelector('.zia-folder-card-copy');
+    const copyIcon = copy.querySelector('img');
+    check(copyIcon?.getAttribute('src').endsWith('/card-paperclip.svg') && !copy.textContent,
+      'Folder copy button does not use the tab hover copy icon');
+    const copyBox = copy.getBoundingClientRect();
+    check(copyBox.width === 32 && copyBox.height === 32 && copy.getAttribute('aria-label'),
+      'Copy icon button lost its square size or accessible label');
     const expectedURLs = folders[1].tabs.filter(tab => !tab.closing && !tab.hasAttribute('zen-empty-tab'))
       .map(tab => tab.linkedBrowser.currentURI.spec);
     copy.click();
     const copiedURLs = await win.navigator.clipboard.readText();
     check(expectedURLs.length === 12 && new Set(expectedURLs).size === 12, 'Copy fixture lost distinct folder URLs');
     check(copiedURLs === expectedURLs.join('\n'), 'Copy links did not include every tab in folder order while filtered');
-    check(copy.textContent === 'Copied' && !searchedCard.hidden && search.value === 'folder tab 11', 'Copy feedback changed search or hid preview');
+    await waitFor(() => copy.hasAttribute('zia-copied'), 'copy icon confirmation');
+    check(copyIcon.getAttribute('src').endsWith('/check.svg') && !copy.textContent && !searchedCard.hidden && search.value === 'folder tab 11',
+      'Copy icon feedback changed search or hid preview');
+    await waitFor(() => !copy.hasAttribute('zia-copied'), 'copy icon reset');
     results.copyAllLinks = true;
     for (const key of ['Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
       const event = new win.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true});
