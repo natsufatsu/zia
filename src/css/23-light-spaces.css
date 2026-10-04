@@ -3,12 +3,27 @@
    drew the sidebar for dark spaces only, white text and white-tinted
    surfaces, which on a pale space was white on cream. Here the sidebar's
    ink is dark and its surfaces light, as in Dia's light mode: the selected
-   tab a white card, hovers and edges a faint shade of black. */
-:root[zen-should-be-dark-mode="false"]:not(#zia-none):not(#zia-none-2) {
+   tab a white card, hovers and edges a faint shade of black. A window
+   with no space colour in light mode is drawn the same way (zia-light,
+   25-sidebar-paint-and-window-buttons.js). */
+:root[zia-light]:not(#zia-none):not(#zia-none-2) {
   --zia-sidebar-ink: rgb(28, 28, 32);
   --zia-active-tab-bg: rgba(255, 255, 255, 0.78);
+  --zia-active-tab-bg-folder: rgba(255, 255, 255, 0.66);
   --zia-tab-hover-bg: rgba(0, 0, 0, 0.055);
   --zia-active-glow-color: rgba(0, 0, 0, 0.035);
+  --zia-folder-mark-color: rgba(0, 0, 0, 0.6);
+  /* essentials a firmer white than the dark spaces' faint wash, and the
+     fine edge round tabs, folders and essentials a shade of black rather
+     than white, which went nowhere on cream */
+  --zia-essential-bg: rgba(255, 255, 255, 0.5);
+  --zia-folder-hover-bg: rgba(255, 255, 255, 0.42);
+  --zia-shine-layers:
+    linear-gradient(to right, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.08) 35%, rgba(0, 0, 0, 0.08) 65%, rgba(0, 0, 0, 0.04)),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.03), rgba(0, 0, 0, 0.06) 35%, rgba(0, 0, 0, 0.06) 65%, rgba(0, 0, 0, 0.03));
+  --zia-tab-shine-layers: linear-gradient(rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.07));
+  /* the music card a white card, as the selected tab is */
+  --zia-media-bg: rgba(255, 255, 255, 0.62);
 
   /* tab names: the rest a little softer, the open one full */
   & .tabbrowser-tab:not([zen-essential]) .tab-label-container {
@@ -27,6 +42,20 @@
 
   & .tabbrowser-tab:not([zen-essential], [visuallyselected]):hover > .tab-stack > .tab-background {
     background: var(--zia-tab-hover-bg) !important;
+  }
+
+  /* folder names, and coloured ones tinted towards dark rather than white */
+  & :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container > label {
+    color: var(--zia-sidebar-ink) !important;
+  }
+
+  & :is(zen-folder[zia-folder-color], tab-group:not([split-view-group])) > .tab-group-label-container > label {
+    color: color-mix(in srgb, var(--zia-folder-swatch, var(--zia-sidebar-ink)) 70%, var(--zia-sidebar-ink)) !important;
+  }
+
+  & zen-folder > .tab-group-label-container > .zia-folder-close {
+    fill: var(--zia-sidebar-ink) !important;
+    color: var(--zia-sidebar-ink) !important;
   }
 
   /* the space's name, tinted towards dark */
@@ -97,12 +126,86 @@
     background-color: rgba(0, 0, 0, 0.08);
   }
 
-  @media -moz-pref("zia.tabs.no-glow") {
-    --zia-active-glow-color: transparent;
+  /* an empty folder's "Drag tabs here" slot */
+  &[zen-sidebar-expanded="true"] zen-folder[zia-empty] {
+    --zia-slot-border: 1.5px dashed rgba(0, 0, 0, 0.22);
 
-    & .tabbrowser-tab:not([zen-essential])[visuallyselected] > .tab-stack > .tab-background {
-      box-shadow: none !important;
+    & > .tab-group-container::after {
+      content: url("chrome://sine/content/zia/icons/folder-drop-dark.svg") "\2002 Drag tabs here";
+      color: rgba(0, 0, 0, 0.45);
     }
   }
 
+  /* the buttons on tabs and folders (close, unload, reset) in the dark
+     ink, as soft as the folders' own close mark */
+  & :is(.tabbrowser-tab, zen-folder) .tab-reset-button,
+  & .tabbrowser-tab .tab-close-button {
+    fill: var(--zia-sidebar-ink) !important;
+    fill-opacity: var(--zia-folder-mark-opacity) !important;
+    color: var(--zia-sidebar-ink) !important;
+  }
+
+  & :is(.tabbrowser-tab, zen-folder) :is(.tab-reset-button, .tab-close-button):hover {
+    background-color: rgba(0, 0, 0, 0.07) !important;
+  }
+
+  /* essentials: a fine dark edge round each tile */
+  & .tabbrowser-tab[zen-essential]:not([visuallyselected]) > .tab-stack > .tab-background {
+    box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.07) !important;
+  }
+
+  & .tabbrowser-tab[zen-essential]:not([visuallyselected]):hover > .tab-stack > .tab-background {
+    background: rgba(255, 255, 255, 0.72) !important;
+  }
+
+  /* the music card: white, with a fine edge and the dark ink */
+  & #zen-media-controls-toolbar {
+    & .zen-media-card {
+      box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    & .zen-media-title {
+      color: var(--zia-sidebar-ink) !important;
+    }
+
+    & :is(.zen-media-artist, .zen-media-current-time, .zen-media-duration) {
+      color: color-mix(in srgb, var(--zia-sidebar-ink) 58%, transparent) !important;
+    }
+
+    & .toolbarbutton-1,
+    & .zen-media-playpause-button > .toolbarbutton-icon {
+      color: color-mix(in srgb, var(--zia-sidebar-ink) 88%, transparent) !important;
+      fill: color-mix(in srgb, var(--zia-sidebar-ink) 88%, transparent) !important;
+    }
+
+    & .toolbarbutton-1:hover > .toolbarbutton-icon {
+      background-color: rgba(0, 0, 0, 0.07) !important;
+    }
+
+    & .zen-media-progress-bar {
+      &::-moz-range-track {
+        background: rgba(0, 0, 0, 0.14) !important;
+      }
+
+      &::-moz-range-progress,
+      &::-moz-range-thumb {
+        background: var(--zia-sidebar-ink) !important;
+      }
+    }
+
+    & .zia-ring-track {
+      stroke: rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  /* the glass folder and box: a deeper tint than the dark spaces' pale one
+     when it takes the space's colour, and a fine dark edge to hold it
+     against the cream */
+  & zen-folder:not([zia-folder-color]) > .tab-group-label-container .zia-fi {
+    --fi-accent: color-mix(in srgb, var(--zen-primary-color, #5ab9f5) 78%, rgb(70, 72, 80));
+  }
+
+  & .zia-fi {
+    filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.32)) drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.1));
+  }
 }

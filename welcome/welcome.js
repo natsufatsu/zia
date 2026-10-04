@@ -1,7 +1,5 @@
 // Zia's welcome tour (index.html)
 (() => {
-
-  const IMG = "https://raw.githubusercontent.com/z1n-k/zia/readme-images/";
   const rows = (n, colors = ["#ececef", "#9d9da3", "#c9c9ce", "#7f7f86", "#b4b4ba"], extra = () => "") =>
     Array.from({ length: n }, (_, i) => `<div class="w-row ${extra(i)}"><span class="w-ico" style="--c:${colors[i % colors.length]}"></span><span class="w-line"></span>${i < 9 ? `<span class="w-key">${i + 1}</span>` : ""}</div>`).join("");
 
@@ -58,7 +56,7 @@
     star: { v: WIRES.star, t: "Enjoying Zia?", d: "I don't ask for tips or money. If Zia has earned a place in your browser, a star on GitHub is all I'd ask for. It helps other people find it.", gh: true },
     numbers: { v: WIRES.numbers, t: "Numbered tabs", d: "Hold <kbd>⌘</kbd> and every tab shows its number. Type it and let go. Past nine, keep typing: 1 then 2 is tab twelve." },
     undo: { v: WIRES.undo, t: "<kbd>⌘</kbd><kbd>Z</kbd> to undo a close", d: "Works on folders and splits too. They come back where they were, for ten seconds after you close them." },
-    split: { v: WIRES.split, t: "Drop cards for splits", d: "Drag a tab over the page and cards show exactly where it'll land. Each pane keeps its own toolbar." },
+    split: { v: WIRES.split, t: "Drop cards for splits", d: "Drag a tab over the page and cards show exactly where it'll land. Keep a split you use a lot as a single essential." },
     color: { v: WIRES.color, t: "A toolbar that matches the page", d: "It takes the colour at the top of each site, and its text and buttons take a touch of that colour too." },
     folders: { v: WIRES.folders, t: "Folders", d: "Give one a colour or an icon. Hover a closed folder to see what's in it." },
     cards: { v: WIRES.cards, t: "Hover cards", d: "Title, address, and a row of shortcuts: pin, split, copy the link." },
@@ -75,8 +73,8 @@
   };
 
   const TOURS = {
-    install: { eyebrow: "Welcome to Zia", list: ["intro", "numbers", "undo", "split", "color", "cards", "tabpeek", "panels", "music", "address", "multiview", "pip", "pdf", "icons", "star"] },
-    update: { eyebrow: "New in Zia", list: ["whatsnew", "tabpeek", "panels", "ink", "star"] },
+    install: { eyebrow: "Welcome to Zia", list: ["intro", "numbers", "undo", "split", "color", "glassfolder", "cards", "tabpeek", "panels", "music", "address", "multiview", "pip", "pdf", "icons", "star"] },
+    update: { eyebrow: "New in Zia", list: ["whatsnew", "glassfolder", "tabpeek", "panels", "ink", "star"] },
   };
 
   // Numbered tabs and undo step through a little story, over and over

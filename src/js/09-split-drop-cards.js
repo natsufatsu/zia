@@ -1,12 +1,3 @@
-  // Zia Split Tabs 1.0.7 (5738b6e44a76c29582024f2986c6547ace5d6879).
-  // Keep the standalone implementation in its own scope.
-  function watchSplitDrop() {
-// Extracted from Zia by z1n-k; MIT licensed.
-(() => {
-  if (window.__zia_split_tabsLoaded) return;
-  window.__zia_split_tabsLoaded = true;
-  const root = document.documentElement;
-
   const TAB_DROP_TYPE = "application/x-moz-tabbrowser-tab";
   const HTML = "http://www.w3.org/1999/xhtml";
   const MAGNET_SHARE = 0.32;
@@ -16,20 +7,17 @@
   const ZONE_EDGE = 44;
   const ZONE_ACTIVE_W = 350;
   const ZONE_ACTIVE_H = 580;
-  const ZONE_PAGE_W = 272;
-  const ZONE_PAGE_H = 452;
 
   const splitDrop = {
     overlay: null,
     zones: {},
     tab: null,
     target: null,
-    press: null,
+    lastSelect: null,
+    dragStartedAt: 0,
     side: null,
-    bounds: null,
-    renderedSide: null,
-    frame: null,
-    pointer: null,
+    thumb: null,
+    dragImageSet: false,
   };
 
   function draggedTabOf(event) {
@@ -44,13 +32,18 @@
     }
   }
 
+  const PRESS_SELECT_MS = 1500;
+
   function splitTargetFor(tab) {
-    // Native mousedown can select a background tab before its drag starts.
-    // Only use the previous tab when that selection belongs to this press.
-    const press = splitDrop.press;
-    const previous = press?.selected;
-    if (press?.tab === tab && previous !== tab && gBrowser.selectedTab === tab &&
-        previous && !previous.closing && previous.isConnected && !previous.hidden) {
+    const last = splitDrop.lastSelect;
+    const selectedByThisDrag =
+      last &&
+      last.tab === tab &&
+      gBrowser.selectedTab === tab &&
+      splitDrop.dragStartedAt - last.time < PRESS_SELECT_MS &&
+      splitDrop.dragStartedAt >= last.time;
+    const previous = last?.previous;
+    if (selectedByThisDrag && previous && !previous.closing && previous.isConnected && !previous.hidden) {
       return previous;
     }
     return gBrowser.selectedTab;
@@ -61,7 +54,17 @@
     if (!splitter || !tab || !current || tab.closing || tab.hasAttribute("zen-empty-tab")) {
       return false;
     }
+    // (a folder dragged is its name, not a tab: it can't be split; the tabs
+    // in one still can)
+    if (!gBrowser.isTab?.(tab)) {
+      return false;
+    }
     if (tab.hasAttribute("zen-live-folder-item-id")) {
+      return false;
+    }
+    // A tab that's already in a split (or a split essential) can't be split
+    // again: the cards came up for one, and dropping it there broke things
+    if (tab.splitView || tab.group?.hasAttribute?.("split-view-group") || tab.ziaSplit?.id || tab.hasAttribute("zia-split-tile")) {
       return false;
     }
 
@@ -114,17 +117,121 @@
     return overlay;
   }
 
+  const DRAG_PICTURE_W = 200;
+  const DRAG_PICTURE_H = 125;
+  let blankDragImage = null;
+  const lastCursor = { x: 0, y: 0 };
+
+  let lastBlankAt = 0;
+
+  function hideSystemDragImage(dt, force = true) {
+    if (!dt || (!force && Date.now() - lastBlankAt < 250)) {
+      return;
+    }
+    lastBlankAt = Date.now();
+    try {
+      if (!blankDragImage) {
+        blankDragImage = document.createElementNS(HTML, "canvas");
+        blankDragImage.id = "zia-split-blank-drag-image";
+        blankDragImage.width = 32;
+        blankDragImage.height = 32;
+        blankDragImage.getContext("2d").clearRect(0, 0, 32, 32);
+        document.documentElement.appendChild(blankDragImage);
+      }
+      dt.updateDragImage(blankDragImage, 16, 16);
+      splitDrop.dragImageSet = true;
+    } catch (err) {
+      noteError("split drop cards: hideSystemDragImage", err);
+    }
+  }
+
+  function movePicture(x, y) {
+    lastCursor.x = x;
+    lastCursor.y = y;
+    const canvas = splitDrop.thumb;
+    if (canvas?.hasAttribute("following")) {
+      canvas.style.translate = `${Math.round(x - DRAG_PICTURE_W / 2)}px ${Math.round(y - DRAG_PICTURE_H / 2)}px`;
+    }
+  }
+
+  async function makeDragPicture(tab) {
+    const width = DRAG_PICTURE_W;
+    const height = DRAG_PICTURE_H;
+    const canvas = splitDrop.thumb || document.createElementNS(HTML, "canvas");
+    canvas.id = "zia-split-drag-picture";
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(width * ratio);
+    canvas.height = Math.round(height * ratio);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    if (!canvas.isConnected) {
+      document.documentElement.appendChild(canvas);
+    }
+    splitDrop.thumb = canvas;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(0.5, 0.5, width - 1, height - 1, 7);
+    ctx.clip();
+    ctx.fillStyle = "#1f1f1f";
+    ctx.fillRect(0, 0, width, height);
+    try {
+      const browser = tab.linkedBrowser;
+      const pageW = browser?.clientWidth;
+      const pageH = browser?.clientHeight;
+      if (!browser?.drawSnapshot || !pageW || !pageH) {
+        throw new Error("page not drawable");
+      }
+      const cover = Math.max(width / pageW, height / pageH);
+      const cropW = width / cover;
+      const cropH = height / cover;
+
+      const scroll = scrollPositions.get(browser) || { x: 0, y: 0 };
+      const bitmap = await browser.drawSnapshot(
+        scroll.x + (pageW - cropW) / 2,
+        scroll.y,
+        cropW,
+        cropH,
+        cover * ratio,
+        "rgb(31, 31, 31)"
+      );
+      if (!bitmap) {
+        throw new Error("no snapshot");
+      }
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      bitmap.close?.();
+    } catch (err) {
+      console.warn("[Zia] Drag picture: couldn't draw the page, showing its icon instead.", err);
+      const icon = new Image();
+      icon.src = tab.getAttribute("image") || "";
+      await icon.decode().catch(() => {});
+      if (icon.naturalWidth) {
+        ctx.drawImage(icon, width / 2 - 12, height / 2 - 12, 24, 24);
+      }
+    }
+    ctx.restore();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(0.5, 0.5, width - 1, height - 1, 7);
+    ctx.stroke();
+    return canvas;
+  }
+
   function showSplitDrop(tab, event) {
     const overlay = ensureSplitOverlay();
     const box = gBrowser.tabbox.getBoundingClientRect();
-    splitDrop.bounds = box;
     overlay.style.setProperty("--zia-drop-left", `${box.left}px`);
     overlay.style.setProperty("--zia-drop-top", `${box.top}px`);
     overlay.style.setProperty("--zia-drop-width", `${box.width}px`);
     overlay.style.setProperty("--zia-drop-height", `${box.height}px`);
     splitDrop.tab = tab;
     splitDrop.side = null;
+    splitDrop.dragImageSet = false;
 
+    const picture = makeDragPicture(tab);
     const target = splitDrop.target;
     let switched = false;
     const showTarget = () => {
@@ -136,8 +243,8 @@
         gBrowser.selectedTab = target;
       }
     };
-    // Keep Zen's native drag image; no screenshot needs to finish first.
-    setTimeout(showTarget, 0);
+    picture.finally(showTarget);
+    setTimeout(showTarget, 450);
     overlay.setAttribute("open", "true");
 
     requestAnimationFrame(() => {
@@ -146,47 +253,60 @@
       }
     });
 
+    const dt = event.dataTransfer;
+    picture.then((canvas) => {
+      if (splitDrop.tab !== tab || !overlay.hasAttribute("open")) {
+        return;
+      }
+      splitDrop.dataTransfer = dt;
+      hideSystemDragImage(dt);
+      canvas.setAttribute("following", "true");
+      movePicture(lastCursor.x, lastCursor.y);
+    });
   }
 
   function hideSplitDrop(event) {
-    if (splitDrop.frame !== null) {
-      cancelAnimationFrame(splitDrop.frame);
-      splitDrop.frame = null;
-    }
-    splitDrop.pointer = null;
-    restoreNativeTabPreview();
     const overlay = splitDrop.overlay;
     if (!overlay?.hasAttribute("open")) {
       return;
     }
     overlay.removeAttribute("shown");
     overlay.removeAttribute("open");
+    splitDrop.thumb?.removeAttribute("following");
     setDropSide(null);
-    splitDrop.side = null;
+    if (splitDrop.dragImageSet && event?.dataTransfer) {
+      try {
+        const original = gBrowser.tabContainer.tabDragAndDrop?.originalDragImageArgs;
+        if (original) {
+          event.dataTransfer.updateDragImage(...original);
+        }
+      } catch (err) {
+        noteError("split drop cards: hideSplitDrop", err);
+      }
+    }
     splitDrop.tab = null;
     splitDrop.target = null;
-    splitDrop.bounds = null;
+    splitDrop.dataTransfer = null;
+    splitDrop.dragImageSet = false;
   }
 
   function setDropSide(side, cursorX = 0, cursorY = 0) {
+    splitDrop.side = side;
     const overlay = splitDrop.overlay;
     if (!overlay) {
       return;
     }
-    const changed = side !== splitDrop.renderedSide;
-    splitDrop.renderedSide = side;
-    if (changed) overlay.toggleAttribute("has-side", !!side);
+    overlay.toggleAttribute("has-side", !!side);
     for (const [name, zone] of Object.entries(splitDrop.zones)) {
       const active = name === side;
-      if (changed) zone.toggleAttribute("active", active);
+      zone.toggleAttribute("active", active);
       if (!active) {
-        if (changed) setZoneOffset(zone, "0px", "0px");
+        zone.style.setProperty("--zia-zone-tx", "0px");
+        zone.style.setProperty("--zia-zone-ty", "0px");
         continue;
       }
 
-      // The overlay has the tabbox's bounds. Reusing them avoids a synchronous
-      // layout read after toggling the active zone on every dragover.
-      const box = splitDrop.bounds;
+      const box = overlay.getBoundingClientRect();
       const w = Math.min(ZONE_ACTIVE_W, box.width * 0.45);
       const h = Math.min(ZONE_ACTIVE_H, box.height * 0.86);
       const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -200,23 +320,13 @@
       }
       const room = Math.max(0, box.height / 2 - h / 2 - 8);
       const ty = clamp((cursorY - (box.top + box.height / 2)) * MAGNET_PULL_Y, -room, room);
-      setZoneOffset(zone, `${tx.toFixed(1)}px`, `${ty.toFixed(1)}px`);
-    }
-  }
-
-  function setZoneOffset(zone, x, y) {
-    // Reading inline style does not flush layout. Avoid identical mutations,
-    // including movements clamped against the same edge.
-    if (zone.style.getPropertyValue("--zia-zone-tx") !== x) {
-      zone.style.setProperty("--zia-zone-tx", x);
-    }
-    if (zone.style.getPropertyValue("--zia-zone-ty") !== y) {
-      zone.style.setProperty("--zia-zone-ty", y);
+      zone.style.setProperty("--zia-zone-tx", `${tx.toFixed(1)}px`);
+      zone.style.setProperty("--zia-zone-ty", `${ty.toFixed(1)}px`);
     }
   }
 
   function sideAt(event) {
-    const box = splitDrop.bounds || gBrowser.tabbox.getBoundingClientRect();
+    const box = gBrowser.tabbox.getBoundingClientRect();
     if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) {
       return null;
     }
@@ -230,24 +340,16 @@
     return null;
   }
 
-  function followDrag(event, overPage) {
-    if (overPage) showNativeSplitPreview(event);
-    else restoreNativeTabPreview();
-    const side = overPage ? sideAt(event) : null;
+  function followDrag(event) {
+    movePicture(event.clientX, event.clientY);
+    if (splitDrop.thumb?.hasAttribute("following")) {
+      hideSystemDragImage(event.dataTransfer, false);
+    }
+    const side = sideAt(event);
     if (side !== splitDrop.side && side) {
       Services.zen?.playHapticFeedback?.();
     }
-    splitDrop.side = side;
-    splitDrop.pointer = { x: event.clientX, y: event.clientY };
-    if (splitDrop.frame === null) {
-      splitDrop.frame = requestAnimationFrame(() => {
-        splitDrop.frame = null;
-        const point = splitDrop.pointer;
-        if (point && splitDrop.overlay?.hasAttribute("open")) {
-          setDropSide(splitDrop.side, point.x, point.y);
-        }
-      });
-    }
+    setDropSide(side, event.clientX, event.clientY);
   }
 
   function onSplitDragOver(event) {
@@ -262,8 +364,7 @@
   function onSplitDrop(event) {
     const tab = splitDrop.tab;
     const target = splitDrop.target;
-    // A drop can arrive before the queued paint or at a newer position.
-    const side = isOverPage(event) ? sideAt(event) : null;
+    const side = splitDrop.side;
     event.preventDefault();
     event.stopPropagation();
     hideSplitDrop(event);
@@ -288,7 +389,8 @@
     let dragged = glance?.getTabOrGlanceParent?.(tab) ?? tab;
 
     if (dragged === target) {
-      const url = "about:newtab";
+      // the new tab page as it is (the search page, an extension's, Zen's)
+      const url = searchHomeUrl && newTabSearchEnabled() ? searchHomeUrl : currentNewTabUrl();
       const newTab = gBrowser.addTrustedTab(url, { inBackground: true });
       const left = side === "left";
       splitter.splitTabs(left ? [target, newTab] : [newTab, target], "vsep", left ? 1 : 0);
@@ -316,12 +418,15 @@
       "dragover",
       (event) => {
         const open = splitDrop.overlay?.hasAttribute("open");
+        if (!open && !Services.prefs.getBoolPref("zia.split.drop-cards", true)) {
+          return;
+        }
         const overPage = isOverPage(event);
         if (open) {
           if (overPage) {
             gBrowser.tabContainer.tabDragAndDrop?.clearSpaceSwitchTimer?.();
           }
-          followDrag(event, overPage);
+          followDrag(event);
           return;
         }
         if (!overPage) {
@@ -333,124 +438,27 @@
           splitDrop.target = target;
           gBrowser.tabContainer.tabDragAndDrop?.clearSpaceSwitchTimer?.();
           showSplitDrop(tab, event);
-          followDrag(event, overPage);
+          followDrag(event);
           event.preventDefault();
           event.stopPropagation();
         }
       },
       true
     );
-    window.addEventListener("mousedown", (event) => {
-      const tab = event.button === 0 ? event.target?.closest?.(".tabbrowser-tab") : null;
-      splitDrop.press = tab ? { tab, selected: gBrowser.selectedTab } : null;
-    }, true);
-    const clearPress = () => { splitDrop.press = null; };
-    window.addEventListener("mouseup", clearPress, true);
-    window.addEventListener("dragend", (event) => {
-      hideSplitDrop(event);
-      clearPress();
-    }, true);
-    window.addEventListener("blur", (event) => {
-      // A native tab switch also blurs the chrome window when it focuses
-      // the page. That still belongs to this press in the active window.
-      if (event.target === window && Services.focus.activeWindow !== window) clearPress();
-    }, true);
+    window.addEventListener("dragend", hideSplitDrop, true);
+
+    gBrowser.tabContainer.addEventListener("TabSelect", (event) => {
+      splitDrop.lastSelect = { tab: event.target, previous: event.detail?.previousTab || null, time: Date.now() };
+    });
+    window.addEventListener("dragstart", () => (splitDrop.dragStartedAt = Date.now()), true);
     window.addEventListener(
       "drop",
       (event) => {
         if (!event.target?.closest?.("#zia-split-drop")) {
           hideSplitDrop(event);
         }
-        clearPress();
       },
       true
     );
   }
 
-  function isOverPage(event) {
-    const box = splitDrop.bounds || gBrowser.tabbox.getBoundingClientRect();
-    const inPage =
-      event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
-    return inPage && !isOverCollapsedSidebar(event);
-  }
-
-  function isOverCollapsedSidebar(event) {
-    if (root.getAttribute("zen-compact-mode") !== "true") {
-      return false;
-    }
-    const toolbox = document.getElementById("navigator-toolbox");
-    if (!toolbox) {
-      return false;
-    }
-    const box = toolbox.getBoundingClientRect();
-
-    if (box.right <= 0) {
-      return false;
-    }
-    return event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom;
-  }
-
-
-  // Zen's rectangle is created by its private split handler, not by the
-  // normal sidebar drag. Reuse its XUL structure and built-in styling only.
-  function showNativeSplitPreview(event) {
-    if (splitDrop.nativePreview || !splitDrop.tab ||
-        typeof event.dataTransfer?.updateDragImage !== "function") return;
-    if (document.getElementById("zen-split-view-drag-image")) return;
-    const preview = document.createXULElement("vbox");
-    preview.id = "zen-split-view-drag-image";
-    const icon = document.createXULElement("image");
-    icon.setAttribute("src", splitDrop.tab.getAttribute("image") || "chrome://global/skin/icons/defaultFavicon.svg");
-    const label = document.createXULElement("label");
-    label.textContent = splitDrop.tab.label;
-    preview.append(icon, label);
-    document.documentElement.appendChild(preview);
-    splitDrop.nativePreview = preview;
-    splitDrop.nativeTransfer = event.dataTransfer;
-    const dt = event.dataTransfer;
-    // Allow native sidebar drag-style refreshes to finish first.
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (splitDrop.nativePreview !== preview || !splitDrop.tab) return;
-      const original = gBrowser.tabContainer.tabDragAndDrop?.originalDragImageArgs;
-      try {
-        dt.updateDragImage(preview, original?.[1] ?? 16, original?.[2] ?? 16);
-        gBrowser.tabContainer.tabDragAndDrop?.clearDragOverVisuals?.();
-      } catch (error) {
-        // The drag can end while the update is queued.
-        restoreNativeTabPreview();
-      }
-    }));
-  }
-
-  function restoreNativeTabPreview() {
-    const preview = splitDrop.nativePreview;
-    if (!preview) return;
-    const dt = splitDrop.nativeTransfer;
-    splitDrop.nativePreview = null;
-    splitDrop.nativeTransfer = null;
-    try {
-      const original = gBrowser.tabContainer.tabDragAndDrop?.originalDragImageArgs;
-      if (original?.length) dt?.updateDragImage(...original);
-    } catch {}
-    preview.remove();
-  }
-
-  function start() {
-    Services.prefs.getDefaultBranch("").setBoolPref("zen.splitView.enable-tab-drop", false);
-    watchSplitDrop();
-  }
-
-  if (window.gBrowserInit?.delayedStartupFinished) {
-    start();
-  } else {
-    const observer = (subject) => {
-      if (subject === window) {
-        Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
-        start();
-      }
-    };
-    Services.obs.addObserver(observer, "browser-delayed-startup-finished");
-  }
-})();
-
-  }

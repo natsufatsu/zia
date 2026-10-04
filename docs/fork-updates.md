@@ -21,9 +21,9 @@ worktree, starting upstream commit and result. Your current checkout stays
 untouched; preparing a candidate does not publish it to `main`.
 
 Shared files use explicit per-file patches generated from the recorded
-upstream base to the committed fork. This includes player replacements and
-excluded-feature deletions: they cannot silently overwrite newer upstream
-code. Unchanged files, new upstream features and upstream deletions come from
+upstream base to the committed fork. This includes the player replacement;
+patches cannot silently overwrite newer upstream code. Unchanged files, new
+upstream features and upstream deletions come from
 the latest checkout. Only new fork files and the fork README/changelog are
 copied; package identity is applied to the latest `theme.json` field by field.
 The build regenerates `zia.uc.js` and `chrome.css` from the resulting sources.
@@ -72,15 +72,13 @@ python scripts/check.py
 python scripts/check.py --live --zen "PATH_TO_ZEN"
 ```
 
-The first check verifies generated files, retained component fixtures, native
-folders/dragging, excluded startup hooks, default preferences and protected
-styles/modules. It also runs the Node behavior tests and disposable Git patch
+The first check verifies generated files, player fixtures, glow/cache/tint integration, preferences and protected
+modules. Other upstream files remain intact. It also runs the Node behavior tests and disposable Git patch
 tests for the updater. CI runs this command on pushes and pull requests.
 
 Live checks launch two isolated headless Zen profiles and serve local test
-pages/audio. They exercise glows, tab/workspace alignment, icon continuity,
-folder previews, compact sidebar clipping, media layout/playback, split drops,
-new upstream options and real-time tint. They never open your normal profile.
+pages/audio. They exercise selected-tab glows, workspace icons in expanded
+and compact modes, real-time tint and media playback/layout/opacity. They never open your normal profile.
 Artifacts stay in the ignored `.build/live/` directory. Set `ZEN_BINARY` instead
 of passing `--zen` if preferred. `--quick-save PATH_TO_CHECKOUT` optionally
 checks coexistence with Quick Save Image; it is not required.
@@ -101,29 +99,17 @@ is required. Existing remote update branches are never force-pushed.
 
 ## Where custom changes belong
 
-- `src/css/99-fork-overrides.css`: final appearance adjustments, including
-  sidebar text alignment, hidden compact workspace labels and media decoration
-  suppression. CSS that removes upstream folder styling still needs small
-  patches in shared files; adding overrides cannot reliably undo all of it.
-- `src/js/07a-fork-media-workspace.js`: workspace colours and opacity helpers.
-- `src/js/01a-realtime-tint.js`: opt-in smoothed tint, off by default.
-- `src/js/09-split-drop-cards.js` and `src/css/09-music-player.css`: retained
-  component replacements, reapplied as patches with conflict checks.
-- Workspace caching, compact clipping, selected glows and shared native-folder
-  fixes retain their small integration patches and browser regression checks.
-- `fork.json`: upstream base, changed/shared files, fork additions, excluded
-  features, documentation overlays, component provenance and protected hashes.
-- `tests/fixtures/`: pinned, licensed player/split references, excluded from
-  installed archives. Upgrade these only when upgrading those components.
+Only glow fixes, workspace-icon caching, optional real-time tint and the custom
+workspace media player are retained. Other behavior and visuals follow upstream.
 
-Add new custom files to `forkFiles`; record intentional shared-source changes
-in `modifiedFiles`. Commit those changes before running the updater: Git
-history plus the recorded base is the patch source, so there is no second
-patch directory to keep in sync. Shared runtime files always use patches;
-`documentationOverlays` is restricted to README/changelog. After a successful
-update, the new upstream base becomes the reference for the next patch set.
+- src/css/99-fork-overrides.css: media decoration suppression and light-mode glow setting.
+- src/js/04-space-label.js: workspace cache integration.
+- src/js/01a-realtime-tint.js: opt-in tint, with small sampler/startup/CSS patches.
+- src/js/07a-fork-media-workspace.js and src/css/09-music-player.css: retained player.
+- fork.json: patch/addition lists, retained features, component provenance and hashes.
+- tests/fixtures/media-player/: licensed reference, excluded from installation.
 
-When adding appearance changes, run the live checks before recording any new
-protected hashes. Keep the final stylesheet last in the build. If upstream
-changes the DOM or Zen changes an API, the relevant checks should stop the
-update for review rather than silently accepting a different appearance.
+Record additions in forkFiles and shared edits in modifiedFiles; commit before
+updating. Git history and the recorded upstream base are the patch source.
+Shared runtime always uses patches. Documentation overlays are restricted to
+README/changelog. Successful updates record a new base for the next patch set.

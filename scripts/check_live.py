@@ -70,15 +70,9 @@ def run():
     parser.add_argument("--inspect", action="store_true")
     parser.add_argument("--peer-first", dest="urlbar_last", action="store_true", help="Load optional Quick Save before Zia")
     parser.add_argument("--compact-startup", action="store_true", help="Start with the sidebar hidden in compact mode")
-    parser.add_argument("--workspace-check", action="store_true", help="Check compact workspace indicator placement")
-    parser.add_argument("--compact-clipping-check", action="store_true", help="Check animated toolbar clipping against the native sidebar edge")
-    parser.add_argument("--tab-number-check", action="store_true", help="Check tab badge visibility through a Ctrl press/release")
     parser.add_argument("--tab-glow-check", action="store_true", help="Check selected first-row, audio and split-tab glows")
-    parser.add_argument("--folder-preview-check", action="store_true", help="Check native folder preview positioning")
-    parser.add_argument("--upstream-check", action="store_true", help="Check imported upstream fixes and options")
     parser.add_argument("--realtime-tint-check", action="store_true", help="Check live tint sampling and smoothing")
     parser.add_argument("--workspace-icon-check", action="store_true", help="Check workspace icon swaps without blank frames")
-    parser.add_argument("--regression-check", action="store_true", help="Check hover cards, reload animation, live-player styles and workspace alignment")
     args = parser.parse_args()
     args.full_zia = True
     if not Path(args.zen).is_file() and not shutil.which(args.zen):
@@ -105,7 +99,8 @@ def run():
         "app.update.auto": False, "browser.tabs.warnOnClose": False,
     }
     if args.full_zia:
-        prefs["zia.welcome.seen"] = "2.83.0"
+        welcome_source = (ROOT / "src/js/28f-welcome.js").read_text(encoding="utf-8")
+        prefs["zia.welcome.seen"] = welcome_source.split('const WELCOME_VERSION = "', 1)[1].split('"', 1)[0]
     if args.compact_startup:
         prefs.update({"zen.view.compact.enable-at-startup": True,
                       "zen.view.compact.hide-tabbar": True,
@@ -196,26 +191,6 @@ def run():
             """
             print("Zen:", json.dumps(client.script(bootstrap, [str(manifest)])), flush=True)
             if args.full_zia:
-                client.script("""
-                  const win = Services.wm.getMostRecentWindow('navigator:browser');
-                  win.__nativeTabMethods = {
-                    animate: win.Element.prototype.animate,
-                    setDragImage: win.DataTransfer.prototype.setDragImage,
-                    updateDragImage: win.DataTransfer.prototype.updateDragImage,
-                    folderPopup: win.gZenFolders.openTabsPopup,
-                    createFolder: win.gZenFolders.createFolder,
-                    setFolderIcon: win.gZenFolders.setFolderUserIcon,
-                    tabDrop: Services.prefs.getBoolPref('zen.splitView.enable-tab-drop', true),
-                    folderIconMenuHidden: win.document.getElementById('context_zenFolderChangeIcon').hidden,
-                  };
-                  win.__migrationTab = win.gBrowser.selectedTab;
-                  for (const key of ['zia-split', 'zia-split-of', 'zia-split-side']) {
-                    win.SessionStore.setCustomTabValue(win.__migrationTab, key, 'previous-version-test');
-                    win.__migrationTab.setAttribute(key, 'previous-version-test');
-                  }
-                  Services.prefs.setBoolPref('zen.haptic-feedback.enabled', false);
-                  Services.prefs.setBoolPref('zia.haptics.muted', true);
-                """)
                 defaults = json.loads((ROOT / "preferences.json").read_text(encoding="utf-8"))
                 client.script("""
                   const defaults = Services.prefs.getDefaultBranch('');
@@ -227,14 +202,6 @@ def run():
                     else if (typeof value === 'string') defaults.setStringPref(item.property, value);
                   }
                 """, [defaults])
-            if args.upstream_check:
-                client.script("""
-                  const win = Services.wm.getMostRecentWindow('navigator:browser');
-                  win.__lateSiteData = win.document.getElementById('zen-site-data-icon-button');
-                  win.__lateSiteParent = win.__lateSiteData.parentElement;
-                  win.__lateSiteNext = win.__lateSiteData.nextSibling;
-                  win.__lateSiteData.remove();
-                """)
             load_order = packages[1:] + packages[:1] if args.urlbar_last else packages
             for mod_id, folder, script in load_order:
                 outcome = client.script("""
@@ -244,18 +211,8 @@ def run():
                   return win.__compatErrors;
                 """, [f"chrome://sine/content/{mod_id}", script])
                 print("Loaded", mod_id, outcome, flush=True)
-            if args.upstream_check:
-                time.sleep(0.3)
-                client.script("""
-                  const win = Services.wm.getMostRecentWindow('navigator:browser');
-                  if (win.document.getElementById('zia-copy-link-button')) throw new Error('Late-button test did not wait');
-                  win.__lateSiteParent.insertBefore(win.__lateSiteData, win.__lateSiteNext);
-                  win.__lateCopyRecovered = true;
-                """)
             client.command("Marionette:SetContext", {"value": "content"})
             client.command("WebDriver:Navigate", {"url": origin + "/light"})
-            if args.upstream_check:
-                client.script("history.pushState({}, '', '#swipe-one'); history.pushState({}, '', '#swipe-two');")
             client.command("Marionette:SetContext", {"value": "chrome"})
             time.sleep(1)
             inspection = client.script("""
@@ -273,11 +230,6 @@ def run():
             if inspection["errors"]:
                 raise AssertionError(inspection["errors"])
             assert all(inspection["loaded"])
-            if args.upstream_check:
-                upstream_checks = client.script((ROOT / "tests/upstream-2861-live.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "upstream-results.json").write_text(json.dumps(upstream_checks, indent=2), encoding="utf-8")
-                print("Upstream checks:", json.dumps(upstream_checks), flush=True)
-                assert not upstream_checks.get("error"), upstream_checks
             if args.realtime_tint_check:
                 tint_checks = client.script((ROOT / "tests/realtime-tint-live.js").read_text(encoding="utf-8"), asynchronous=True)
                 (run_dir / "realtime-tint-results.json").write_text(json.dumps(tint_checks, indent=2), encoding="utf-8")
@@ -290,38 +242,11 @@ def run():
                 print("Workspace icon checks:", json.dumps({**{key: value for key, value in icon_checks.items() if key != "frames"},
                                                            "frames": len(icon_checks.get("frames", []))}), flush=True)
                 assert not icon_checks.get("error"), icon_checks
-            if args.folder_preview_check:
-                folder_checks = client.script((ROOT / "tests/folder-preview-live.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "folder-preview-results.json").write_text(json.dumps(folder_checks, indent=2), encoding="utf-8")
-                print("Folder preview checks:", json.dumps(folder_checks), flush=True)
-                assert not folder_checks.get("error"), folder_checks
             if args.tab_glow_check:
                 glow_checks = client.script((ROOT / "tests/tab-glow-live.js").read_text(encoding="utf-8"), asynchronous=True)
                 (run_dir / "tab-glow-results.json").write_text(json.dumps(glow_checks, indent=2), encoding="utf-8")
                 print("Tab glow checks:", json.dumps(glow_checks), flush=True)
                 assert not glow_checks.get("error"), glow_checks
-            if args.tab_number_check:
-                tab_checks = client.script((ROOT / "tests/live/full_zia_tab_numbers_live_checks.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "tab-number-results.json").write_text(json.dumps(tab_checks, indent=2), encoding="utf-8")
-                print("Tab number checks:", json.dumps(tab_checks), flush=True)
-                assert not tab_checks.get("error"), tab_checks
-            if args.workspace_check:
-                workspace_checks = client.script((ROOT / "tests/live/full_zia_workspace_live_checks.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "workspace-results.json").write_text(json.dumps(workspace_checks, indent=2), encoding="utf-8")
-                print("Workspace checks:", json.dumps(workspace_checks), flush=True)
-                assert not workspace_checks.get("error"), workspace_checks
-            if args.compact_clipping_check:
-                clipping_checks = client.script((ROOT / "tests/live/full_zia_compact_clipping_live_checks.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "compact-clipping-results.json").write_text(json.dumps(clipping_checks, indent=2), encoding="utf-8")
-                print("Compact clipping checks:", json.dumps(clipping_checks), flush=True)
-                assert not clipping_checks.get("error"), clipping_checks
-            if args.regression_check:
-                regression_checks = client.script((ROOT / "tests/live/full_zia_regression_live_checks.js").read_text(encoding="utf-8"), asynchronous=True)
-                (run_dir / "regression-results.json").write_text(json.dumps(regression_checks, indent=2), encoding="utf-8")
-                print("Regression checks:", json.dumps(regression_checks), flush=True)
-                assert not regression_checks.get("error"), regression_checks
-                screenshot = client.command("WebDriver:TakeScreenshot", {"full": False})
-                (run_dir / "workspace-alignment.png").write_bytes(base64.b64decode(screenshot["value"] if isinstance(screenshot, dict) else screenshot))
             if not args.inspect:
                 client.command("Marionette:SetContext", {"value": "content"})
                 print("Audio:", client.script("""
@@ -338,17 +263,12 @@ def run():
                                 {"type": "pointerDown", "button": 2}, {"type": "pointerUp", "button": 2}],
                 }]})
                 client.command("Marionette:SetContext", {"value": "chrome"})
-                checks_file = "full_zia_live_checks.js" if args.full_zia else "urlbar_live_checks.js"
+                checks_file = "retained_features_live_checks.js"
                 checks = client.script((ROOT / "tests/live" / checks_file).read_text(encoding="utf-8"),
                                        [origin], asynchronous=True)
                 (run_dir / "results.json").write_text(json.dumps(checks, indent=2), encoding="utf-8")
                 print("Checks:", json.dumps(checks), flush=True)
                 assert not checks.get("error"), checks
-                if args.full_zia:
-                    split_checks = client.script((ROOT / "tests/live/full_zia_split_live_checks.js").read_text(encoding="utf-8"), asynchronous=True)
-                    (run_dir / "split-results.json").write_text(json.dumps(split_checks, indent=2), encoding="utf-8")
-                    print("Split drop checks:", json.dumps(split_checks), flush=True)
-                    assert not split_checks.get("error"), split_checks
                 screenshot = client.command("WebDriver:TakeScreenshot", {"full": True})
                 if isinstance(screenshot, dict):
                     screenshot = screenshot["value"]

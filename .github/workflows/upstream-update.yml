@@ -83,7 +83,7 @@ jobs:
           subprocess.run(['git', 'push', 'origin', branch + ':refs/heads/' + branch], check=True)
           body = Path(os.environ['REPORT']).with_suffix('.md')
           body.write_text('Starts with the complete upstream tree at ' + result['upstream'] + ', then reapplies fork patches and custom modules as ' + result['version'] + '.\n\n'
-              'Generated-file, syntax, behavior and preservation checks passed. The custom sidebar/player and excluded features remain protected.\n\n'
+              'Generated-file, syntax, behavior and preservation checks passed. The retained glow fixes, workspace cache, real-time tint and custom player passed preservation checks.\n\n'
               '**Before merging:** run `python scripts/check.py --live --zen PATH` on this branch in an isolated Zen profile and review the upstream changes. GitHub did not run Zen visual checks.\n', encoding='utf-8')
           subprocess.run(['gh', 'pr', 'create', '--draft', '--base', 'main', '--head', branch,
               '--title', 'Import upstream update as ' + result['version'], '--body-file', str(body)], check=True)

@@ -1,5 +1,4 @@
 #zia-split-drop {
-  --zia-drop-pull: 0px;
   position: fixed;
   left: var(--zia-drop-left, 0px);
   top: var(--zia-drop-top, 0px);
@@ -32,9 +31,12 @@
   opacity: 0;
   scale: 0.94;
   pointer-events: none;
+  /* Size springs (--zia-spring): a tab dragged in, it grows a touch past its
+   * new size and settles back; dragged off, it shrinks a touch past and
+   * settles back */
   transition:
-    width 0.26s var(--zia-zone-ease),
-    height 0.26s var(--zia-zone-ease),
+    width var(--zia-spring-time) var(--zia-spring),
+    height var(--zia-spring-time) var(--zia-spring),
     translate 0.2s var(--zia-zone-ease),
     background-color 0.15s ease,
     opacity 0.18s ease,
@@ -64,13 +66,6 @@
     z-index: 1;
 
     background: rgb(23, 44, 52);
-    /* Position tracks the pointer; easing here visibly trails fast drags. */
-    transition:
-      width 0.26s var(--zia-zone-ease),
-      height 0.26s var(--zia-zone-ease),
-      background-color 0.15s ease,
-      opacity 0.18s ease,
-      scale 0.2s var(--zia-zone-ease);
   }
 }
 
@@ -90,7 +85,7 @@
   transition: border-color 0.15s ease, color 0.15s ease;
 
   & > * {
-    transition: scale 0.26s cubic-bezier(0.2, 0.9, 0.3, 1);
+    transition: scale var(--zia-spring-time) var(--zia-spring);
   }
 
   .zia-split-zone[active] & > * {
@@ -157,10 +152,36 @@
   }
 }
 
+#zia-split-blank-drag-image {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+
+#zia-split-drag-picture {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10001;
+  display: none;
+  pointer-events: none;
+  border-radius: 7px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+  transition: translate 0.04s linear;
+
+  &[following] {
+    display: block;
+  }
+}
 
 :root:not([inDOMFullscreen="true"]) #tabbrowser-tabbox[zen-split-view="true"] {
   --zia-split-pad: 3px;
-  --zia-split-radius: 8px;
+  /* each pane's corners sit evenly inside the frame round them (the page's
+     corner, less the gap): a set 8px only matched it on macOS, and on
+     Windows, where the page takes its corner from the window's, the
+     focused pane's outline curved tighter than the frame */
+  --zia-split-radius: max(0px, calc(var(--zia-card-radius) - var(--zia-split-pad)));
   margin-right: 0 !important;
 
   & #tabbrowser-tabpanels[zen-split-view="true"] {
@@ -233,6 +254,21 @@ tab-group[split-view-group] .tab-group-container > .tabbrowser-tab::after {
   }
 }
 
+/* In a folder, a split's box ends where a tab's does, the folder's gap in
+   from its edge (it kept Zen's 2px, so it ran further right than the tabs
+   above and below it) */
+:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
+  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
+}
+
+:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
+  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
+}
+
+:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) tab-group[split-view-group] > .tab-group-container {
+  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
+}
+
 :root[zen-sidebar-expanded="true"] tab-group[split-view-group]:is([hasactivetab], :has(.tabbrowser-tab[visuallyselected])) .tab-group-container {
   background: var(--zia-active-tab-bg) !important;
   box-shadow: 0 0 var(--zia-active-glow-blur) var(--zia-active-glow-spread) var(--zia-active-glow-color) !important;
@@ -259,3 +295,4 @@ tab-group[split-view-group] .tab-group-container > .tabbrowser-tab::after {
     display: none !important;
   }
 }
+

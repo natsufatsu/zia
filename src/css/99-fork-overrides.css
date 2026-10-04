@@ -1,25 +1,31 @@
-/* Fork appearance overrides. Keep these after all upstream styles. */
-
-/* Bring the visible text level with the favicon in the expanded sidebar. */
-:root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) .tab-label-container {
-  translate: 0 -1px;
-}
-
-
-/* The workspace label belongs to the flyout sidebar. Hide it explicitly
-   while that sidebar is closed, including during toolbar layout updates. */
-@media -moz-pref("zen.view.compact.hide-tabbar") {
-  :root[zen-compact-mode="true"]:not([zia-panel-open="true"]) #zia-workspace-slot {
-    display: none !important;
-  }
-}
-
+/* Retained glow and media decoration fixes. Keep after upstream styles. */
 
 /* Hide media-only decorations while preserving the selected regular tab's
    glow and shine. Zen also draws music notes above essential favicons. */
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) .tab-icon-stack::after {
   content: none !important;
   display: none !important;
+}
+
+/* The custom player keeps its dark workspace tint in light spaces too.
+   Retain its white ink and controls over upstream's light-player palette. */
+@media -moz-pref("zia.features.media-player") {
+  :root[zia-light]:not(#zia-none):not(#zia-none-2):not(#zia-player-light) #zen-media-controls-toolbar {
+    & .zen-media-card { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07) !important; }
+    & .zen-media-title { color: rgb(255, 255, 255) !important; }
+    & .zen-media-artist { color: rgba(255, 255, 255, 0.85) !important; }
+    & :is(.zen-media-current-time, .zen-media-duration) { color: rgba(255, 255, 255, 0.65) !important; }
+    & .toolbarbutton-1 { color: rgba(255, 255, 255, 0.92) !important; fill: currentColor !important; }
+    & .zen-media-playpause-button > .toolbarbutton-icon {
+      color: rgba(255, 255, 255, 0.92) !important;
+      fill: rgba(255, 255, 255, 0.92) !important;
+    }
+    & .toolbarbutton-1:hover > .toolbarbutton-icon { background-color: rgba(255, 255, 255, 0.12) !important; }
+    & .zen-media-progress-bar::-moz-range-track { background: rgba(255, 255, 255, 0.2) !important; }
+    & .zen-media-progress-bar::-moz-range-progress,
+    & .zen-media-progress-bar::-moz-range-thumb { background: rgb(255, 255, 255) !important; }
+    & .zia-ring-track { stroke: rgba(255, 255, 255, 0.14); }
+  }
 }
 
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) > .tab-stack > .tab-background {
@@ -40,4 +46,10 @@
   background: transparent !important;
   box-shadow: none !important;
   outline: none !important;
+}
+
+@media -moz-pref("zia.tabs.no-glow") {
+  :root[zia-light]:not(#zia-none):not(#zia-none-2) .tabbrowser-tab:not([zen-essential])[visuallyselected] > .tab-stack > .tab-background {
+    box-shadow: none !important;
+  }
 }

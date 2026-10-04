@@ -1,14 +1,3 @@
-  // Options in Sine's settings. All on, except the favicon glow.
-  const ZIA_OPTIONS = [
-    "zia.urlbar.dia-style",
-    "zia.newtab.real-tab",
-    "zia.tabs.sound-bars",
-    "zia.toolbar.site-color",
-    "zia.page.rounding",
-  ];
-  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color"];
-
-
   // ---------- Picture-in-picture: Dia's look, and tucking into the screen edge
   const PIP_PLAYER_URL = "chrome://global/content/pictureinpicture/player.xhtml";
   const PIP_SCRIPT_URL = "chrome://sine/content/zia/zia-pip.js";
@@ -44,3 +33,4 @@
       decoratePipWindow(win);
     }
   }
+

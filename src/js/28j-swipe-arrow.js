@@ -46,8 +46,8 @@
   // a tap on the trackpad, if Zen's haptics are on
   function swipeTap() {
     try {
-      if (Services.prefs.getBoolPref("zen.haptic-feedback.enabled", true)) {
-        window.zenHaptic?.();
+      if (Services.prefs.getBoolPref(HAPTIC_PREF, true)) {
+        zenHaptic?.();
       }
     } catch (err) {
       noteError("swipe arrow: tap", err);

@@ -119,7 +119,7 @@
   },
   {
     "type": "checkbox",
-    "label": "Tab hover cards",
+    "label": "Tab and folder hover cards",
     "property": "zia.features.tab-hover-cards",
     "defaultValue": true
   },
@@ -128,6 +128,12 @@
     "label": "Hover cards are slightly see-through, with what's behind them blurred",
     "property": "zia.cards.blur",
     "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Name new folders and choose their icons with a local model (downloads ~25MB the first time)",
+    "property": "zia.features.folder-icon-suggest",
+    "defaultValue": false
   },
   {
     "type": "separator",
@@ -174,6 +180,12 @@
     "label": "The last essential stretches across the rest of its row",
     "property": "zia.essentials.fill-row",
     "defaultValue": false
+  },
+  {
+    "type": "checkbox",
+    "label": "Split essentials (experimental): drag a two-site split onto the essentials",
+    "property": "zia.essentials.split",
+    "defaultValue": true
   },
   {
     "type": "checkbox",
@@ -237,6 +249,12 @@
     "type": "checkbox",
     "label": "Swiping back or forward shows Dia's round arrow, and holding it lists the pages (off: Firefox's arrow)",
     "property": "zia.swipe.dia-arrow",
+    "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Split view drop cards when dragging a tab onto the page (off: Zen's own)",
+    "property": "zia.split.drop-cards",
     "defaultValue": true
   },
   {
@@ -331,11 +349,33 @@
   },
   {
     "type": "separator",
+    "label": "Folders"
+  },
+  {
+    "type": "checkbox",
+    "label": "Folders open and close with a gentle spring",
+    "property": "zia.folders.bounce",
+    "defaultValue": true
+  },
+  {
+    "type": "checkbox",
+    "label": "Coloured folders only show their colour when hovered or open",
+    "property": "zia.folders.tint-when-open",
+    "defaultValue": false
+  },
+  {
+    "type": "checkbox",
+    "label": "A coloured folder's card (its tabs, shown on hover) takes the folder's colour",
+    "property": "zia.folders.tint-card",
+    "defaultValue": false
+  },
+  {
+    "type": "separator",
     "label": "Loading bar"
   },
   {
     "type": "checkbox",
-    "label": "Use Zen's accent color for the loading bar (default: Zia blue)",
+    "label": "Use Zen's accent colour for the loading bar (off: Zia blue)",
     "property": "zia.loading-bar.accent-color",
     "defaultValue": false
   },
@@ -408,7 +448,7 @@
         "value": "zia"
       },
       {
-        "label": "Space colour",
+        "label": "The space's colour",
         "value": "space"
       }
     ]

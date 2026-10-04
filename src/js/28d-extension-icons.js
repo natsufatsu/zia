@@ -477,7 +477,7 @@
     setTimeout(watchExtButtons, 3000);
   }
 
-  // Spaces: Zen's "Change icon" becomes a menu like the
+  // Folders and spaces: Zen's "Change icon" becomes a menu like the
   // extensions' one, with your own SVG, Zia's icons (Zen's picker), your
   // SVG's own colours, and taking the icon off. Zen's own item stays,
   // hidden, as the way to its picker.
@@ -487,6 +487,20 @@
 
   function iconTargets() {
     return {
+      folder: {
+        menuId: "zenFolderActions",
+        itemId: "context_zenFolderChangeIcon",
+        find(menu) {
+          const folder = folderFromNode(menu.triggerNode);
+          return folder?.isZenFolder ? folder : null;
+        },
+        icon: (folder) => folder.iconURL || null,
+        set(folder, url) {
+          gZenFolders.setFolderUserIcon(folder, url);
+          folder.dispatchEvent(new CustomEvent("TabGroupUpdate", { bubbles: true }));
+        },
+        pick: (folder) => gZenFolders.changeFolderUserIcon(folder),
+      },
       space: {
         menuId: "zenWorkspaceMoreActions",
         itemId: "context_zenEditWorkspaceIcon",

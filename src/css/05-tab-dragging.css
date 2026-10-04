@@ -1,4 +1,162 @@
+.tabbrowser-tab[drag-image] {
+  margin: 0 !important;
+  translate: none !important;
+  scale: none !important;
+
+  animation: none !important;
+  transition: none !important;
+}
+
+.tabbrowser-tab[drag-image] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.tabbrowser-tab[drag-image] > .tab-stack > .tab-background {
+  box-shadow: none !important;
+}
+
+.tabbrowser-tab[drag-image] > .tab-stack > .tab-background::after {
+  display: none !important;
+}
+#zen-drag-indicator {
+  display: none !important;
+}
+
+#tabbrowser-tabs[movingtab] :is(.tabbrowser-tab, .tab-group-label-container, tab-group, zen-folder):is([zia-dragging], [zia-shift]) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ...a split's tabs too, which a closed folder it's dragged out of had
+   hidden (it's the split that's dragged, not its tabs) */
+#tabbrowser-tabs[movingtab] tab-group[split-view-group]:is([zia-dragging], [zia-shift]):not([zia-to-essential]) .tabbrowser-tab {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* ...and while it lands (a folder's parts included), whatever Firefox has
+   hidden for its own drop animation */
+#tabbrowser-tabs :is(zen-folder, tab-group)[zia-landing],
+#tabbrowser-tabs :is(zen-folder, tab-group)[zia-landing] > :is(.tab-group-label-container, .tab-group-container) {
+  visibility: visible !important;
+}
+
+:root[zia-dragging-tab] :is(zen-folder, tab-group:not([split-view-group])):has(:is(.tabbrowser-tab, tab-group[split-view-group])[zia-dragging]) {
+  z-index: 41 !important;
+
+  /* (a collapsed folder's clip too: dragging its open tab out of it, the
+     tab vanished as soon as it left the folder) */
+  & > .tab-group-container {
+    overflow: visible !important;
+    clip-path: none !important;
+  }
+}
+
+/* A collapsed folder showing its open tab clips its other tabs away (the
+   ones above are pushed up out of it). The open tab's glow reaches further
+   than that clip allowed, so the clip gives it the glow's full reach all
+   round, and the hidden tabs are see-through so none peeks into it. */
+zen-folder[collapsed][has-active] > .tab-group-container {
+  --zia-glow-room: calc(-1 * (var(--zia-active-glow-blur) + var(--zia-active-glow-spread) + var(--zia-active-glow-reach)));
+  overflow: visible !important;
+  clip-path: inset(var(--zia-glow-room));
+}
+
+/* ...and the same while Zen opens or shuts a folder holding the open tab:
+   it clips the folder's contents then, and the tab's glow was cut off for
+   a moment (a folder Zia's own opening holds is clipped by its height) */
+zen-folder:has(> .tab-group-container > :is(.tabbrowser-tab, tab-group[split-view-group]):is([selected], [visuallyselected], :has(.tabbrowser-tab[selected]))) > .tab-group-container:not([zia-folder-holding]) {
+  --zia-glow-room: calc(-1 * (var(--zia-active-glow-blur) + var(--zia-active-glow-spread) + var(--zia-active-glow-reach)));
+  overflow: visible !important;
+  clip-path: inset(var(--zia-glow-room));
+}
+
+/* Growing back from nothing as a folder opens, a tab's name and icon
+   spilled out of it, so the tabs showed piled up for a moment */
+:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-container > .tabbrowser-tab:not([selected], [visuallyselected]) {
+  overflow-y: clip;
+}
+
+zen-folder[collapsed][has-active] .tabbrowser-tab:not([selected], [visuallyselected], [folder-active="true"], [atg-folder-active], tab-group[split-view-group]:has(.tabbrowser-tab:is([selected], [visuallyselected], [folder-active="true"])) .tabbrowser-tab) {
+  opacity: 0 !important;
+  /* (fading as Zen shrinks them, rather than gone at once, which showed as
+     an empty gap closing up) */
+  transition: opacity 0.18s ease-in-out;
+}
+
+/* Unloaded (the selection moves out), its tabs stay see-through while Zen
+   shuts it, the one that was showing fading (zia.uc.js) */
+zen-folder[collapsed][zia-was-active] .tabbrowser-tab {
+  opacity: 0 !important;
+  transition: opacity 0.15s ease-in !important;
+}
+
+/* That margin lets the active tab's glow show, but it also left the
+   folder's hidden tabs reachable just below it: hovering there brought up
+   the last tab's card and a click opened it. Only the tabs a collapsed
+   folder shows can be pointed at. */
+zen-folder[collapsed] .tabbrowser-tab:not([selected], [visuallyselected], [folder-active="true"], [atg-folder-active]) {
+  pointer-events: none;
+}
+
+:root[zia-dragging-tab] .tabbrowser-tab[zen-essential] {
+  visibility: inherit !important;
+}
+
+#zia-essential-proxy,
+#zia-essential-proxy > .tab-stack,
+#zia-essential-proxy > .tab-stack > .tab-background,
+#zia-essential-proxy > .tab-stack > .tab-content {
+  opacity: 1 !important;
+}
+
+.tabbrowser-tab[zia-essential-proxy],
+.tabbrowser-tab[zia-essential-proxy] > .tab-stack {
+  overflow: visible !important;
+  contain: none !important;
+}
+
+.tabbrowser-tab[zia-essential-proxy] > .tab-stack,
+.tabbrowser-tab[zia-essential-proxy] > .tab-stack > .tab-background {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+}
+
+.tabbrowser-tab[zia-essential-proxy] :is(.tab-reset-pin-button, .tab-reset-pin-label, .tab-group-line) {
+  display: none !important;
+}
+
 zen-essentials-promo {
+  display: none !important;
+}
+
+:is(#tabs-newtab-button, #vertical-tabs-newtab-button)[zia-shift] {
+  position: relative !important;
+  transform: translateY(var(--zia-drag-y)) !important;
+  transition: transform 100ms ease-out !important;
+}
+
+.zen-essentials-container > vbox:not(.tabbrowser-tab) {
+  min-height: var(--zia-essential-height);
+}
+
+@media -moz-pref("zia.essentials.zia-width") {
+  .zen-essentials-container > vbox:not(.tabbrowser-tab) {
+    min-width: var(--zia-essential-min-width);
+    max-width: var(--zia-essential-max-width);
+  }
+}
+
+.tabbrowser-tab[zen-essential][zia-essential-dragged] {
+  opacity: 0 !important;
+}
+
+/* ...and out over the list, it gives up its cell: the others close up */
+.tabbrowser-tab[zen-essential][zia-essential-dragged][zia-essential-out] {
   display: none !important;
 }
 
@@ -13,6 +171,86 @@ zen-essentials-promo {
 
 .tabbrowser-tab:is([label=""], :not([label])) .tab-reset-pin-label {
   display: none !important;
+}
+
+:root[zia-dragging-tab] :is(#zen-essentials, .zen-essentials-container) {
+  transition: min-height 140ms ease-out;
+}
+
+:is(#zen-essentials, .zen-essentials-container)[zia-make-room] {
+  min-height: var(--zia-room) !important;
+}
+
+.pinned-tabs-container-separator[zia-sep-open] {
+  display: flex !important;
+  visibility: visible !important;
+  height: 22px !important;
+  opacity: 1 !important;
+}
+
+.pinned-tabs-container-separator[zia-shift] {
+  position: relative !important;
+  transform: translateY(var(--zia-drag-y)) !important;
+  transition: transform 100ms ease-out !important;
+  z-index: 1 !important;
+}
+
+#tabbrowser-tabs :is(.tabbrowser-tab, .tab-group-label-container, zen-folder)[zia-shift] {
+  position: relative !important;
+  transform: translateY(var(--zia-drag-y)) !important;
+  transition: transform 100ms ease-out !important;
+  z-index: 1 !important;
+}
+
+/* The section a dragged tab or folder comes from goes above the
+   essentials while it's dragged: otherwise the essentials' icons, drawn on
+   a layer of their own, showed through it when it was dragged up over them.
+   Not while it's going into the essentials: raised, the section covered
+   them, and Zen saw the tab list under the pointer and refused the drop
+   (the row is hidden then anyway, its tile shown instead) */
+:root[zia-dragging-tab]:not([zia-drag-over-essentials]) :is(zen-workspace, .zen-workspace-pinned-tabs-section, .zen-workspace-normal-tabs-section):has([zia-dragging]) {
+  position: relative;
+  z-index: 50 !important;
+}
+
+#tabbrowser-tabs :is(.tabbrowser-tab, .tab-group-label-container, zen-folder)[zia-dragging] {
+  position: relative !important;
+  transform: translateY(var(--zia-drag-y)) !important;
+  transition: none !important;
+  z-index: 40 !important;
+
+  pointer-events: none !important;
+}
+
+[zia-drop-lock]:not([zia-landing]),
+#tabbrowser-tabs[zia-settling] :is(.tabbrowser-tab, .tab-group-label-container, tab-group, zen-folder):not([zia-landing]) {
+  transition: none !important;
+  transform: none !important;
+  translate: none !important;
+  top: 0 !important;
+}
+
+[zia-drop-lock] {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* A row landing is moved by Zia's glide alone: a transition on its own
+   transform (Firefox's or Zen's, which Zen's drop used to switch off) ran
+   under the glide and showed for a frame as it ended, a 7px jump back */
+#tabbrowser-tabs :is(.tabbrowser-tab, tab-group[split-view-group])[zia-landing] {
+  transition: none !important;
+}
+
+/* (not on the row being dragged, which stays under the pointer) */
+:root[zia-dragging-tab] .tabbrowser-tab:not([zia-hover-held], [zia-dragging], [zia-dragging] *) :is(.tab-close-button, .tab-reset-button),
+#tabbrowser-tabs[zia-settling] .tabbrowser-tab:not([zia-hover-held], :hover) :is(.tab-close-button, .tab-reset-button) {
+  opacity: 0 !important;
+  transition: none !important;
+}
+
+#tabbrowser-tabs[zia-settling] .tabbrowser-tab {
+  animation: none !important;
 }
 
 #zia-tab-card[zia-anchor="essential"]::before {
@@ -48,6 +286,52 @@ zen-essentials-promo {
   to { scale: 1; filter: blur(0); opacity: 1; }
 }
 
+
+/* A tab just dropped keeps its hover wash until the pointer leaves it
+   (zia-hover-held, zia.uc.js) */
+.tabbrowser-tab:not([zen-essential], [visuallyselected])[zia-hover-held] > .tab-stack > .tab-background {
+  background: var(--zia-tab-hover-bg) !important;
+}
+
+/* ...and its x: Firefox forgets the hover until the pointer next moves,
+   and Zen only shows the x on hover. (The x only while it isn't pinned
+   and the - only once it is: pinned a moment after, the x held from
+   before showed beside the -) */
+.tabbrowser-tab:not([zen-essential], [pinned], [zia-held-pinned])[zia-hover-held] .tab-close-button,
+/* (ids only to outrank Zen's split rule that hides them unless hovered) */
+.tabbrowser-tab:not([zen-essential], [pinned], [zia-held-pinned]) .tab-close-button[zia-held-shown]:not(#zia-a):not(#zia-b),
+.tabbrowser-tab:not([zen-essential]):is([pinned], [zia-held-pinned]) .tab-reset-button[zia-held-shown]:not(#zia-a):not(#zia-b) {
+  display: flex !important;
+  opacity: 1 !important;
+  /* (a tab dropped into a folder swaps its x for a -: straight away, not
+     fading in) */
+  transition: none !important;
+}
+
+/* a split essential dragged back to the list, until it's removed */
+.tabbrowser-tab[zia-split-gone] {
+  display: none !important;
+}
+
+/* Zen's drop-to-split marker (hold a tab over one side of another tab):
+   gone, it flashed as a split landed */
+zen-split-fake-tab {
+  display: none !important;
+}
+
+/* the list measured again mid-drag (a dragged folder that has just shut) */
+#tabbrowser-tabs[zia-measuring],
+#tabbrowser-tabs[zia-measuring] * {
+  transition: none !important;
+}
+
+/* A split's own label stays hidden (Zen hides it), whatever the drag and
+   landing rules above show: it's a blue block Firefox draws for groups */
+#tabbrowser-tabs tab-group[split-view-group] > .tab-group-label-container:not(#zia-a):not(#zia-b) {
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 /* One of a split's two tabs closing goes at once, taking no room, so the
    one left stays where the split was (zia.uc.js) */
 .tabbrowser-tab[zia-split-closing] {
@@ -59,4 +343,12 @@ zen-essentials-promo {
   overflow: hidden !important;
   opacity: 0 !important;
   visibility: hidden !important;
+}
+
+/* The copy a dragged essential (or a tab going into the essentials) is drawn
+   as sits among the real tabs, and Firefox clears every tab's offset as a
+   drag ends: its centring went, and it showed shifted half its size (over
+   the essentials) until it was gone */
+.tabbrowser-tab[zia-essential-proxy] {
+  translate: -50% -50% !important;
 }

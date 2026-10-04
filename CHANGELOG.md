@@ -4,6 +4,17 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.91.4] ? 2026-10-04
+
+### Updated
+
+- Build from upstream Zia 2.91.3, preserving only glow fixes, workspace-icon
+  caching, optional real-time tint and the custom workspace media player.
+- Restore upstream folders, glass icons, sidebar styling/dragging, previews,
+  split handling, light styles and startup behavior.
+- Retire earlier alignment, compact/startup and native-folder/dragging patches.
+- Narrow future patches and preservation/browser checks to the four retained features.
+
 ## [2.86.5] — 2026-10-04
 
 ### Changed

@@ -288,6 +288,17 @@
   }
 
   function moveOffOldIcons() {
+    for (const folder of document.querySelectorAll("zen-folder")) {
+      const icon = tablerFor(folder.iconURL);
+      if (icon) {
+        try {
+          window.gZenFolders?.setFolderUserIcon(folder, icon);
+          folder.dispatchEvent(new CustomEvent("TabGroupUpdate", { bubbles: true }));
+        } catch (err) {
+          noteError("icon picker: move folder icon", err);
+        }
+      }
+    }
     try {
       for (const space of window.gZenWorkspaces?.getWorkspaces?.() || []) {
         const icon = tablerFor(space.icon);
@@ -312,6 +323,7 @@
         }, 500);
       }
     };
+    gBrowser.tabContainer.addEventListener("TabGroupCreate", queue);
     window.addEventListener("ZenWorkspacesUIUpdate", queue);
     window.SessionStore?.promiseAllWindowsRestored?.then(queue, queue);
     queue();
@@ -590,3 +602,4 @@
       ]);
     };
   }
+

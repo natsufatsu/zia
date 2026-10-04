@@ -89,3 +89,16 @@
     });
     schedule();
   }
+
+  function watchFolderCloseButtons() {
+    const addAll = () => {
+      for (const folder of document.querySelectorAll("zen-folder")) {
+        addFolderCloseButton(folder);
+      }
+    };
+    addAll();
+
+    setTimeout(addAll, 1500);
+    gBrowser.tabContainer.addEventListener("TabGroupCreate", (event) => addFolderCloseButton(event.target));
+  }
+
