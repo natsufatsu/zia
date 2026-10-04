@@ -95,6 +95,9 @@ def check():
         assert f'function {name}(' not in runtime, f"Removed override still present: {name}"
     for token in ("DataTransfer.prototype.", "Element.prototype.animate", "gZenFolders.openTabsPopup =", "folderFromNode("):
         assert token not in runtime, f"Native method override or dangling group helper: {token}"
+    hover_cards = text(VARIANT / 'src/js/27-hover-cards.js')
+    assert 'gated.ziaOriginalFolderPopup = original;' in hover_cards and 'return original.apply(this, args);' in hover_cards, "Native popup fallback gate lost"
+    assert 'search.addEventListener("keydown"' not in hover_cards, "Folder preview keyboard navigation returned"
     split_module = text(VARIANT / "src/js/09-split-drop-cards.js")
     standalone = text(SPLIT / "zia-split-tabs.uc.js")
     embedded = split_module[split_module.index('// Extracted from Zia'):split_module.rindex('\n  }')]

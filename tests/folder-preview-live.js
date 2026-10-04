@@ -39,8 +39,11 @@ async function close() {
   const nativeOpen = win.__nativeTabMethods.folderPopup;
   const featurePref = 'zia.features.tab-hover-cards';
   const hadFeature = Services.prefs.prefHasUserValue(featurePref), savedFeature = Services.prefs.getBoolPref(featurePref, true);
+  const keyListeners = () => Services.els.getListenerInfoFor(doc).filter(info =>
+    info.type === 'keydown' && String(info.listenerObject).includes('folders-tabs-list-item[selected]')).length;
+  const initialKeys = keyListeners();
   check(savedFlip === 'slide', 'Folder preview must slide at screen edges');
-  check(win.gZenFolders.openTabsPopup === nativeOpen, 'Native folder popup method was replaced');
+  check(win.gZenFolders.openTabsPopup.ziaOriginalFolderPopup === nativeOpen, 'Native popup fallback was lost');
   try {
     // Disabling Zia's cards restores the native searchable folder popup.
     Services.prefs.setBoolPref(featurePref, false);
@@ -92,6 +95,8 @@ async function close() {
     check(win.__compatErrors.length === 0, 'Mod errors: ' + win.__compatErrors.join('; '));
     results.nativeSearch = true;
     results.nativePopupMethod = true;
+    check(keyListeners() === initialKeys, 'Native fallback leaked keyboard handlers after dismissal');
+    results.nativeKeyboardCleanup = true;
   } finally {
     popup.hidePopup();
     popup.setAttribute('flip', savedFlip);

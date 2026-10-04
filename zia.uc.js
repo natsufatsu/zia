@@ -6986,31 +6986,14 @@
     searchIcon.setAttribute("aria-hidden", "true");
     const search = document.createElementNS(XHTML_NS, "input");
     search.type = "search";
+    search.tabIndex = -1;
     search.className = "zia-folder-card-search";
     search.setAttribute("autocomplete", "off");
     search.addEventListener("input", () => filterFolderCard(card));
-    search.addEventListener("keydown", (event) => {
-      if (event.isComposing) {
-        return;
-      }
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        if (search.value) {
-          search.value = "";
-          filterFolderCard(card);
-        } else {
-          card.dispatchEvent(new CustomEvent("zia-card-dismiss"));
-        }
-      } else if (event.key === "Enter") {
-        event.preventDefault();
-        event.stopPropagation();
-        card.querySelector(".zia-folder-card-list > .zia-folder-card-row:not([hidden])")?.click();
-      }
-    });
     searchBar.append(searchIcon, search);
     const list = document.createElementNS(XHTML_NS, "div");
     list.className = "zia-folder-card-list";
+    list.tabIndex = -1;
     const footer = document.createElementNS(XHTML_NS, "div");
     footer.className = "zia-folder-card-footer";
     card.append(searchBar, list, footer);
@@ -7121,6 +7104,7 @@
     }
     const add = document.createElementNS(XHTML_NS, "button");
     add.type = "button";
+    add.tabIndex = -1;
     add.className = "zia-folder-card-row";
     add.setAttribute("zia-new-tab", "true");
     add.append(newTabButtonIcon());
@@ -7237,19 +7221,30 @@
   }
 
   function keepNativeFolderPopupAsFallback() {
-    const popup = document.getElementById("zen-folder-tabs-popup");
-    if (!popup) {
+    const folders = window.gZenFolders;
+    if (!folders || typeof folders.openTabsPopup !== "function" || folders.openTabsPopup.ziaOriginalFolderPopup) {
       return;
     }
-    // Cancel only the native preview while Zia's hover cards are enabled.
-    // Leave Zen's folder methods and disabled-feature fallback untouched.
-    const onShowing = (event) => {
-      if (event.target === popup && featureOn("tab-hover-cards")) {
-        event.preventDefault();
+    const original = folders.openTabsPopup;
+    // Zen installs document-wide key handlers before opening this popup and
+    // removes them only on popuphidden. Canceling popupshowing leaves them live.
+    // Skip the entire native open path while our hover cards are enabled.
+    const gated = function (...args) {
+      if (featureOn("tab-hover-cards")) {
+        return undefined;
       }
+      return original.apply(this, args);
     };
-    popup.addEventListener("popupshowing", onShowing);
-    window.addEventListener("unload", () => popup.removeEventListener("popupshowing", onShowing), { once: true });
+    gated.ziaOriginalFolderPopup = original;
+    folders.openTabsPopup = gated;
+    if (featureOn("tab-hover-cards")) {
+      document.getElementById("zen-folder-tabs-popup")?.hidePopup();
+    }
+    window.addEventListener("unload", () => {
+      if (folders.openTabsPopup === gated) {
+        folders.openTabsPopup = original;
+      }
+    }, { once: true });
   }
 
   function addTabHoverCards() {
@@ -7333,6 +7328,8 @@
     const onFeatureChange = () => {
       if (!featureOn("tab-hover-cards")) {
         hide(true);
+      } else {
+        document.getElementById("zen-folder-tabs-popup")?.hidePopup();
       }
     };
     Services.prefs.addObserver("zia.features.tab-hover-cards", onFeatureChange);
@@ -7419,7 +7416,6 @@
             }
           }, 0);
         });
-        folderCard.addEventListener("zia-card-dismiss", () => hide(true));
         folderCard.addEventListener("zia-card-acting", () => {
           keepCardUntil = Date.now() + 1200;
           clearTimeout(hideTimer);

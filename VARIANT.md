@@ -4,7 +4,21 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.7.
+- Current variant: 2.86.8.
+
+## Folder preview keyboard fix (2.86.8)
+
+Zen installs document-wide keyboard handlers before opening its folder popup
+and removes them when the popup closes. Canceling `popupshowing` left those
+handlers active, intercepting website Tab, arrow and Enter keys after hovering
+a folder. Skip the native open path before it installs handlers while custom
+cards are enabled. Disabling cards delegates to the original popup method.
+
+Remove preview Enter/Escape shortcuts and automatic Tab focus on preview
+controls. Mouse selection, typed search, fixed New Tab, scrolling and hover
+cards remain. Live checks repeat native open attempts and verify no leaked
+handlers, then send real Tab, Enter and left/right keys to webpage controls.
+Restart Zen after updating to clear handlers leaked by earlier versions.
 
 ## Search and fixed preview controls (2.86.7)
 
@@ -14,9 +28,9 @@ and URLs without moving the footer. A no-results message leaves New Tab
 available. Search resets when reopening a card or switching folders.
 
 The search input survives mute/close/unload refreshes, retaining its query
-and focus. Typing keeps the preview and compact sidebar open; Enter selects
-the first match, Escape clears the query and then dismisses the card, and
-clicking outside dismisses it. Browser checks cover these behaviors and
+and focus. Typing keeps the preview and compact sidebar open; clicking outside
+dismisses it. The original Enter/Escape shortcuts were removed in 2.86.8.
+Browser checks cover these behaviors and
 fixed controls before and after scrolling on either sidebar.
 
 ## Folder hover previews (2.86.6)
@@ -32,8 +46,9 @@ long lists scroll. Entering the preview holds a compact sidebar open. The
 existing tab-hover-card setting now reads **Tab and folder hover cards**.
 Disabling it dismisses the card and restores Zen's searchable popup.
 
-Suppress the duplicate native popup using its cancelable `popupshowing` event;
-no Zen folder method is wrapped or replaced. Folder colors, naming, animated
+The original `popupshowing` cancellation was replaced in 2.86.8 with an early
+gate on `openTabsPopup` to avoid leaking native keyboard handlers. Other native
+folder methods remain unchanged. Folder colors, naming, animated
 icons, custom dragging and split-essential behavior remain excluded.
 `tests/folder-hover-card-live.js` exercises placement, contents, scrolling,
 selection, mute/close/New Tab, compact sidebar holding and feature disabling.
@@ -138,7 +153,8 @@ of the original stationary bars. Sidebar sound-bar rendering is unchanged.
 Removed Zia's folder/group styling, collapse animations, color menus, naming,
 empty-folder slots and extra icon menu. Tab and folder hover cards are retained
 as of 2.86.6. Zen's folder popup remains available when those cards are disabled,
-and its folder methods remain unchanged.
+and its folder creation and icon methods remain unchanged. Its popup open
+method delegates to the original implementation when custom cards are disabled.
 Shared CSS/JS modules retain their unrelated tab, workspace and URL bar code.
 
 Removed the upstream custom sidebar drag implementation, drag-image method
@@ -228,7 +244,8 @@ its obsolete first-row suppression assertions are removed.
 runs `tests/folder-preview-live.js`. Two- and eight-tab folders are checked near
 the top, middle and bottom of both left and right sidebars. The popup stays
 within the screen and beside its anchor; native search filters entries and
-resets on dismissal. The native `openTabsPopup` method remains unchanged.
+resets on dismissal. Since 2.86.8 the popup gate delegates to the original
+`openTabsPopup` implementation when custom hover cards are disabled.
 The test also restores `flip="both"` temporarily to reproduce the original
 displacement: a folder at y=10 opens its preview at y=154 instead of y=0.
 Add `--compact-startup` to check the revealed compact sidebar as well.

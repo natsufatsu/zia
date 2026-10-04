@@ -29,6 +29,7 @@ async function hover(folder, top) {
   return doc.getElementById('zia-folder-card');
 }
 async function leave(card) {
+  if (card.contains(doc.activeElement)) doc.activeElement.blur();
   if (currentLabel) {
     win.InspectorUtils.removePseudoClassLock(currentLabel, ':hover');
     currentLabel.dispatchEvent(new win.MouseEvent('mouseout', {bubbles: true}));
@@ -114,21 +115,24 @@ async function leave(card) {
     await delay(350);
     check(!searchedCard.hidden && doc.activeElement === search && toolbox.hasAttribute('has-popup-menu'),
       'Typing search loses preview or compact sidebar');
-    search.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
-    check(search.value === '' && visibleRows().length === 12, 'Escape did not clear search');
     query('folder tab 11');
     const selectedResult = visibleRows()[0].ziaTab;
-    search.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
-    check(gb.selectedTab === selectedResult, 'Enter did not select filtered result');
+    for (const key of ['Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+      const event = new win.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true});
+      search.dispatchEvent(event);
+      check(!event.defaultPrevented && gb.selectedTab === start, 'Preview intercepted search key: ' + key);
+    }
+    check(search.value === 'folder tab 11', 'Preview shortcut changed search text');
+    check(search.tabIndex === -1 && searchedCard.querySelector('[zia-new-tab]').tabIndex === -1 && list.tabIndex === -1,
+      'Preview controls entered normal Tab traversal');
+    visibleRows()[0].click();
+    check(gb.selectedTab === selectedResult, 'Click did not select filtered result');
     gb.selectedTab = start;
     await leave(searchedCard);
     searchedCard = await hover(folders[1], 100);
     check(searchedCard.querySelector('.zia-folder-card-search').value === '', 'Search did not reset after reopening');
-    searchedCard.querySelector('.zia-folder-card-search').focus();
-    searchedCard.querySelector('.zia-folder-card-search').dispatchEvent(
-      new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
     await leave(searchedCard);
-    results.search = {titles: true, urls: true, empty: true, focus: true, enter: true, escape: true, reset: true};
+    results.search = {titles: true, urls: true, empty: true, focus: true, mouseSelection: true, keysUnchanged: true, reset: true};
     const folder = folders[0];
     Services.prefs.setBoolPref(side, false);
     await delay(150);
@@ -160,11 +164,23 @@ async function leave(card) {
     await delay(350);
     check(!card.hidden && toolbox.hasAttribute('has-popup-menu'), 'Card entry lost preview or compact sidebar');
     results.cardEntry = true;
-    // Zen's own method is unchanged, but its popup must not cover Zia's card.
-    win.gZenFolders.openTabsPopup({target: currentLabel, stopPropagation() {}});
+    // Skip native popup setup before it can install document keyboard hooks.
+    const keyListeners = () => Services.els.getListenerInfoFor(doc).filter(info =>
+      info.type === 'keydown' && String(info.listenerObject).includes('folders-tabs-list-item[selected]')).length;
+    const beforeKeys = keyListeners();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      win.gZenFolders.openTabsPopup({target: currentLabel, stopPropagation() {}});
+    }
     await delay(100);
     check(doc.getElementById('zen-folder-tabs-popup').state === 'closed', 'Duplicate native preview opened');
-    check(win.gZenFolders.openTabsPopup === win.__nativeTabMethods.folderPopup, 'Native folder method replaced');
+    check(win.gZenFolders.openTabsPopup.ziaOriginalFolderPopup === win.__nativeTabMethods.folderPopup, 'Native popup fallback lost');
+    check(keyListeners() === beforeKeys, 'Suppressed native previews leaked document keyboard handlers');
+    for (const key of ['Tab', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
+      const event = new win.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true});
+      doc.dispatchEvent(event);
+      check(!event.defaultPrevented && gb.selectedTab === start, 'Hidden native preview intercepted browser key: ' + key);
+    }
+    results.noLeakedKeyboardHandlers = true;
     results.noDuplicatePopup = true;
     const picked = card.querySelector('.zia-folder-card-row:not([zia-new-tab])');
     picked.click();

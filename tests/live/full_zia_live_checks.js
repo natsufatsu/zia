@@ -111,9 +111,9 @@ function check(value, message) { if (!value) throw new Error(message); }
   check(win.Element.prototype.animate === native.animate, 'Folder animation was patched');
   check(win.DataTransfer.prototype.setDragImage === native.setDragImage &&
     win.DataTransfer.prototype.updateDragImage === native.updateDragImage, 'Native drag image methods were patched');
-  check(win.gZenFolders.openTabsPopup === native.folderPopup &&
+  check(win.gZenFolders.openTabsPopup.ziaOriginalFolderPopup === native.folderPopup &&
     win.gZenFolders.createFolder === native.createFolder &&
-    win.gZenFolders.setFolderUserIcon === native.setFolderIcon, 'Native folder methods were patched');
+    win.gZenFolders.setFolderUserIcon === native.setFolderIcon, 'Native folder methods or popup fallback were lost');
   check(Services.prefs.getDefaultBranch('').getBoolPref('zen.splitView.enable-tab-drop') === false,
     'Competing native page-drop targets remain enabled');
   check(doc.getElementById('context_zenFolderChangeIcon').hidden === native.folderIconMenuHidden, 'Native folder icon menu hidden');

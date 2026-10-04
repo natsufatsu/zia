@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.86.2 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.86.7**.
+Current version: **2.86.8**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, naming, extra group menus
@@ -120,8 +120,8 @@ alignment fixes and all existing custom modules remain intact.
 ## Install or update
 
 Folder previews keep search at the top and **New Tab** at the bottom while
-the tab list scrolls. Search matches tab titles and URLs. Enter opens the
-first matching tab; Escape clears the search, then closes the preview.
+the tab list scrolls. Search matches tab titles and URLs; click a result to
+open it. Previews add no keyboard navigation or Enter/Escape shortcuts.
 
 1. Enable unofficial JavaScript mods in Sine.
 2. Remove original `z1n-k/zia` if installed, then install **`natsufatsu/zia`**.
@@ -136,11 +136,15 @@ are no longer shown and old values cannot enable the removed code.
 
 ## Validation
 
-Checked in an isolated Windows profile with Zen 1.22.3b:
+Checked in isolated Windows profiles with Zen 1.23b:
 
 - Native group and folder collapse/expand, with group boxes matching Zen's CSS.
-- Native animation, drag-image and folder methods remain unmodified.
+- Native animation, drag-image, folder creation and folder icon methods remain
+  unmodified. A gate skips Zen's popup while custom hover cards are enabled,
+  before Zen installs keyboard handlers; disabling cards restores the popup.
 - Native folder menus and sidebar drag methods are preserved.
+- Repeated folder previews leave no keyboard handlers active. Website Tab,
+  Enter and left/right keys work in normal and compact layouts.
 - Scripted page drops create correctly ordered left/right splits; center drops
   cancel, previews clean up, and dragging the current tab adds a pane.
 - No glow box or animated media badge on playing essential tabs.

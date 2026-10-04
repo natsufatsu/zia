@@ -63,6 +63,51 @@ class Marionette:
         return response.get("value", response) if isinstance(response, dict) else response
 
 
+def check_page_keyboard(client):
+    """Send real keys to website controls after exercising folder previews."""
+    selected = client.script("return Services.wm.getMostRecentWindow('navigator:browser').gBrowser.selectedBrowser.browsingContext.id;")
+    # Return real browser focus from native popup controls to the website.
+    client.script("const win = Services.wm.getMostRecentWindow('navigator:browser'); win.focus(); win.gBrowser.selectedBrowser.focus();")
+    client.command("Marionette:SetContext", {"value": "content"})
+    try:
+        client.script("""
+          const box = document.createElement('div');
+          box.id = 'zia-keyboard-fixture';
+          box.style.cssText = 'position:fixed;top:10px;left:10px;z-index:99999';
+          box.innerHTML = '<input id="zia-keyboard-first"><input id="zia-keyboard-second" value="abcdef"><button id="zia-keyboard-button" type="button">Keyboard test</button>';
+          document.body.append(box);
+          const button = box.querySelector('button');
+          button.dataset.clicks = '0';
+          button.setAttribute('onclick', 'this.dataset.clicks = String(Number(this.dataset.clicks) + 1)');
+          box.querySelector('input').focus();
+        """)
+
+        def keys(*values):
+            actions = []
+            for value in values:
+                actions.extend([{"type": "keyDown", "value": value}, {"type": "keyUp", "value": value}])
+            client.command("WebDriver:PerformActions", {"actions": [{"type": "key", "id": "zia-page-keyboard", "actions": actions}]})
+
+        keys("\ue004")  # Tab
+        assert client.script("return document.activeElement.id") == "zia-keyboard-second", "Tab did not reach the next website input"
+        client.script("document.activeElement.setSelectionRange(3, 3)")
+        keys("\ue012")  # Left
+        assert client.script("return document.activeElement.selectionStart") == 2, "Left arrow did not move the website caret"
+        keys("\ue014")  # Right
+        assert client.script("return document.activeElement.selectionStart") == 3, "Right arrow did not move the website caret"
+        keys("\ue004")  # Tab
+        assert client.script("return document.activeElement.id") == "zia-keyboard-button", "Tab did not reach the website button"
+        keys("\ue007")  # Enter
+        clicks = client.script("return document.getElementById('zia-keyboard-button').dataset.clicks")
+        assert clicks == "1", f"Enter did not activate the website button: clicks={clicks}"
+    finally:
+        client.command("WebDriver:ReleaseActions")
+        client.script("document.getElementById('zia-keyboard-fixture')?.remove();")
+        client.command("Marionette:SetContext", {"value": "chrome"})
+    assert client.script("return Services.wm.getMostRecentWindow('navigator:browser').gBrowser.selectedBrowser.browsingContext.id;") == selected, "Website keyboard use selected a different browser tab"
+    return {"tab": True, "enter": True, "left": True, "right": True, "sameBrowserTab": True}
+
+
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument("--zen", default=os.environ.get("ZEN_BINARY") or shutil.which("zen-browser") or shutil.which("zen") or "C:/Program Files/Zen Browser/zen.exe")
@@ -75,6 +120,7 @@ def run():
     parser.add_argument("--tab-number-check", action="store_true", help="Check tab badge visibility through a Ctrl press/release")
     parser.add_argument("--tab-glow-check", action="store_true", help="Check selected first-row, audio and split-tab glows")
     parser.add_argument("--folder-preview-check", action="store_true", help="Check folder hover cards and native fallback previews")
+    parser.add_argument("--page-keyboard-check", action="store_true", help="Check real webpage Tab, Enter and left/right keys")
     parser.add_argument("--upstream-check", action="store_true", help="Check imported upstream fixes and options")
     parser.add_argument("--realtime-tint-check", action="store_true", help="Check live tint sampling and smoothing")
     parser.add_argument("--workspace-icon-check", action="store_true", help="Check workspace icon swaps without blank frames")
@@ -299,6 +345,10 @@ def run():
                 (run_dir / "folder-preview-results.json").write_text(json.dumps(folder_checks, indent=2), encoding="utf-8")
                 print("Folder preview checks:", json.dumps(folder_checks), flush=True)
                 assert not folder_checks.get("error"), folder_checks
+            if args.folder_preview_check or args.page_keyboard_check:
+                page_keyboard = check_page_keyboard(client)
+                (run_dir / "page-keyboard-results.json").write_text(json.dumps(page_keyboard, indent=2), encoding="utf-8")
+                print("Website keyboard checks:", json.dumps(page_keyboard), flush=True)
             if args.tab_glow_check:
                 glow_checks = client.script((ROOT / "tests/tab-glow-live.js").read_text(encoding="utf-8"), asynchronous=True)
                 (run_dir / "tab-glow-results.json").write_text(json.dumps(glow_checks, indent=2), encoding="utf-8")

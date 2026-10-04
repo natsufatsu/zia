@@ -4,6 +4,18 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.8] - 2026-10-04
+
+### Fixed
+
+- Prevent canceled native folder previews from leaving document-wide Tab,
+  arrow and Enter handlers active during normal website use. Skip the native
+  open path before it installs handlers while custom hover cards are enabled.
+- Remove preview Enter/Escape shortcuts and automatic Tab focus on preview
+  controls. Keep hover cards, typed search, mouse selection and fixed New Tab.
+- Verify repeated folder hovers leave no keyboard handlers and real webpage
+  Tab, Enter and left/right keys work normally.
+
 ## [2.86.7] - 2026-10-04
 
 ### Added
