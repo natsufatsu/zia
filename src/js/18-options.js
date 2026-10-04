@@ -19,28 +19,14 @@
     window.addEventListener("unload", () => Services.prefs.removeObserver(URLBAR_POSITION_PREF, apply));
   }
 
-  // Options in Sine's settings that are on by default (the rest are set
-  // one by one in applyZenDefaults), and the ones watched as they change.
-  const ZIA_OPTIONS = [
-    "zia.urlbar.dia-style",
-    "zia.newtab.real-tab",
-    "zia.tabs.sound-bars",
-    "zia.toolbar.site-color",
-    "zia.split.drop-cards",
-    "zia.page.rounding",
-  ];
-  const WATCHED_OPTIONS = ["zia.urlbar.dia-style", "zia.newtab.real-tab", "zia.toolbar.site-color", "zia.split.drop-cards"];
-
   function watchOptions() {
     const urlbar = gURLBar?.textbox || document.getElementById("urlbar");
     const apply = () => {
       urlbar?.toggleAttribute("zia-classic", !Services.prefs.getBoolPref("zia.urlbar.dia-style", true));
-      // Off gives Cmd/Ctrl+T back to Zen's floating address bar, and tab
-      // drops on the page back to Zen's own split.
+      // Off gives Cmd/Ctrl+T back to Zen's floating address bar.
       try {
         const defaults = Services.prefs.getDefaultBranch("");
         defaults.setBoolPref("zen.urlbar.replace-newtab", !Services.prefs.getBoolPref("zia.newtab.real-tab", true));
-        defaults.setBoolPref("zen.splitView.enable-tab-drop", !Services.prefs.getBoolPref("zia.split.drop-cards", true));
       } catch (err) {
         noteError("options: apply (2)", err);
       }
@@ -61,7 +47,7 @@
     });
   }
 
-  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "folder-icon-suggest", "tab-hover-cards", "tab-numbers"];
+  const FEATURES = ["media-player", "find-bar", "icon-picker", "undo-close", "tab-hover-cards"];
 
   function featureOn(name) {
     try {
@@ -76,4 +62,3 @@
       safely(name, fn);
     }
   }
-

@@ -28,14 +28,6 @@
   margin-block-start: calc(var(--zia-top-row-space) - 8px) !important;
 }
 
-/* While Zen slides the sidebar in or out on switching compact mode, the
-   top row keeps the spacing it has outside compact mode: with compact's,
-   the row and everything under it rode 5.5px high through the slide and
-   dropped into place as it ended. */
-:root[zen-compact-mode="true"][zen-compact-animating] #navigator-toolbox[animate="true"] #titlebar > #zen-sidebar-top-buttons {
-  margin-block-start: calc(var(--zia-top-row-space) - 2.5px) !important;
-}
-
 :root[zen-compact-mode="true"]:not([zen-single-toolbar="true"]) #navigator-toolbox:not([animate="true"]) {
   margin-top: 0 !important;
   top: calc(var(--zen-compact-float, 6px) / 2) !important;
@@ -73,9 +65,6 @@
   }
 }
 
-#zen-dragover-background {
-  display: none !important;
-}
 
 :root[zen-sidebar-expanded]:not([zia-space-name-in-list]) .zen-current-workspace-indicator:not(#zia-workspace-slot > .zen-current-workspace-indicator) {
   display: none !important;
@@ -146,4 +135,3 @@
     opacity: 0.4 !important;
   }
 }
-

@@ -217,67 +217,8 @@
       },
       true
     );
-    // The click that opens the bar selects the whole address. The bar moves
-    // and grows as it opens, though, so with the button still down the text
-    // slid under a pointer that hadn't moved and Firefox took it for a drag,
-    // selecting only part of it ("youtub"). Unless the pointer itself moved,
-    // that click selects the whole address however the text moved under it.
-    let pressedAt = null;
-    urlbar.addEventListener(
-      "mousedown",
-      (event) => {
-        pressedAt = holdWholeSelection ? { x: event.screenX, y: event.screenY } : null;
-        lastPointer = null;
-      },
-      true
-    );
-    // While that click is held, a drag Firefox reads into the moving text is
-    // undone as it happens, before it's drawn (only fixed on release, the
-    // part-selection showed for a moment first). A real drag moves the
-    // pointer, and is left alone.
-    let lastPointer = null;
-    window.addEventListener(
-      "mousemove",
-      (event) => {
-        lastPointer = pressedAt ? { x: event.screenX, y: event.screenY } : null;
-      },
-      true
-    );
-    const holdWhole = () => {
-      const press = pressedAt;
-      if (!press || !gURLBar.focused || urlbarTyping) {
-        return;
-      }
-      if (lastPointer && Math.hypot(lastPointer.x - press.x, lastPointer.y - press.y) > 4) {
-        return;
-      }
-      if (input.selectionStart !== 0 || input.selectionEnd !== input.value.length) {
-        input.select();
-      }
-    };
-    input.addEventListener("selectionchange", holdWhole);
-    input.addEventListener("select", holdWhole);
-    window.addEventListener(
-      "mouseup",
-      (event) => {
-        const press = pressedAt;
-        pressedAt = null;
-        if (!press || event.button !== 0 || Math.hypot(event.screenX - press.x, event.screenY - press.y) > 4) {
-          return;
-        }
-        const wholeLater = () => {
-          if (gURLBar.focused && !urlbarTyping && (input.selectionStart !== 0 || input.selectionEnd !== input.value.length)) {
-            input.select();
-          }
-        };
-        wholeLater();
-        requestAnimationFrame(wholeLater);
-      },
-      true
-    );
     const release = () => {
       holdWholeSelection = false;
-      pressedAt = null;
     };
     urlbar.addEventListener("keydown", release, true);
     input.addEventListener("input", release);
@@ -509,6 +450,20 @@
   // from --zia-reload-cut, eased here frame by frame.
   const RELOAD_HOVER_CUT = 20;
   const RELOAD_HOVER_MS = 380;
+
+  // Shared by the reload hover animation; keep it with its remaining caller.
+  const cubicBezier = (x1, y1, x2, y2) => (t) => {
+    let u = t;
+    for (let i = 0; i < 8; i++) {
+      const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+      const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+      if (Math.abs(x) < 1e-5 || !dx) {
+        break;
+      }
+      u = Math.min(1, Math.max(0, u - x / dx));
+    }
+    return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+  };
 
   function springReloadHover() {
     const button = document.getElementById("reload-button");

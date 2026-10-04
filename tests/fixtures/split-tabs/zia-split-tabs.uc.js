@@ -1,6 +1,3 @@
-  // Zia Split Tabs 1.0.7 (5738b6e44a76c29582024f2986c6547ace5d6879).
-  // Keep the standalone implementation in its own scope.
-  function watchSplitDrop() {
 // Extracted from Zia by z1n-k; MIT licensed.
 (() => {
   if (window.__zia_split_tabsLoaded) return;
@@ -24,7 +21,8 @@
     zones: {},
     tab: null,
     target: null,
-    press: null,
+    lastSelect: null,
+    dragStartedAt: 0,
     side: null,
     bounds: null,
     renderedSide: null,
@@ -44,13 +42,18 @@
     }
   }
 
+  const PRESS_SELECT_MS = 1500;
+
   function splitTargetFor(tab) {
-    // Native mousedown can select a background tab before its drag starts.
-    // Only use the previous tab when that selection belongs to this press.
-    const press = splitDrop.press;
-    const previous = press?.selected;
-    if (press?.tab === tab && previous !== tab && gBrowser.selectedTab === tab &&
-        previous && !previous.closing && previous.isConnected && !previous.hidden) {
+    const last = splitDrop.lastSelect;
+    const selectedByThisDrag =
+      last &&
+      last.tab === tab &&
+      gBrowser.selectedTab === tab &&
+      splitDrop.dragStartedAt - last.time < PRESS_SELECT_MS &&
+      splitDrop.dragStartedAt >= last.time;
+    const previous = last?.previous;
+    if (selectedByThisDrag && previous && !previous.closing && previous.isConnected && !previous.hidden) {
       return previous;
     }
     return gBrowser.selectedTab;
@@ -340,28 +343,18 @@
       },
       true
     );
-    window.addEventListener("mousedown", (event) => {
-      const tab = event.button === 0 ? event.target?.closest?.(".tabbrowser-tab") : null;
-      splitDrop.press = tab ? { tab, selected: gBrowser.selectedTab } : null;
-    }, true);
-    const clearPress = () => { splitDrop.press = null; };
-    window.addEventListener("mouseup", clearPress, true);
-    window.addEventListener("dragend", (event) => {
-      hideSplitDrop(event);
-      clearPress();
-    }, true);
-    window.addEventListener("blur", (event) => {
-      // A native tab switch also blurs the chrome window when it focuses
-      // the page. That still belongs to this press in the active window.
-      if (event.target === window && Services.focus.activeWindow !== window) clearPress();
-    }, true);
+    window.addEventListener("dragend", hideSplitDrop, true);
+
+    gBrowser.tabContainer.addEventListener("TabSelect", (event) => {
+      splitDrop.lastSelect = { tab: event.target, previous: event.detail?.previousTab || null, time: Date.now() };
+    });
+    window.addEventListener("dragstart", () => (splitDrop.dragStartedAt = Date.now()), true);
     window.addEventListener(
       "drop",
       (event) => {
         if (!event.target?.closest?.("#zia-split-drop")) {
           hideSplitDrop(event);
         }
-        clearPress();
       },
       true
     );
@@ -452,5 +445,3 @@
     Services.obs.addObserver(observer, "browser-delayed-startup-finished");
   }
 })();
-
-  }

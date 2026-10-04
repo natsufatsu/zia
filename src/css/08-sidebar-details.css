@@ -1,26 +1,13 @@
 #urlbar:not([breakout-extend]) .urlbar-input {
   color: rgb(255, 255, 255) !important;
 }
+
 :root[zia-site-dark="true"] #urlbar:not([breakout-extend]) .urlbar-input {
   color: var(--zia-dark-ink, rgb(251, 251, 254)) !important;
 }
 
 :root[zia-site-light="true"] #urlbar:not([breakout-extend]) .urlbar-input {
   color: var(--zia-light-ink) !important;
-}
-
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container > label,
-:is(zen-folder, tab-group:not([split-view-group]))[collapsed] > .tab-group-label-container > label {
-  color: rgb(255, 255, 255) !important;
-  opacity: 1 !important;
-}
-
-:root:not(#zia-none) :is(zen-folder[zia-folder-color], tab-group:not([split-view-group])) > .tab-group-label-container > label {
-  color: color-mix(in srgb, var(--zia-folder-swatch, white) var(--zia-folder-name-tint), white) !important;
-}
-
-:root:not(#zia-none) :is(zen-folder[zia-folder-color], tab-group:not([split-view-group])):hover > .tab-group-label-container > label {
-  color: color-mix(in srgb, var(--zia-folder-swatch, white) var(--zia-folder-name-tint-hover), white) !important;
 }
 
 #zen-workspaces-button {
@@ -101,48 +88,12 @@ zen-workspace arrowscrollbox::part(scrollbox) {
   scrollbar-width: none !important;
 }
 
-:is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  font-weight: var(--zia-folder-weight) !important;
-}
-
 :root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
   margin-inline-end: var(--zia-tab-right-fix, 0px) !important;
 }
 
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
 :root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
   margin-inline-end: var(--zia-tab-right-fix, 0px) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-content {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  padding-inline-end: calc(var(--zia-folder-right-fix, 0px) + var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) > .tab-group-label-container {
-  padding-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 2 * var(--zia-folder-inner-gap, 5px)) !important;
-}
-
-:root[zen-sidebar-expanded="true"] :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) :is(zen-folder, tab-group:not([split-view-group])) .tabbrowser-tab:not([zen-essential]) > .tab-stack > .tab-background {
-  margin-inline-end: calc(var(--zia-folder-right-fix, 0px) + 3 * var(--zia-folder-inner-gap, 5px)) !important;
 }
 
 /* As in Dia, a tab that isn't the one you're on is a little dimmer, hovered
@@ -155,7 +106,6 @@ zen-workspace arrowscrollbox::part(scrollbox) {
 .tabbrowser-tab:not([zen-essential])[visuallyselected] .tab-label-container {
   color: rgb(255, 255, 255) !important;
 }
-
 
 /* Renaming a tab or folder: the name in the box stays the size it is in the
    list */

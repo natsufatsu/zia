@@ -15,7 +15,7 @@ def run(command):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--live", action="store_true", help="Also run isolated Zen checks")
+    parser.add_argument("--live", action="store_true", help="Also run two isolated Zen profiles")
     parser.add_argument("--zen", help="Zen executable (or set ZEN_BINARY)")
     parser.add_argument("--quick-save", help="Optional Quick Save Image checkout")
     parser.add_argument("--skip-tool-tests", action="store_true", help="For updater test fixtures only")
@@ -32,10 +32,10 @@ def main():
         run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py"])
     if args.live:
         extra = (["--zen", args.zen] if args.zen else []) + (["--quick-save", args.quick_save] if args.quick_save else [])
-        run([sys.executable, "scripts/check_live.py", "--workspace-icon-check",
-             "--realtime-tint-check", "--tab-glow-check", "--alignment-check", *extra])
+        run([sys.executable, "scripts/check_live.py", "--upstream-check", "--tab-number-check",
+             "--workspace-icon-check", "--realtime-tint-check", "--tab-glow-check", "--regression-check", *extra])
         run([sys.executable, "scripts/check_live.py", "--inspect", "--compact-startup",
-             "--workspace-icon-check", *extra])
+             "--workspace-icon-check", "--workspace-check", "--folder-preview-check", "--compact-clipping-check", *extra])
     else:
         print("Static checks passed. Before publishing, run python scripts/check.py --live --zen PATH.")
 

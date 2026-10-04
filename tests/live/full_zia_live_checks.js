@@ -101,6 +101,23 @@ function check(value, message) { if (!value) throw new Error(message); }
   command(playPause);
   await waitFor(() => card.classList.contains('playing'), 'resume after muted pause');
   results.pausedWaveform.muteTransitions = true;
+  const native = win.__nativeTabMethods;
+  check(gb.tabs.includes(win.__migrationTab), 'Session migration removed a tab');
+  check(['zia-split', 'zia-split-of', 'zia-split-side'].every(key =>
+    !win.__migrationTab.hasAttribute(key) && !win.SessionStore.getCustomTabValue(win.__migrationTab, key)), 'Old split-essential tags remain');
+  check(Services.prefs.getBoolPref('zen.haptic-feedback.enabled') &&
+    !Services.prefs.prefHasUserValue('zia.haptics.muted'), 'Previously muted haptics were not restored');
+  results.nativeSessionMigration = true;
+  check(win.Element.prototype.animate === native.animate, 'Folder animation was patched');
+  check(win.DataTransfer.prototype.setDragImage === native.setDragImage &&
+    win.DataTransfer.prototype.updateDragImage === native.updateDragImage, 'Native drag image methods were patched');
+  check(win.gZenFolders.openTabsPopup === native.folderPopup &&
+    win.gZenFolders.createFolder === native.createFolder &&
+    win.gZenFolders.setFolderUserIcon === native.setFolderIcon, 'Native folder methods were patched');
+  check(Services.prefs.getDefaultBranch('').getBoolPref('zen.splitView.enable-tab-drop') === false,
+    'Competing native page-drop targets remain enabled');
+  check(doc.getElementById('context_zenFolderChangeIcon').hidden === native.folderIconMenuHidden, 'Native folder icon menu hidden');
+  check(!doc.querySelector('#zia-folder-color-menu, #zia-context-split-essential, #zenFolderActions .zia-own-icon-menu'), 'Custom group menus remain');
   const ghost = light.cloneNode(true);
   ghost.removeAttribute('id');
   ghost.setAttribute('zen-essential', 'true');
@@ -115,6 +132,7 @@ function check(value, message) { if (!value) throw new Error(message); }
     win.getComputedStyle(background, '::before').display === 'none', 'Playing tab still has a shine box');
   check(win.getComputedStyle(favicon, '::after').display === 'none', 'Essential music indicator remains');
   ghost.remove();
+  results.nativeTabMethods = true;
   results.noPlayingEssentialGlowBox = true;
 
   // Use the tab with real looping audio as well as the synthetic CSS matrix.
@@ -134,23 +152,45 @@ function check(value, message) { if (!value) throw new Error(message); }
   gb.selectedTab = dark;
   results.selectedAudioGlow = true;
 
-  const wasLight = root.hasAttribute('zia-light');
-  const savedLight = root.getAttribute('zia-light');
-  try {
-    root.setAttribute('zia-light', '');
-    await delay(150);
-    check(win.getComputedStyle(card.querySelector('.zen-media-title')).color === 'rgb(255, 255, 255)',
-      'Light sidebar replaced white title ink on the dark custom player');
-    check(win.getComputedStyle(card.querySelector('.zen-media-artist')).color === 'rgba(255, 255, 255, 0.85)',
-      'Light sidebar replaced custom player artist ink');
-    check(win.getComputedStyle(playPause).color === 'rgba(255, 255, 255, 0.92)',
-      'Light sidebar replaced custom player control ink');
-    results.lightPlayerPalette = true;
-  } finally {
-    if (wasLight) root.setAttribute('zia-light', savedLight);
-    else root.removeAttribute('zia-light');
-  }
-
+  const groupedA = gb.addTrustedTab(origin + '/dark', {inBackground: true});
+  const groupedB = gb.addTrustedTab(origin + '/dark', {inBackground: true});
+  const group = await gb.addTabGroup([groupedA, groupedB], {label: 'Native group', color: 'blue', insertBefore: groupedA});
+  group.collapsed = true;
+  await delay(250);
+  check(group.collapsed, 'Native group did not collapse');
+  group.collapsed = false;
+  await delay(250);
+  check(!group.collapsed && groupedA.group === group && groupedB.group === group, 'Native group did not reopen');
+  const folderTab = gb.addTrustedTab(origin + '/dark', {inBackground: true});
+  const folder = await win.gZenFolders.createFolder([folderTab], {label: 'Native folder', renameFolder: false});
+  await waitFor(() => folderTab.linkedBrowser.contentTitle.includes('/dark'), 'folder tab loaded');
+  await delay(700);
+  folder.collapsed = true;
+  await delay(250);
+  check(folder.collapsed, 'Native folder did not collapse');
+  folder.collapsed = false;
+  await delay(250);
+  check(!folder.collapsed && !folder.querySelector('.zia-folder-close'), 'Native folder did not reopen');
+  check(!group.hasAttribute('zia-group-swatch') && !folder.hasAttribute('zia-folder-color'), 'Group colors overridden');
+  const cssState = el => {
+    const s = win.getComputedStyle(el);
+    const before = win.getComputedStyle(el, '::before');
+    const after = win.getComputedStyle(el, '::after');
+    return [s.backgroundColor, s.borderRadius, s.marginInlineStart, s.marginInlineEnd,
+      before.content, before.backgroundColor, after.content, after.backgroundColor];
+  };
+  const targets = [group, group.querySelector('.tab-group-label-container'), folder,
+    folder.querySelector('.tab-group-label-container')];
+  const styledGroups = targets.map(cssState);
+  win.windowUtils.removeSheetUsingURIString('chrome://sine/content/zia/chrome.css', win.windowUtils.USER_SHEET);
+  const nativeGroups = targets.map(cssState);
+  win.windowUtils.loadSheetUsingURIString('chrome://sine/content/zia/chrome.css', win.windowUtils.USER_SHEET);
+  check(JSON.stringify(styledGroups) === JSON.stringify(nativeGroups), 'Group boxes differ from native Zen');
+  results.nativeGroups = true;
+  group.ungroupTabs();
+  gb.removeTab(groupedA, {animate: false});
+  gb.removeTab(groupedB, {animate: false});
+  await folder.delete();
   const colorBefore = win.getComputedStyle(card).backgroundColor;
   Services.prefs.setStringPref('zia.media-player.opacity.collapsed', '25');
   Services.prefs.setStringPref('zia.media-player.opacity.expanded', '75');

@@ -1,8 +1,68 @@
 const done = arguments[arguments.length - 1];
 const win = Services.wm.getMostRecentWindow('navigator:browser'), doc = win.document;
 const gb = win.gBrowser, results = {};
+const delay = ms => new Promise(resolve => win.setTimeout(resolve, ms));
 const check = (ok, message) => { if (!ok) throw new Error(message); };
+async function hover(tab) {
+  win.InspectorUtils.addPseudoClassLock(tab, ':hover');
+  try {
+    tab.dispatchEvent(new win.MouseEvent('mouseover', {bubbles: true}));
+    await delay(750);
+    const card = doc.getElementById('zia-tab-card');
+    check(card && !card.hidden && win.getComputedStyle(card).display !== 'none', 'Tab hover card did not open');
+    check(card.querySelector('.zia-tab-card-title').textContent === tab.label, 'Hover card uses another tab');
+    return {visible: true, essentialHidden: card.querySelector('[zia-action="essential"]').hidden};
+  } finally {
+    win.InspectorUtils.removePseudoClassLock(tab, ':hover');
+    tab.dispatchEvent(new win.MouseEvent('mouseout', {bubbles: true}));
+  }
+}
 (async () => {
+  const start = gb.selectedTab;
+  results.normalHover = await hover(start);
+  check(!results.normalHover.essentialHidden, 'Ordinary tab lost its Essentials action');
+  const other = gb.addTrustedTab('about:blank', {inBackground: true});
+  win.gZenViewSplitter.splitTabs([start, other], 'vsep', 0);
+  await delay(300);
+  results.splitHover = await hover(start);
+  check(results.splitHover.essentialHidden, 'A split pane offers the removed split-essential feature');
+  win.gZenViewSplitter.unsplitCurrentView();
+  await delay(300);
+  gb.selectedTab = start;
+  gb.removeTab(other);
+
+  const reload = doc.getElementById('reload-button');
+  check(typeof reload.ziaReloadCut === 'function', 'Reload hover animation did not initialize');
+  reload.dispatchEvent(new win.MouseEvent('mouseenter'));
+  await delay(450);
+  check(Math.abs(parseFloat(reload.style.getPropertyValue('--zia-reload-cut')) - 20) < 0.01, 'Reload did not animate to its hover angle');
+  reload.dispatchEvent(new win.MouseEvent('mouseleave'));
+  await delay(450);
+  check(Math.abs(parseFloat(reload.style.getPropertyValue('--zia-reload-cut'))) < 0.01, 'Reload hover angle did not reset');
+  results.reloadHover = true;
+
+  // Exercise the actor's marker without depending on an external live stream.
+  const card = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+  card.className = 'zen-media-card';
+  const progress = doc.createElementNS(card.namespaceURI, 'div');
+  progress.className = 'zen-media-progress-hbox';
+  const slider = doc.createElementNS(card.namespaceURI, 'input');
+  slider.type = 'range'; slider.className = 'zen-media-progress-bar'; progress.append(slider);
+  const ring = doc.createElementNS(card.namespaceURI, 'div'); ring.className = 'zia-ring-fill';
+  card.append(progress, ring); doc.getElementById('zen-media-controls-toolbar').append(card);
+  try {
+    card.setAttribute('zia-live', 'true');
+    check(win.getComputedStyle(progress, '::before').content === '"LIVE"', 'YouTube live card lost its LIVE label');
+    check(win.getComputedStyle(slider).display === 'none' && win.getComputedStyle(ring).opacity === '0', 'YouTube live card still shows seek controls');
+    card.removeAttribute('zia-live');
+    check(win.getComputedStyle(slider).display !== 'none' && win.getComputedStyle(ring).opacity !== '0', 'Recorded media lost seeking');
+    card.setAttribute('media-position-hidden', 'true');
+    check(win.getComputedStyle(progress, '::before').content === '"LIVE"', 'Native live media lost its label');
+    card.setAttribute('media-sharing', 'true');
+    check(win.getComputedStyle(progress).display === 'none', 'Screen sharing exposes a live progress row');
+    results.liveMediaStyles = true;
+  } finally { card.remove(); }
+
   // Measure the actual one-pixel text adjustment without moving favicons or
   // changing tab geometry. This guards the extracted fork override stylesheet.
   const tab = gb.tabs.find(tab => !tab.hasAttribute('zen-essential') && tab.querySelector('.tab-label-container')?.getBoundingClientRect().width > 0);

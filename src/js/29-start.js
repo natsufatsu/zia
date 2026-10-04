@@ -1,96 +1,47 @@
   function safely(name, fn) {
     try {
-      fn();
+      const result = fn();
+      result?.catch?.((err) => console.error(`[Zia] ${name} failed:`, err));
     } catch (err) {
       console.error(`[Zia] ${name} failed:`, err);
     }
   }
 
-  let zenHaptic = null;
+  // Give Sine's other scripts and the first browser paint a turn before
+  // optional panels, icon menus and decoration initialize. Each idle slice
+  // is short, including when the browser stays busy restoring a session.
+  const startupTasks = [];
+  let startupIdle = 0;
+  let startupTimer = 0;
+  let startupStopped = false;
 
-  // Zen buzzes on its own drag events, which would double up with Zia's taps,
-  // so its haptics are switched off for the length of a drag. That's a saved
-  // pref, so Zia marks when it's done so (MUTE_MARK) and undoes its own change
-  // rather than writing one: a drag that never finishes cleanly (Zen quit
-  // mid-drag, a cancelled drop) is put right shortly after the pointer is
-  // released, or on the next launch at the latest.
-  const HAPTIC_PREF = "zen.haptic-feedback.enabled";
-  const MUTE_MARK = "zia.haptics.muted";
-  const REPAIRED_MARK = "zia.haptics.repaired";
-  let hapticsWereOn = null;
-  let hapticsHadUserValue = false;
-  function restoreHaptics(hadUserValue) {
-    if (hadUserValue) {
-      Services.prefs.setBoolPref(HAPTIC_PREF, true);
-    } else {
-      Services.prefs.clearUserPref(HAPTIC_PREF);
-      if (!Services.prefs.getBoolPref(HAPTIC_PREF, true)) {
-        Services.prefs.setBoolPref(HAPTIC_PREF, true);
-      }
+  function scheduleStartupTasks() {
+    if (startupStopped || startupIdle || !startupTasks.length) {
+      return;
     }
-    Services.prefs.clearUserPref(MUTE_MARK);
-  }
-  function muteZenHaptics(muted) {
-    try {
-      if (muted && hapticsWereOn === null) {
-        hapticsWereOn = Services.prefs.getBoolPref(HAPTIC_PREF, true);
-        hapticsHadUserValue = Services.prefs.prefHasUserValue(HAPTIC_PREF);
-        if (hapticsWereOn) {
-          Services.prefs.setBoolPref(MUTE_MARK, true);
-          Services.prefs.setBoolPref(HAPTIC_PREF, false);
-        }
-      } else if (!muted && hapticsWereOn !== null) {
-        const was = hapticsWereOn;
-        hapticsWereOn = null;
-        if (was) {
-          restoreHaptics(hapticsHadUserValue);
-        }
-      }
-    } catch (err) {
-      noteError("start: muteZenHaptics", err);
-    }
+    startupIdle = requestIdleCallback((deadline) => {
+      startupIdle = 0;
+      const started = performance.now();
+      do {
+        const [name, fn] = startupTasks.shift();
+        safely(name, fn);
+      } while (startupTasks.length && !startupStopped &&
+               performance.now() - started < 4 && deadline.timeRemaining() > 1);
+      scheduleStartupTasks();
+    }, { timeout: 250 });
   }
 
-  function watchHapticsMute() {
-    // Left muted by a drag that didn't finish (or a quit mid-drag)
-    try {
-      if (Services.prefs.getBoolPref(MUTE_MARK, false) && hapticsWereOn === null) {
-        restoreHaptics(false);
-      }
-      // Before 2.40.1 the mute wasn't marked, so a drag that didn't finish left
-      // haptics off with no trace. Put them back once. Anyone who turns them
-      // off again afterwards is left alone.
-      if (!Services.prefs.getBoolPref(REPAIRED_MARK, false)) {
-        Services.prefs.setBoolPref(REPAIRED_MARK, true);
-        if (hapticsWereOn === null && !Services.prefs.getBoolPref(HAPTIC_PREF, true)) {
-          restoreHaptics(false);
-        }
-      }
-    } catch (err) {
-      noteError("start: watchHapticsMute", err);
-    }
-    let timer = 0;
-    const settle = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        const dragging =
-          root.hasAttribute("zia-dragging-tab") || !!document.querySelector(".tabbrowser-tab[zia-essential-dragged]");
-        if (hapticsWereOn !== null && !dragging) {
-          muteZenHaptics(false);
-        }
-      }, 800);
-    };
-    for (const type of ["dragend", "drop", "mouseup"]) {
-      window.addEventListener(type, settle, true);
-    }
+  function afterStartup(name, fn) {
+    startupTasks.push([name, fn]);
+    scheduleStartupTasks();
   }
 
-  function quietZenHaptics() {
-    const service = Services.zen;
-    if (typeof service?.playHapticFeedback === "function") {
-      zenHaptic = () => service.playHapticFeedback();
-    }
-  }
+  window.addEventListener("unload", () => {
+    startupStopped = true;
+    startupTasks.length = 0;
+    cancelIdleCallback(startupIdle);
+    clearTimeout(startupTimer);
+  }, { once: true });
 
   function canUnload(tab) {
     return tab?.linkedBrowser?.isRemoteBrowser !== false;
@@ -151,98 +102,12 @@
     }, { capture: true, passive: true });
   }
 
-  function watchEdgeGlow() {
-    let pending = 0;
-    const update = () => {
-      pending = 0;
-      if (!gBrowser?.selectedTab) {
-        return;
-      }
-      for (const el of document.querySelectorAll("[zia-no-glow]")) {
-        el.removeAttribute("zia-no-glow");
-      }
-      const tab = gBrowser.selectedTab;
-      if (!tab || tab.hasAttribute("zen-essential")) {
-        return;
-      }
-      // (a split glows as a whole: at the top, it's the split that goes
-      // without, whichever of its tabs is open)
-      const split = tab.group?.hasAttribute?.("split-view-group") ? tab.group : null;
-      const glowing = split || tab;
-
-      const sections = [
-        window.gZenWorkspaces?.pinnedTabsContainer,
-        window.gZenWorkspaces?.activeWorkspaceStrip,
-      ].filter(Boolean);
-      if (sections.length) {
-        const rows = [];
-        for (const section of sections) {
-          for (const row of section.querySelectorAll(
-            ".tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), .tab-group-label-container"
-          )) {
-            const box = row.getBoundingClientRect();
-            if (box.height > 4 && row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) !== false) {
-              rows.push(row);
-            }
-          }
-        }
-        if (rows[0] === tab || (split && split.contains(rows[0]))) {
-          glowing.setAttribute("zia-no-glow", "true");
-        }
-        return;
-      }
-      const mine = glowing.getBoundingClientRect();
-      if (!mine.height) {
-        return;
-      }
-      let above = false;
-      let below = false;
-      for (const row of document.querySelectorAll(
-        "#tabbrowser-tabs .tabbrowser-tab:not([zen-essential], [zen-empty-tab], [hidden]), #tabbrowser-tabs .tab-group-label-container"
-      )) {
-        if (row === tab || (split && split.contains(row))) {
-          continue;
-        }
-        const box = row.getBoundingClientRect();
-
-        if (!box.height || !box.width || box.right <= mine.left || box.left >= mine.right) {
-          continue;
-        }
-        if (row.checkVisibility?.({ opacityProperty: true, visibilityProperty: true }) === false) {
-          continue;
-        }
-        above ||= box.bottom <= mine.top + 1;
-        below ||= box.top >= mine.bottom - 1;
-      }
-      if (!above) {
-        glowing.setAttribute("zia-no-glow", "true");
-      }
-    };
-    const soon = () => {
-      update();
-      if (!pending) {
-        pending = requestAnimationFrame(update);
-      }
-
-      setTimeout(update, 250);
-    };
-    for (const type of [
-      "TabSelect", "TabOpen", "TabClose", "TabMove", "TabPinned", "TabUnpinned", "TabGrouped",
-      "TabUngrouped", "TabGroupCollapse", "TabGroupExpand", "TabShow", "TabHide",
-    ]) {
-      gBrowser.tabContainer.addEventListener(type, soon);
-    }
-    window.addEventListener("dragend", () => setTimeout(soon, 450), true);
-
-    setInterval(update, 1000);
-    soon();
-  }
-
   function start() {
     const urlbar = gURLBar.textbox || document.getElementById("urlbar");
 
+    safely("restoreNativeTabs", restoreNativeTabs);
     safely("applyZenDefaults", applyZenDefaults);
-    safely("setupIconPack", setupIconPack);
+    afterStartup("setupIconPack", setupIconPack);
     safely("watchOptions", watchOptions);
     safely("watchUrlbarPosition", watchUrlbarPosition);
     safely("watchPipWindows", watchPipWindows);
@@ -251,16 +116,7 @@
     safely("createWorkspaceSlot", createWorkspaceSlot);
     safely("watchTabAnimations", watchTabAnimations);
     safely("closeSplitTabsInPlace", closeSplitTabsInPlace);
-    safely("moveTabsLikeDia", moveTabsLikeDia);
     safely("hideTabListScrollbars", hideTabListScrollbars);
-    safely("addFolderBounce", addFolderBounce);
-    safely("keepFolderNamesInCollapsedSpaces", keepFolderNamesInCollapsedSpaces);
-    safely("tuckAwayUnopenedPins", tuckAwayUnopenedPins);
-    safely("revealOpenSubfolders", revealOpenSubfolders);
-    safely("keepSeparatorWhenPinsTuck", keepSeparatorWhenPinsTuck);
-    safely("keepTabsHiddenAfterActiveLeaves", keepTabsHiddenAfterActiveLeaves);
-    safely("openKeptFolderNames", openKeptFolderNames);
-    safely("allowEmojiFolderIcons", allowEmojiFolderIcons);
     safely("hideWwwInUrlbar", hideWwwInUrlbar);
     safely("watchRightEdges", watchRightEdges);
     ifOn("media-player", "watchMediaOpacity", watchMediaOpacity);
@@ -276,9 +132,9 @@
     safely("animateEssentialsAdds", animateEssentialsAdds);
     ifOn("undo-close", "watchUndoClose", watchUndoClose);
     ifOn("tab-numbers", "watchTabNumbers", watchTabNumbers);
-    safely("watchWelcome", watchWelcome);
-    safely("watchGlanceThumbs", watchGlanceThumbs);
-    safely("watchSidebarPanels", watchSidebarPanels);
+    afterStartup("watchWelcome", watchWelcome);
+    afterStartup("watchGlanceThumbs", watchGlanceThumbs);
+    afterStartup("watchSidebarPanels", watchSidebarPanels);
     safely("watchTypedAddress", watchTypedAddress);
     safely("registerScrollActor", registerScrollActor);
     safely("registerPdfActor", registerPdfActor);
@@ -287,23 +143,13 @@
     safely("watchTitleOnly", watchTitleOnly);
     safely("addDownloadProgress", addDownloadProgress);
     safely("flyFirstDownloadToButton", flyFirstDownloadToButton);
-    ifOn("icon-picker", "addIconPicker", addIconPicker);
+    afterStartup("addIconPicker", () => ifOn("icon-picker", "addIconPicker", addIconPicker));
     safely("watchCompactTopRow", watchCompactTopRow);
-    safely("watchOldIcons", watchOldIcons);
-    safely("watchNewFolders", watchNewFolders);
-    safely("watchReopenedFolders", watchReopenedFolders);
-    safely("watchFolderColors", watchFolderColors);
-    safely("watchFolderIcon", watchFolderIcon);
-    safely("addFolderColorPicker", addFolderColorPicker);
-    safely("watchGroupColors", watchGroupColors);
-    safely("watchFolderCloseButtons", watchFolderCloseButtons);
-    safely("watchEmptyFolders", watchEmptyFolders);
+    afterStartup("watchOldIcons", watchOldIcons);
     safely("watchEssentialRows", watchEssentialRows);
-    safely("watchSplitEssentials", watchSplitEssentials);
-    safely("watchLightSpace", watchLightSpace);
     safely("watchSidebarPaint", watchSidebarPaint);
     safely("watchWindowButtonsSide", watchWindowButtonsSide);
-    safely("addTabHoverCards", addTabHoverCards);
+    afterStartup("addTabHoverCards", addTabHoverCards);
 
     gBrowser.tabContainer.addEventListener("TabSelect", () => {
       const browser = gBrowser.selectedBrowser;
@@ -366,7 +212,6 @@
           return;
         }
         redirectBlankNewTab(browser, location, flags);
-        keepNewTabAddressEmpty(browser, location);
 
         if (flags & LOCATION_CHANGE_ERROR_PAGE) {
           errorBrowsers.add(browser);
@@ -421,13 +266,11 @@
     safely("suckInEssentialGlances", suckInEssentialGlances);
     safely("animateNavButtons", animateNavButtons);
     safely("springReloadHover", springReloadHover);
-    safely("watchExtensionIcons", watchExtensionIcons);
+    afterStartup("watchExtensionIcons", watchExtensionIcons);
     safely("keepSidebarUnscrolledSideways", keepSidebarUnscrolledSideways);
     safely("watchRealtimeTint", watchRealtimeTint);
     safely("watchColorDrift", watchColorDrift);
     safely("watchPopUpColor", watchPopUpColor);
-    safely("quietZenHaptics", quietZenHaptics);
-    safely("watchHapticsMute", watchHapticsMute);
     safely("watchUnloadable", watchUnloadable);
     safely("watchPageFullscreen", watchPageFullscreen);
     safely("watchSwipeArrow", watchSwipeArrow);
@@ -438,13 +281,23 @@
     updateTitle();
   }
 
+  const queueStart = () => {
+    if (!startupStopped) {
+      startupTimer = setTimeout(() => {
+        startupTimer = 0;
+        if (!startupStopped) {
+          safely("start", start);
+        }
+      }, 0);
+    }
+  };
   if (window.gBrowserInit?.delayedStartupFinished) {
-    start();
+    queueStart();
   } else {
     const observer = (subject) => {
       if (subject === window) {
         Services.obs.removeObserver(observer, "browser-delayed-startup-finished");
-        start();
+        queueStart();
       }
     };
     Services.obs.addObserver(observer, "browser-delayed-startup-finished");
