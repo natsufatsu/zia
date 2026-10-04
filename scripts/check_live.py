@@ -73,6 +73,7 @@ def run():
     parser.add_argument("--tab-glow-check", action="store_true", help="Check selected first-row, audio and split-tab glows")
     parser.add_argument("--realtime-tint-check", action="store_true", help="Check live tint sampling and smoothing")
     parser.add_argument("--workspace-icon-check", action="store_true", help="Check workspace icon swaps without blank frames")
+    parser.add_argument("--alignment-check", action="store_true", help="Check sidebar text and workspace SVG/text icon alignment")
     args = parser.parse_args()
     args.full_zia = True
     if not Path(args.zen).is_file() and not shutil.which(args.zen):
@@ -247,6 +248,11 @@ def run():
                 (run_dir / "tab-glow-results.json").write_text(json.dumps(glow_checks, indent=2), encoding="utf-8")
                 print("Tab glow checks:", json.dumps(glow_checks), flush=True)
                 assert not glow_checks.get("error"), glow_checks
+            if args.alignment_check:
+                alignment = client.script((ROOT / "tests/sidebar-alignment-live.js").read_text(encoding="utf-8"), asynchronous=True)
+                (run_dir / "alignment-results.json").write_text(json.dumps(alignment, indent=2), encoding="utf-8")
+                print("Alignment checks:", json.dumps(alignment), flush=True)
+                assert not alignment.get("error"), alignment
             if not args.inspect:
                 client.command("Marionette:SetContext", {"value": "content"})
                 print("Audio:", client.script("""

@@ -78,7 +78,7 @@ tests for the updater. CI runs this command on pushes and pull requests.
 
 Live checks launch two isolated headless Zen profiles and serve local test
 pages/audio. They exercise selected-tab glows, workspace icons in expanded
-and compact modes, real-time tint and media playback/layout/opacity. They never open your normal profile.
+and compact modes, icon/text alignment, real-time tint and media playback/layout/opacity. They never open your normal profile.
 Artifacts stay in the ignored `.build/live/` directory. Set `ZEN_BINARY` instead
 of passing `--zen` if preferred. `--quick-save PATH_TO_CHECKOUT` optionally
 checks coexistence with Quick Save Image; it is not required.
@@ -99,10 +99,12 @@ is required. Existing remote update branches are never force-pushed.
 
 ## Where custom changes belong
 
-Only glow fixes, workspace-icon caching, optional real-time tint and the custom
-workspace media player are retained. Other behavior and visuals follow upstream.
+Glow fixes, workspace-icon caching, optional real-time tint, the custom
+workspace media player and sidebar icon/text alignment are retained.
+Other behavior and visuals follow upstream.
 
-- src/css/99-fork-overrides.css: media decoration suppression and light-mode glow setting.
+- src/css/99-fork-overrides.css: sidebar text/workspace icon alignment, media
+  decoration suppression, player palette and light-mode glow setting.
 - src/js/04-space-label.js: workspace cache integration.
 - src/js/01a-realtime-tint.js: opt-in tint, with small sampler/startup/CSS patches.
 - src/js/07a-fork-media-workspace.js and src/css/09-music-player.css: retained player.

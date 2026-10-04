@@ -4,7 +4,15 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.91.4] ? 2026-10-04
+## [2.91.5] — 2026-10-04
+
+### Fixed
+
+- Restore the sidebar's 1px tab-text alignment, centered workspace SVG/text
+  icon and name line boxes, and Windows' 1px optical icon correction.
+- Protect alignment in future update patches and browser geometry checks.
+
+## [2.91.4] — 2026-10-04
 
 ### Updated
 

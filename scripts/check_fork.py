@@ -1,4 +1,4 @@
-"""Preserve four custom features while keeping all other upstream source intact."""
+"""Preserve custom features and alignment while keeping other upstream source intact."""
 from pathlib import Path
 import hashlib
 import json
@@ -17,7 +17,7 @@ def check():
         raise RuntimeError('Run checks without Python -O: assertions must be enabled')
     config = json.loads((ROOT / 'fork.json').read_text(encoding='utf-8'))
     assert config['schema'] == 2 and 'ownedFiles' not in config
-    assert config['retainedFeatures'] == ['tab-glow-fixes', 'workspace-icon-cache', 'realtime-tint', 'workspace-media-player']
+    assert config['retainedFeatures'] == ['tab-glow-fixes', 'workspace-icon-cache', 'realtime-tint', 'workspace-media-player', 'sidebar-alignment']
     assert not config['excludedFiles'] and not config['removedPreferences'], 'Unrelated upstream features must remain'
     assert config['removedHooks'] == ['watchEdgeGlow']
     assert set(config['documentationOverlays']) <= {'README.md', 'CHANGELOG.md'}
@@ -66,7 +66,10 @@ def check():
                               '    safely("watchRealtimeTint", watchRealtimeTint);\n    safely("watchColorDrift", watchColorDrift);')
     assert text('src/js/29-start.js') == startup, 'Unrelated upstream startup behavior changed'
     assert 'tabbrowser-tab[zia-no-glow]' not in text('src/css/05-tab-dragging.css')
-    assert 'translate: 0 -1px' not in text('src/css/99-fork-overrides.css'), 'Unrequested alignment patch retained'
+    alignment = text('src/css/99-fork-overrides.css')
+    for token in ('translate: 0 -1px', '#zia-space-label > .zia-space-name', 'line-height: 16px',
+                  '#zia-space-label > .zia-space-svg svg', 'translate: 0 1px', 'translate: none'):
+        assert token in alignment, f'Alignment fix missing: {token}'
     for token in ('spaceIconCache = new Map()', 'warmSpaceIcons()', 'request === spaceLabelRequest', 'svg.cloneNode(true)'):
         assert token in text('src/js/04-space-label.js'), f'Workspace cache missing: {token}'
 
@@ -80,7 +83,7 @@ def check():
         assert next(p for p in prefs if p.get('property') == key)['defaultValue'] == value, f'Default changed: {key}'
     for name, expected in config['protectedHashes'].items():
         assert hashlib.sha256(text(name).encode('utf-8')).hexdigest() == expected, f'Protected component changed: {name}'
-    print(f'Passed: {len(upstream - changed)} upstream files intact; four retained features, player fixtures and settings preserved.')
+    print(f'Passed: {len(upstream - changed)} upstream files intact; retained features, alignment, player fixtures and settings preserved.')
 
 
 if __name__ == '__main__':

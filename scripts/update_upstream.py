@@ -148,8 +148,7 @@ def prepare_metadata(worktree, state):
         entry = (f"## [{state['version']}] — {datetime.date.today().isoformat()}\n\n### Updated\n\n"
                  f"- Build from upstream {upstream['version']} and reapply the fork's custom patches/modules.\n"
                  f"  [Upstream changes]({compare}).\n"
-                 "- Preserve the sidebar appearance, player, native folders/dragging,\n"
-                 "  previous fixes and off-by-default real-time tint.\n\n")
+                 "- Preserve the recorded fork customizations and protected defaults.\n\n")
         write(worktree / "CHANGELOG.md", changelog[:index.start()] + entry + changelog[index.start():])
     state["metadataPrepared"] = True
     save_state(worktree, state)

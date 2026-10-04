@@ -33,7 +33,7 @@ def main():
     if args.live:
         extra = (["--zen", args.zen] if args.zen else []) + (["--quick-save", args.quick_save] if args.quick_save else [])
         run([sys.executable, "scripts/check_live.py", "--workspace-icon-check",
-             "--realtime-tint-check", "--tab-glow-check", *extra])
+             "--realtime-tint-check", "--tab-glow-check", "--alignment-check", *extra])
         run([sys.executable, "scripts/check_live.py", "--inspect", "--compact-startup",
              "--workspace-icon-check", *extra])
     else:

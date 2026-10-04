@@ -1,5 +1,37 @@
 /* Retained glow and media decoration fixes. Keep after upstream styles. */
 
+/* Keep sidebar text aligned with its favicon without moving the tab row. */
+:root[zen-sidebar-expanded="true"] .tabbrowser-tab:not([zen-essential]) .tab-label-container {
+  translate: 0 -1px;
+}
+
+/* Workspace names and either icon share a centered 16px line box. */
+#zia-space-label,
+#zia-space-label > .zia-space-name {
+  line-height: 16px;
+}
+
+#zia-space-label[zia-has-icon]::before {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  line-height: 16px;
+}
+
+/* Apply Windows' optical correction to the glyph, keeping its box centered. */
+@media (-moz-platform: windows) {
+  #zia-space-label[zia-has-icon]::before,
+  #zia-space-label > .zia-space-svg svg {
+    translate: 0 1px;
+  }
+  #zia-space-label > .zia-space-svg {
+    translate: none;
+  }
+}
+
 /* Hide media-only decorations while preserving the selected regular tab's
    glow and shine. Zen also draws music notes above essential favicons. */
 :root:not(#zia-native-media):not(#zia-native-media-2) .tabbrowser-tab:is([soundplaying], [muted]) .tab-icon-stack::after {

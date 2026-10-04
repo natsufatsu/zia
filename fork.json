@@ -51,6 +51,7 @@
     "tests/live/retained_features_live_checks.js",
     "tests/realtime-tint-live.js",
     "tests/realtime-tint.cjs",
+    "tests/sidebar-alignment-live.js",
     "tests/tab-glow-live.js",
     "tests/test_updater.py",
     "tests/workspace-icon-live.js"
@@ -79,7 +80,7 @@
     "src/css/09-music-player.css": "9ba35e4e115e6449ea1e4d9b8b1778512d3193bd717d239d7358cf46df89b5cc",
     "src/js/01a-realtime-tint.js": "9679df50195fcc71757ef0ef496781924c1d350d204ae8a6cccd554c906bb13e",
     "src/js/07a-fork-media-workspace.js": "e11654938ad854ac8f60182040907f31370989a5e0c74507fcf3ad2cc8fc550c",
-    "src/css/99-fork-overrides.css": "893d0832d8e13ec0799a8b87fab5f034a2414b494b2151cbd4d686aed36e570f",
+    "src/css/99-fork-overrides.css": "add2c5edabcf9d0910d80bea2f77f27977b0a48a6014985ab1dc880454b6ea69",
     "tests/fixtures/media-player/LICENSE": "316cbbeeae8ed0a706e38dcd85579a5ce3c13e9bbcea2c8ab6427cdb96a8e945",
     "tests/fixtures/media-player/chrome.css": "77096639788a5ef8f7b1ebf1c4e1592e39b70364e270a37a089f80b121457950",
     "tests/fixtures/media-player/icons/sound-muted.svg": "bbb59cb3eb7810dd62784cc2aa46feca08607f591c0c8a7e8c4311c0316ff76c",
@@ -91,6 +92,7 @@
     "tab-glow-fixes",
     "workspace-icon-cache",
     "realtime-tint",
-    "workspace-media-player"
+    "workspace-media-player",
+    "sidebar-alignment"
   ]
 }
