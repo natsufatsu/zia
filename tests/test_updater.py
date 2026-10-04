@@ -207,6 +207,14 @@ class UpdateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             updater.next_version("dev", "2.90.0")
 
+    def test_shared_file_cannot_bypass_patching_as_fork_addition(self):
+        self.config["modifiedFiles"].remove("player.js")
+        self.config["forkFiles"].append("player.js")
+        self.put("fork.json", json.dumps(self.config))
+        self.commit("invalid shared-file copy policy")
+        with self.assertRaisesRegex(RuntimeError, "Shared files must use patches"):
+            self.prepare(self.base)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -52,6 +52,7 @@ def check():
     assert CONFIG['schema'] == 2 and 'ownedFiles' not in CONFIG, "Use the upstream-first patch policy"
     assert set(CONFIG['documentationOverlays']) <= {'README.md', 'CHANGELOG.md'}, "Source files cannot be copied over upstream"
     base, variant = files(BASE), files(VARIANT)
+    assert not ADDED & set(base), "Shared files must use patches, not forkFiles"
     OMITTED = set(CONFIG["excludedFiles"])
     expected_files = (set(base) - OMITTED) | ADDED
     assert set(variant) == expected_files, (f"Unclassified files: {sorted(set(variant) - expected_files)}; "

@@ -68,6 +68,8 @@ def validate_policy(root, config, source):
     if modified & added or excluded & (modified | added):
         raise RuntimeError("Fork file classifications overlap.")
     base_names, fork_names = names(root, baseline), names(root, source)
+    if added & base_names:
+        raise RuntimeError(f"Shared files must use patches, not forkFiles: {sorted(added & base_names)}")
     if fork_names != (base_names - excluded) | added:
         raise RuntimeError("Fork additions/removals differ from fork.json; classify them before updating.")
     changed = set(git(root, "diff", "--no-renames", "--name-only", baseline, source).stdout.splitlines())
