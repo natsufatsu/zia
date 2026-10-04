@@ -160,6 +160,8 @@
     card.hidden = true;
     const searchBar = document.createElementNS(XHTML_NS, "div");
     searchBar.className = "zia-folder-card-search-bar";
+    const searchField = document.createElementNS(XHTML_NS, "div");
+    searchField.className = "zia-folder-card-search-field";
     const searchIcon = document.createElementNS(XHTML_NS, "span");
     searchIcon.className = "zia-folder-card-search-icon";
     searchIcon.setAttribute("aria-hidden", "true");
@@ -169,7 +171,32 @@
     search.className = "zia-folder-card-search";
     search.setAttribute("autocomplete", "off");
     search.addEventListener("input", () => filterFolderCard(card));
-    searchBar.append(searchIcon, search);
+    searchField.append(searchIcon, search);
+    searchField.addEventListener("click", () => search.focus());
+    const copy = document.createElementNS(XHTML_NS, "button");
+    copy.type = "button";
+    copy.tabIndex = -1;
+    copy.className = "zia-folder-card-copy";
+    copy.textContent = "Copy links";
+    copy.title = "Copy all tab URLs in this folder";
+    let copiedTimer;
+    copy.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const urls = folderTabURLs(card.ziaFolder);
+      if (!urls.length) {
+        return;
+      }
+      card.dispatchEvent(new CustomEvent("zia-card-acting"));
+      try {
+        Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(urls.join("\n"));
+        clearTimeout(copiedTimer);
+        copy.textContent = "Copied";
+        copiedTimer = setTimeout(() => copy.textContent = "Copy links", 1200);
+      } catch (err) {
+        noteError("hover cards: copy folder links", err);
+      }
+    });
+    searchBar.append(searchField, copy);
     const list = document.createElementNS(XHTML_NS, "div");
     list.className = "zia-folder-card-list";
     list.tabIndex = -1;
@@ -236,8 +263,13 @@
       search.value = "";
     }
     const name = folder.label || "folder";
-    search.placeholder = `Search ${name}...`;
+    search.placeholder = "Search";
     search.setAttribute("aria-label", `Search tabs in ${name}`);
+    const copy = card.querySelector(".zia-folder-card-copy");
+    copy.disabled = !folderTabURLs(folder).length;
+    if (!sameFolder) {
+      copy.textContent = "Copy links";
+    }
     card.ziaFolder = folder;
     // (its colour, for the card to take when that's on: chrome.css)
     const color = folder.getAttribute("zia-folder-color");
@@ -281,8 +313,8 @@
       row.append(button);
       rows.push(row);
     }
-    const add = document.createElementNS(XHTML_NS, "button");
-    add.type = "button";
+    const add = document.createElementNS(XHTML_NS, "div");
+    add.setAttribute("role", "button");
     add.tabIndex = -1;
     add.className = "zia-folder-card-row";
     add.setAttribute("zia-new-tab", "true");
@@ -316,6 +348,14 @@
     list.append(empty);
     card.querySelector(".zia-folder-card-footer").replaceChildren(add);
     filterFolderCard(card, !sameFolder);
+  }
+
+  function folderTabURLs(folder) {
+    // Copy the entire folder in tab order, independently of the search filter.
+    return (folder?.tabs || [])
+      .filter((tab) => !tab.closing && !tab.hasAttribute("zen-empty-tab"))
+      .map((tab) => tab.linkedBrowser?.currentURI?.spec || "")
+      .filter(Boolean);
   }
 
   function filterFolderCard(card, resetScroll = true) {

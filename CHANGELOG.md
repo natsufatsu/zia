@@ -4,6 +4,20 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.9] - 2026-10-04
+
+### Added
+
+- Copy links beside folder search: copy all folder tab URLs in order, one per
+  line, including tabs hidden by the search filter.
+
+### Fixed
+
+- Match the supplied search design with an inset search icon, a subtle
+  rectangular field and matching Copy links button. Remove the nested input pill.
+- Restore the original New Tab row size, typography and spacing while keeping
+  it fixed at the bottom. Remove excess footer padding and its separator.
+
 ## [2.86.8] - 2026-10-04
 
 ### Fixed

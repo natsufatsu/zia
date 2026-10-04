@@ -4,6 +4,17 @@ const gb = win.gBrowser, root = doc.documentElement, toolbox = doc.getElementByI
 const results = {positions: []}, folders = [];
 const delay = ms => new Promise(resolve => win.setTimeout(resolve, ms));
 const check = (ok, message) => { if (!ok) throw new Error(message); };
+async function snapshot(card) {
+  const box = card.getBoundingClientRect();
+  const bitmap = await win.browsingContext.currentWindowGlobal.drawSnapshot(
+    new win.DOMRect(box.x, box.y, box.width, box.height), 2, '#202020');
+  const canvas = doc.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0);
+  bitmap.close();
+  return canvas.toDataURL().split(',')[1];
+}
 async function waitFor(fn, name) {
   const end = Date.now() + 2500;
   while (Date.now() < end) { if (fn()) return; await delay(30); }
@@ -47,7 +58,7 @@ async function leave(card) {
     toolbox.setAttribute('zen-user-show', 'true');
     await delay(400);
     for (const size of [2, 12]) {
-      const tabs = Array.from({length: size}, () => gb.addTrustedTab('about:blank', {inBackground: true}));
+      const tabs = Array.from({length: size}, (_, i) => gb.addTrustedTab('about:blank#folder-tab-' + i, {inBackground: true}));
       tabs.forEach((tab, i) => tab.label = 'Folder tab ' + i);
       const folder = await win.gZenFolders.createFolder(tabs, {label: 'Hover ' + size, renameFolder: false});
       folders.push(folder);
@@ -70,6 +81,20 @@ async function leave(card) {
           check(box.top <= anchor.top + 1 && box.bottom >= anchor.bottom - 1, 'Hover card displaced from folder');
           if (top === 10) check(box.top <= 10, 'High folder card was displaced downwards');
           check(card.querySelector('[zia-new-tab]'), 'New Tab action missing');
+          const add = card.querySelector('[zia-new-tab]'), rowBox = rows[0].getBoundingClientRect();
+          const addBox = add.getBoundingClientRect();
+          check(Math.abs(addBox.height - rowBox.height) < 1, 'New Tab row is taller than tab rows');
+          check(win.getComputedStyle(add).fontSize === win.getComputedStyle(rows[0]).fontSize, 'New Tab text size differs from tabs');
+          check(addBox.left === rowBox.left && addBox.width === rowBox.width, 'New Tab row horizontal alignment differs from tabs');
+          const field = card.querySelector('.zia-folder-card-search-field'), search = card.querySelector('.zia-folder-card-search');
+          check(win.getComputedStyle(search).borderRadius === '0px' && win.getComputedStyle(search).borderTopWidth === '0px',
+            'Native search input pill returned');
+          check(win.getComputedStyle(field).borderRadius === '8px', 'Search field lost reference corner radius');
+          if (size === 2) {
+            const gap = rows[1].getBoundingClientRect().top - rowBox.bottom;
+            check(Math.abs(addBox.top - rows[1].getBoundingClientRect().bottom - gap) < 1,
+              'Extra space separates New Tab from folder tabs');
+          }
           if (size === 12) {
             const list = card.querySelector('.zia-folder-card-list');
             check(list.scrollHeight > list.clientHeight, 'Long folder preview does not scroll');
@@ -84,6 +109,10 @@ async function leave(card) {
             list.scrollTop = 0;
           }
           results.positions.push({size, right, top: box.top, height: box.height});
+          if (!right && top === 10) {
+            results.screenshots ||= {};
+            results.screenshots['folder-' + size] = await snapshot(card);
+          }
           await leave(card);
         }
       }
@@ -117,13 +146,22 @@ async function leave(card) {
       'Typing search loses preview or compact sidebar');
     query('folder tab 11');
     const selectedResult = visibleRows()[0].ziaTab;
+    const copy = searchedCard.querySelector('.zia-folder-card-copy');
+    const expectedURLs = folders[1].tabs.filter(tab => !tab.closing && !tab.hasAttribute('zen-empty-tab'))
+      .map(tab => tab.linkedBrowser.currentURI.spec);
+    copy.click();
+    const copiedURLs = await win.navigator.clipboard.readText();
+    check(expectedURLs.length === 12 && new Set(expectedURLs).size === 12, 'Copy fixture lost distinct folder URLs');
+    check(copiedURLs === expectedURLs.join('\n'), 'Copy links did not include every tab in folder order while filtered');
+    check(copy.textContent === 'Copied' && !searchedCard.hidden && search.value === 'folder tab 11', 'Copy feedback changed search or hid preview');
+    results.copyAllLinks = true;
     for (const key of ['Tab', 'Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']) {
       const event = new win.KeyboardEvent('keydown', {key, bubbles: true, cancelable: true});
       search.dispatchEvent(event);
       check(!event.defaultPrevented && gb.selectedTab === start, 'Preview intercepted search key: ' + key);
     }
     check(search.value === 'folder tab 11', 'Preview shortcut changed search text');
-    check(search.tabIndex === -1 && searchedCard.querySelector('[zia-new-tab]').tabIndex === -1 && list.tabIndex === -1,
+    check(search.tabIndex === -1 && copy.tabIndex === -1 && searchedCard.querySelector('[zia-new-tab]').tabIndex === -1 && list.tabIndex === -1,
       'Preview controls entered normal Tab traversal');
     visibleRows()[0].click();
     check(gb.selectedTab === selectedResult, 'Click did not select filtered result');

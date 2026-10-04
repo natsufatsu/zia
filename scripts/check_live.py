@@ -338,6 +338,8 @@ def run():
                 assert not icon_checks.get("error"), icon_checks
             if args.folder_preview_check:
                 hover_checks = client.script((ROOT / "tests/folder-hover-card-live.js").read_text(encoding="utf-8"), asynchronous=True, timeout=40000)
+                for name, screenshot in hover_checks.pop("screenshots", {}).items():
+                    (run_dir / f"{name}.png").write_bytes(base64.b64decode(screenshot))
                 (run_dir / "folder-hover-card-results.json").write_text(json.dumps(hover_checks, indent=2), encoding="utf-8")
                 print("Folder hover card checks:", json.dumps(hover_checks), flush=True)
                 assert not hover_checks.get("error"), hover_checks
