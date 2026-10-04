@@ -4,7 +4,20 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.86.6] ? 2026-10-04
+## [2.86.7] - 2026-10-04
+
+### Added
+
+- A fixed search bar on folder previews, filtering tab titles and URLs.
+- Keyboard selection with Enter, clearing/dismissal with Escape, and a
+  no-results message. Search retains its query and focus during tab actions.
+
+### Fixed
+
+- Keep New Tab visible in a fixed footer while only the folder tab list scrolls.
+- Keep the preview and compact sidebar open while typing in search.
+
+## [2.86.6] - 2026-10-04
 
 ### Added
 

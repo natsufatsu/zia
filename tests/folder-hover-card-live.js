@@ -72,12 +72,63 @@ async function leave(card) {
           if (size === 12) {
             const list = card.querySelector('.zia-folder-card-list');
             check(list.scrollHeight > list.clientHeight, 'Long folder preview does not scroll');
+            const add = card.querySelector('[zia-new-tab]'), searchBar = card.querySelector('.zia-folder-card-search-bar');
+            check(!list.contains(add), 'New Tab still belongs to the scrolling list');
+            const addTop = add.getBoundingClientRect().top, searchTop = searchBar.getBoundingClientRect().top;
+            list.scrollTop = list.scrollHeight;
+            await delay(30);
+            check(Math.abs(add.getBoundingClientRect().top - addTop) < 1, 'New Tab moves when tabs scroll');
+            check(Math.abs(searchBar.getBoundingClientRect().top - searchTop) < 1, 'Search moves when tabs scroll');
+            check(add.getBoundingClientRect().bottom <= box.bottom, 'New Tab extends below preview');
+            list.scrollTop = 0;
           }
           results.positions.push({size, right, top: box.top, height: box.height});
           await leave(card);
         }
       }
     }
+    results.fixedSearchAndFooter = true;
+    Services.prefs.setBoolPref(side, false);
+    await delay(150);
+    // about:blank's initial title update can replace labels during the long placement check.
+    [...folders[1].tabs].filter(tab => !tab.hasAttribute('zen-empty-tab'))
+      .forEach((tab, i) => tab.label = 'Folder tab ' + i);
+    let searchedCard = await hover(folders[1], 100);
+    const search = searchedCard.querySelector('.zia-folder-card-search');
+    const list = searchedCard.querySelector('.zia-folder-card-list');
+    const footerTop = searchedCard.querySelector('[zia-new-tab]').getBoundingClientRect().top;
+    const visibleRows = () => [...list.querySelectorAll('.zia-folder-card-row:not([hidden])')];
+    const query = value => { search.value = value; search.dispatchEvent(new win.Event('input', {bubbles: true})); };
+    query('fOlDeR TaB 1');
+    check(visibleRows().length === 3, 'Case-insensitive title search failed');
+    check(Math.abs(searchedCard.querySelector('[zia-new-tab]').getBoundingClientRect().top - footerTop) < 1,
+      'Search results moved the fixed footer');
+    query('about:blank');
+    check(visibleRows().length === 12, 'URL search failed');
+    query('no-such-tab');
+    check(visibleRows().length === 0 && !list.querySelector('.zia-folder-card-empty').hidden, 'No-results state missing');
+    check(!searchedCard.querySelector('[zia-new-tab]').hidden, 'Search hid New Tab');
+    search.focus();
+    currentLabel.dispatchEvent(new win.MouseEvent('mouseout', {bubbles: true}));
+    searchedCard.dispatchEvent(new win.MouseEvent('mouseleave'));
+    await delay(350);
+    check(!searchedCard.hidden && doc.activeElement === search && toolbox.hasAttribute('has-popup-menu'),
+      'Typing search loses preview or compact sidebar');
+    search.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    check(search.value === '' && visibleRows().length === 12, 'Escape did not clear search');
+    query('folder tab 11');
+    const selectedResult = visibleRows()[0].ziaTab;
+    search.dispatchEvent(new win.KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true}));
+    check(gb.selectedTab === selectedResult, 'Enter did not select filtered result');
+    gb.selectedTab = start;
+    await leave(searchedCard);
+    searchedCard = await hover(folders[1], 100);
+    check(searchedCard.querySelector('.zia-folder-card-search').value === '', 'Search did not reset after reopening');
+    searchedCard.querySelector('.zia-folder-card-search').focus();
+    searchedCard.querySelector('.zia-folder-card-search').dispatchEvent(
+      new win.KeyboardEvent('keydown', {key: 'Escape', bubbles: true, cancelable: true}));
+    await leave(searchedCard);
+    results.search = {titles: true, urls: true, empty: true, focus: true, enter: true, escape: true, reset: true};
     const folder = folders[0];
     Services.prefs.setBoolPref(side, false);
     await delay(150);
@@ -88,11 +139,20 @@ async function leave(card) {
     let card = await hover(folder, 100);
     const muteRow = [...card.querySelectorAll('.zia-folder-card-row')].find(row => row.ziaTab === muted);
     check(muteRow, 'Muted tab missing from folder preview');
+    const retainedSearch = card.querySelector('.zia-folder-card-search');
+    retainedSearch.value = muted.label;
+    retainedSearch.dispatchEvent(new win.Event('input', {bubbles: true}));
+    retainedSearch.focus();
     muteRow.querySelector('[zia-act="mute"]').click();
     check(!muted.hasAttribute('muted'), 'Preview mute action did not unmute its tab');
     await waitFor(() => ![...card.querySelectorAll('.zia-folder-card-row')]
       .find(row => row.ziaTab === muted)?.querySelector('[zia-act="mute"]'), 'mute row refresh');
     results.muteAction = true;
+    check(card.querySelector('.zia-folder-card-search') === retainedSearch &&
+      retainedSearch.value === muted.label && doc.activeElement === retainedSearch, 'Control refresh reset search or its focus');
+    retainedSearch.value = '';
+    retainedSearch.dispatchEvent(new win.Event('input', {bubbles: true}));
+    results.searchSurvivesRefresh = true;
     // Moving into the preview keeps it and the compact sidebar open.
     win.InspectorUtils.addPseudoClassLock(card, ':hover');
     card.dispatchEvent(new win.MouseEvent('mouseenter'));
@@ -121,7 +181,9 @@ async function leave(card) {
     await leave(card);
     const internal = gb.addTrustedTab('about:preferences', {inBackground: true});
     folder.addTabs([internal]);
-    await waitFor(() => internal.linkedBrowser.isRemoteBrowser === false, 'non-unloadable folder tab');
+    await waitFor(() => internal.linkedBrowser.isRemoteBrowser === false &&
+      internal.linkedBrowser.currentURI?.spec === 'about:preferences' &&
+      internal.linkedBrowser.contentDocument?.readyState === 'complete', 'non-unloadable folder tab');
     gb.selectedTab = start;
     await delay(200);
     folder.collapsed = true;

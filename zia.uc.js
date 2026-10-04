@@ -6979,6 +6979,41 @@
     const card = document.createElementNS(XHTML_NS, "div");
     card.id = "zia-folder-card";
     card.hidden = true;
+    const searchBar = document.createElementNS(XHTML_NS, "div");
+    searchBar.className = "zia-folder-card-search-bar";
+    const searchIcon = document.createElementNS(XHTML_NS, "span");
+    searchIcon.className = "zia-folder-card-search-icon";
+    searchIcon.setAttribute("aria-hidden", "true");
+    const search = document.createElementNS(XHTML_NS, "input");
+    search.type = "search";
+    search.className = "zia-folder-card-search";
+    search.setAttribute("autocomplete", "off");
+    search.addEventListener("input", () => filterFolderCard(card));
+    search.addEventListener("keydown", (event) => {
+      if (event.isComposing) {
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (search.value) {
+          search.value = "";
+          filterFolderCard(card);
+        } else {
+          card.dispatchEvent(new CustomEvent("zia-card-dismiss"));
+        }
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        card.querySelector(".zia-folder-card-list > .zia-folder-card-row:not([hidden])")?.click();
+      }
+    });
+    searchBar.append(searchIcon, search);
+    const list = document.createElementNS(XHTML_NS, "div");
+    list.className = "zia-folder-card-list";
+    const footer = document.createElementNS(XHTML_NS, "div");
+    footer.className = "zia-folder-card-footer";
+    card.append(searchBar, list, footer);
     card.addEventListener("click", (event) => {
       const row = event.target.closest?.(".zia-folder-card-row");
       if (!row) {
@@ -7033,6 +7068,14 @@
   }
 
   function fillFolderCard(card, folder) {
+    const sameFolder = card.ziaFolder === folder && !card.hidden && !card.hasAttribute("zia-closing");
+    const search = card.querySelector(".zia-folder-card-search");
+    if (!sameFolder) {
+      search.value = "";
+    }
+    const name = folder.label || "folder";
+    search.placeholder = `Search ${name}...`;
+    search.setAttribute("aria-label", `Search tabs in ${name}`);
     card.ziaFolder = folder;
     // (its colour, for the card to take when that's on: chrome.css)
     const color = folder.getAttribute("zia-folder-color");
@@ -7046,6 +7089,7 @@
       const row = document.createElementNS(XHTML_NS, "div");
       row.className = "zia-folder-card-row";
       row.ziaTab = tab;
+      row.ziaSearchText = `${tab.label || "New Tab"} ${tab.linkedBrowser?.currentURI?.spec || ""}`.toLocaleLowerCase();
       row.toggleAttribute("zia-selected", tab.selected);
       row.append(folderCardIcon(gBrowser.getIcon(tab) || DEFAULT_TAB_ICON, "zia-folder-card-icon"));
       if (tab.hasAttribute("soundplaying") || tab.hasAttribute("muted")) {
@@ -7075,7 +7119,8 @@
       row.append(button);
       rows.push(row);
     }
-    const add = document.createElementNS(XHTML_NS, "div");
+    const add = document.createElementNS(XHTML_NS, "button");
+    add.type = "button";
     add.className = "zia-folder-card-row";
     add.setAttribute("zia-new-tab", "true");
     add.append(newTabButtonIcon());
@@ -7093,18 +7138,40 @@
       );
     }
     add.append(addLabel);
-    rows.push(add);
 
-    const list = document.createElementNS(XHTML_NS, "div");
-    list.className = "zia-folder-card-list";
+    const list = card.querySelector(".zia-folder-card-list");
     const inset = tabEdgeInset();
     if (inset) {
-      list.style.setProperty("--zia-folder-card-inset", `${inset}px`);
+      card.style.setProperty("--zia-folder-card-inset", `${inset}px`);
     }
-    const scrolled = card.querySelector(".zia-folder-card-list")?.scrollTop || 0;
-    list.append(...rows);
-    card.replaceChildren(list);
-    list.scrollTop = scrolled;
+    // Reserve the unfiltered list's height so the fixed footer stays put while searching.
+    card.style.setProperty("--zia-folder-card-rows", Math.min(10, Math.max(1, rows.length)));
+    list.replaceChildren(...rows);
+    const empty = document.createElementNS(XHTML_NS, "div");
+    empty.className = "zia-folder-card-empty";
+    empty.setAttribute("role", "status");
+    list.append(empty);
+    card.querySelector(".zia-folder-card-footer").replaceChildren(add);
+    filterFolderCard(card, !sameFolder);
+  }
+
+  function filterFolderCard(card, resetScroll = true) {
+    const query = card.querySelector(".zia-folder-card-search").value.trim().toLocaleLowerCase();
+    const list = card.querySelector(".zia-folder-card-list");
+    const rows = [...list.querySelectorAll(".zia-folder-card-row")];
+    let matches = 0;
+    for (const row of rows) {
+      row.hidden = !!query && !row.ziaSearchText.includes(query);
+      if (!row.hidden) {
+        matches++;
+      }
+    }
+    const empty = list.querySelector(".zia-folder-card-empty");
+    empty.hidden = matches > 0;
+    empty.textContent = rows.length ? "No matching tabs" : "No tabs in this folder";
+    if (resetScroll) {
+      list.scrollTop = 0;
+    }
   }
 
   // How far a tab's icon sits in from the tab's edge in the sidebar: the
@@ -7200,7 +7267,8 @@
     const CARD_OUT_MS = 120;
     let closeTimer = 0;
     const cardUp = () => [card, folderCard].some((each) => each && !each.hidden && !each.hasAttribute("zia-closing"));
-    const cardHovered = () => [card, folderCard].some((each) => each && !each.hidden && each.matches(":hover"));
+    const cardHovered = () => [card, folderCard].some((each) => each && !each.hidden && each.matches(":hover")) ||
+      !!folderCard && !folderCard.hidden && folderCard.matches(":focus-within");
 
     // In compact mode the sidebar hides once the pointer leaves it, and the
     // cards sit outside it, so while the pointer is on a card Zia holds the
@@ -7241,6 +7309,9 @@
       clearTimeout(showTimer);
       clearTimeout(hideTimer);
       current = null;
+      if (folderCard?.contains(document.activeElement)) {
+        document.activeElement.blur();
+      }
       for (const each of [card, folderCard]) {
         if (each && !each.hidden && !each.hasAttribute("zia-closing")) {
           each.removeAttribute("zia-snap");
@@ -7270,6 +7341,12 @@
     const openCard = (shown, other, wasUp) => {
       clearTimeout(closeTimer);
       if (other) {
+        if (other === folderCard) {
+          if (other.contains(document.activeElement)) {
+            document.activeElement.blur();
+          }
+          holdSidebar(false);
+        }
         other.hidden = true;
         other.removeAttribute("zia-open");
         other.removeAttribute("zia-closing");
@@ -7324,9 +7401,25 @@
           holdSidebar(true);
         });
         folderCard.addEventListener("mouseleave", () => {
-          holdSidebar(false);
+          if (!folderCard.matches(":focus-within")) {
+            holdSidebar(false);
+          }
           hideSoon();
         });
+        folderCard.addEventListener("focusin", () => {
+          clearTimeout(hideTimer);
+          holdSidebar(true);
+        });
+        folderCard.addEventListener("focusout", () => {
+          setTimeout(() => {
+            if (!folderCard.hidden && !folderCard.hasAttribute("zia-closing") &&
+                !folderCard.matches(":hover, :focus-within")) {
+              holdSidebar(false);
+              hideSoon();
+            }
+          }, 0);
+        });
+        folderCard.addEventListener("zia-card-dismiss", () => hide(true));
         folderCard.addEventListener("zia-card-acting", () => {
           keepCardUntil = Date.now() + 1200;
           clearTimeout(hideTimer);
@@ -7428,9 +7521,14 @@
     toolbox.addEventListener("mousedown", () => hide(), true);
     toolbox.addEventListener("dragstart", () => hide(true), true);
     toolbox.addEventListener("wheel", () => hide(), { passive: true, capture: true });
+    window.addEventListener("mousedown", (event) => {
+      if (folderCard && !folderCard.hidden && !folderCard.contains(event.target)) {
+        hide(true);
+      }
+    }, true);
     for (const type of ["TabSelect", "TabClose"]) {
       gBrowser.tabContainer.addEventListener(type, () => {
-        if ((Date.now() < keepCardUntil && folderCard && !folderCard.hidden) || [card, folderCard].some((each) => each && !each.hidden && each.matches(":hover"))) {
+        if ((Date.now() < keepCardUntil && folderCard && !folderCard.hidden) || cardHovered()) {
           return;
         }
         hide();
@@ -7438,7 +7536,7 @@
     }
     window.addEventListener("blur", () => {
       if (Date.now() >= keepCardUntil) {
-        hide();
+        hide(!!folderCard?.matches(":focus-within"));
       }
     });
   }

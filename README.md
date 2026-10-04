@@ -3,7 +3,7 @@
 A fork of [Zia](https://github.com/z1n-k/zia) 2.86.2 with the layout,
 workspace colors and opacity controls from
 [Zia Media Player](https://github.com/natsufatsu/zia-media-player) 1.0.8.
-Current version: **2.86.6**.
+Current version: **2.86.7**.
 
 This edition uses **native Zen tab groups, folders and sidebar tab dragging**.
 Zia's group boxes, colors, collapse animations, naming, extra group menus
@@ -118,6 +118,10 @@ including upstream preview padding improvements. Native folders, dragging,
 alignment fixes and all existing custom modules remain intact.
 
 ## Install or update
+
+Folder previews keep search at the top and **New Tab** at the bottom while
+the tab list scrolls. Search matches tab titles and URLs. Enter opens the
+first matching tab; Escape clears the search, then closes the preview.
 
 1. Enable unofficial JavaScript mods in Sine.
 2. Remove original `z1n-k/zia` if installed, then install **`natsufatsu/zia`**.
