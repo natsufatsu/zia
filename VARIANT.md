@@ -4,7 +4,16 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.11.
+- Current variant: 2.86.12.
+
+## Blocked-media icon outline (2.86.12)
+
+Extend the media icon decoration override to `activemedia-blocked` tabs.
+Personal media CSS can replace the favicon with a square overlay; Zia's
+outline for a circular badge otherwise becomes a persistent white frame.
+Preserve that custom icon while removing its outline and shadow. Live checks
+reproduce the conflict at user stylesheet origin on an unfocused tab and
+verify selected-tab glows still work in the blocked state.
 
 ## Folder preview scrollbar (2.86.11)
 

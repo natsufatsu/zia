@@ -36,7 +36,9 @@
   display: none !important;
 }
 
-:root:not(#zia-native-media):not(#zia-native-media-2) .tab-icon-overlay:not([crashed]):is([soundplaying], [muted]) {
+/* Include autoplay-blocked tabs: personal media styles can make this badge
+   square, turning Zia's circular outline into a frame around the icon. */
+:root:not(#zia-native-media):not(#zia-native-media-2) .tab-icon-overlay:not([crashed]):is([soundplaying], [muted], [activemedia-blocked]) {
   background: transparent !important;
   box-shadow: none !important;
   outline: none !important;

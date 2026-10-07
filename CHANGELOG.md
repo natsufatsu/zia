@@ -4,6 +4,14 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.12] - 2026-10-07
+
+### Fixed
+
+- Remove the outline and shadow from autoplay-blocked tab icons. Personal
+  media styles that use a square icon no longer acquire a white frame.
+  Preserve the custom icon, playback controls and selected-tab glow.
+
 ## [2.86.11] - 2026-10-04
 
 ### Added

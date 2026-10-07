@@ -1,7 +1,7 @@
 const done = arguments[arguments.length - 1];
 const win = Services.wm.getMostRecentWindow('navigator:browser'), doc = win.document;
 const gb = win.gBrowser, root = doc.documentElement;
-const results = {tabs: [], splits: []};
+const results = {tabs: [], splits: [], blockedMedia: []};
 const delay = ms => new Promise(resolve => win.setTimeout(resolve, ms));
 function check(value, message) { if (!value) throw new Error(message); }
 async function waitFor(fn, name) {
@@ -26,6 +26,18 @@ function assertGlow(value, name) {
   const pref = 'zia.tabs.favicon-glow';
   const hadPref = Services.prefs.prefHasUserValue(pref), savedPref = Services.prefs.getBoolPref(pref, false);
   const originalImage = second.getAttribute('image');
+  // Reproduce a personal media stylesheet replacing the favicon with a square
+  // overlay. Load at user origin, as userChrome.css and Sine actually do.
+  const mediaStyle = 'data:text/css;charset=utf-8,' + encodeURIComponent(`
+    #navigator-toolbox .tab-icon-overlay[activemedia-blocked] {
+      display: block !important;
+      background: transparent !important;
+      border: 0 !important;
+      border-radius: 0 !important;
+      scale: 2 !important;
+      list-style-image: url("chrome://sine/content/zia/icons/sound-wave.svg") !important;
+    }
+  `);
   const canvas = doc.createElementNS('http://www.w3.org/1999/xhtml', 'canvas');
   canvas.width = canvas.height = 16;
   const context = canvas.getContext('2d');
@@ -36,6 +48,23 @@ function assertGlow(value, name) {
     tab.dispatchEvent(new win.CustomEvent('TabAttrModified', {bubbles: true, detail: {changed: ['image']}}));
   }
   try {
+    first.setAttribute('activemedia-blocked', 'true');
+    check(gb.selectedTab !== first, 'Blocked-media test tab must be unfocused');
+    for (const customStyle of [false, true]) {
+      if (customStyle) win.windowUtils.loadSheetUsingURIString(mediaStyle, win.windowUtils.USER_SHEET);
+      await delay(50);
+      const overlay = first.querySelector('.tab-icon-overlay');
+      const style = win.getComputedStyle(overlay);
+      check(style.outlineStyle === 'none', 'Blocked media retained its icon outline');
+      check(style.boxShadow === 'none', 'Blocked media retained its icon shadow');
+      if (customStyle) {
+        check(style.display === 'block' && style.borderRadius === '0px', 'Personal media style was not reproduced');
+        check(style.listStyleImage.includes('/sound-wave.svg'), 'Personal media icon was replaced');
+      }
+      results.blockedMedia.push({customStyle, outline: style.outlineStyle, shadow: style.boxShadow});
+    }
+    win.windowUtils.removeSheetUsingURIString(mediaStyle, win.windowUtils.USER_SHEET);
+    first.removeAttribute('activemedia-blocked');
     await delay(350);
     const rows = [...win.gZenWorkspaces.activeWorkspaceStrip.querySelectorAll('.tabbrowser-tab:not([zen-essential], [hidden])')]
       .filter(tab => tab.getBoundingClientRect().height > 4 && tab.checkVisibility());
@@ -50,16 +79,17 @@ function assertGlow(value, name) {
         const background = tab.querySelector('.tab-background');
         const normal = decoration(background);
         assertGlow(normal, position + ' normal');
-        for (const state of ['normal', 'playing', 'muted', 'playing-muted']) {
+        for (const state of ['normal', 'playing', 'muted', 'playing-muted', 'blocked']) {
           tab.toggleAttribute('soundplaying', state.includes('playing'));
           tab.toggleAttribute('muted', state.includes('muted'));
+          tab.toggleAttribute('activemedia-blocked', state === 'blocked');
           await delay(50);
           const value = decoration(background);
           assertGlow(value, position + ' ' + state);
           check(JSON.stringify(value) === JSON.stringify(normal), position + ' ' + state + ': audio changed the selection decoration');
           results.tabs.push({position, state, tinted, ...value});
         }
-        tab.removeAttribute('soundplaying'); tab.removeAttribute('muted');
+        tab.removeAttribute('soundplaying'); tab.removeAttribute('muted'); tab.removeAttribute('activemedia-blocked');
       }
     }
     // The selected tab glows as part of a single pill when split. Its first
@@ -85,9 +115,10 @@ function assertGlow(value, name) {
     }
     check(win.__compatErrors.length === 0, 'Mod errors: ' + win.__compatErrors.join('; '));
   } finally {
+    win.windowUtils.removeSheetUsingURIString(mediaStyle, win.windowUtils.USER_SHEET);
     if (first.splitView) win.gZenViewSplitter.unsplitCurrentView();
     for (const tab of [first, second]) {
-      tab.removeAttribute('soundplaying'); tab.removeAttribute('muted');
+      tab.removeAttribute('soundplaying'); tab.removeAttribute('muted'); tab.removeAttribute('activemedia-blocked');
     }
     if (originalImage === null) second.removeAttribute('image');
     else second.setAttribute('image', originalImage);
