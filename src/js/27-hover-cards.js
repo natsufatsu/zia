@@ -503,18 +503,26 @@
         return;
       }
       holding = false;
-      toolbox.removeAttribute("has-popup-menu");
       try {
         const manager = window.gZenCompactModeManager;
-        if (manager?.preference && !toolbox.matches(":hover")) {
-          const keep = Services.prefs.getIntPref("zen.view.compact.sidebar-keep-hover.duration", 0);
-          if (keep > 0) {
-            manager.flashElement(toolbox, keep, `has-hover${toolbox.id}`, "zen-has-hover");
+        if (manager?.preference) {
+          if (toolbox.matches(":hover")) {
+            // The card was inside the sidebar. Restore zen-has-hover synchronously
+            // before dropping has-popup-menu so there is no gap with zero attributes.
+            manager._setElementExpandAttribute?.(toolbox, true, "zen-has-hover");
+            toolbox.setAttribute("zen-has-hover", "true");
+            toolbox.setAttribute("zen-has-implicit-hover", "true");
+          } else {
+            const keep = Services.prefs.getIntPref("zen.view.compact.sidebar-keep-hover.duration", 0);
+            if (keep > 0) {
+              manager.flashElement(toolbox, keep, `has-hover${toolbox.id}`, "zen-has-hover");
+            }
           }
         }
       } catch (err) {
         noteError("hover cards: release sidebar", err);
       }
+      toolbox.removeAttribute("has-popup-menu");
     };
 
     const hide = (force = false) => {

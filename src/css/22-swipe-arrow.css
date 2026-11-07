@@ -157,3 +157,9 @@
       transition-duration: 0.01s !important;
     }
   }
+
+/* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+:root[zia-video] #zia-swipe {
+  background: rgb(36, 37, 39);
+  backdrop-filter: none;
+}

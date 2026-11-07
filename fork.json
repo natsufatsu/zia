@@ -12,10 +12,14 @@
     ".gitignore",
     "CHANGELOG.md",
     "README.md",
+    "actors/ZiaParent.sys.mjs",
     "chrome.css",
     "preferences.json",
     "scripts/build.sh",
     "src/css/01-page-card-and-toolbar.css",
+    "src/css/02-address-bar.css",
+    "src/css/11-find-bar.css",
+    "src/css/22-swipe-arrow.css",
     "src/css/04-tabs-sound-bars-and-essentials.css",
     "src/css/05-tab-dragging.css",
     "src/css/06-folders-and-sidebar.css",
@@ -53,6 +57,7 @@
     "src/js/29-start.js",
     "theme.json",
     "welcome/welcome.js",
+    "zia-pip.js",
     "zia.uc.js"
   ],
   "excludedFiles": [
@@ -62,6 +67,8 @@
   "forkFiles": [
     ".github/workflows/upstream-update.yml",
     "VARIANT.md",
+    "actors/ZiaVideoChild.sys.mjs",
+    "actors/ZiaVideoParent.sys.mjs",
     "docs/fork-updates.md",
     "fork.json",
     "icons/workspace-player/sound-muted.svg",

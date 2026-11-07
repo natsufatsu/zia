@@ -511,6 +511,10 @@
     box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5) !important;
     backdrop-filter: none !important;
 
+    /* (up to the window's top edge, or cut back to it where the pop-up went past it,
+       zia.uc.js, #450) */
+    top: calc(var(--zia-pop-trim-top, 0px) - var(--zia-pop-reach-top, 0px)) !important;
+
     transform-origin: 50% 0 !important;
     animation: zia-urlbar-open 0.18s cubic-bezier(0.2, 0.9, 0.3, 1) !important;
   }
@@ -2403,14 +2407,15 @@ zen-essentials-promo {
    see-through, with what's behind them blurred, like the compact sidebar
    and the address bar pop-up. */
 @media -moz-pref("zia.cards.blur") {
-  #zia-tab-card,
-  #zia-folder-card {
+  /* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+  :root:not([zia-video]) :is(#zia-tab-card, #zia-folder-card) {
     background-color: color-mix(in srgb, var(--zia-tab-card-bg) 76%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }
 
-  /* the page behind a card blurs too (the compositing trick from Floaty UI) */
-  #tabbrowser-tabpanels .browserSidebarContainer {
+  /* the page behind a card blurs too (the compositing trick from Floaty UI), only while
+     one is up: drawn that way, a video loses its HDR, washed out (#561) */
+  :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
     will-change: transform !important;
     backface-visibility: hidden !important;
   }
@@ -3464,6 +3469,12 @@ findbar {
     }
   }
 }
+
+/* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+:root[zia-video] findbar {
+  background: rgb(38, 38, 38) !important;
+  backdrop-filter: none;
+}
 }
 
 :root[zia-split="true"]:not([inDOMFullscreen="true"]):not([popup-window]) {
@@ -4216,9 +4227,11 @@ tooltip[default="true"] {
    with the page blurred behind it; on by default, off in Zia's settings.
    Zen paints it as an opaque base with two cross-fading colour layers (the
    old space and the new one); the base goes and both layers are scaled
-   down, so switching spaces still fades as before. */
+   down, so switching spaces still fades as before. Solid, as Zen paints it,
+   while the page shows a video (zia-video, watchVideoInView): to be blurred,
+   a video is drawn duller than macOS shows it (#564). */
 @media -moz-pref("zia.compact.sidebar-blur") {
-  :root[zen-compact-mode="true"] .zen-toolbar-background {
+  :root[zen-compact-mode="true"]:not([zia-video]) .zen-toolbar-background {
     background: transparent !important;
     backdrop-filter: blur(28px) saturate(1.6) !important;
 
@@ -4232,8 +4245,10 @@ tooltip[default="true"] {
   }
 
   /* On macOS a web page is a separate layer the blur can't see through to;
-     drawn as a layer Firefox composites itself, it can. (From Floaty UI.) */
-  :root[zen-compact-mode="true"] #tabbrowser-tabpanels .browserSidebarContainer {
+     drawn as a layer Firefox composites itself, it can. (From Floaty UI.) Only
+     while the sidebar or toolbar is out over it: drawn that way, a video loses
+     its HDR, washed out (#561) */
+  :root[zen-compact-mode="true"]:not([zia-video]):is([zen-renaming-tab="true"], :has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active], [animate="true"])), :has(#zen-appcontent-navbar-wrapper:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))) #tabbrowser-tabpanels .browserSidebarContainer {
     will-change: transform !important;
     backface-visibility: hidden !important;
   }
@@ -4289,14 +4304,35 @@ tooltip[default="true"] {
   padding: 4px !important;
 }
 
+/* Zen 1.24.1b draws a tab's close (x) and unload (-) marks from two lines, 15px and 12px long
+   and 1.5px thick, bigger than the icons they replaced in Zia's 22px buttons: back to the
+   icons' size there (an 18px icon drawn at 14px: 12px and 10px long, 1.2px thick) */
+.tabbrowser-tab > .tab-stack > .tab-content > .tab-close-button {
+  --zen-tab-button-line-length: 12px !important;
+}
+
+.tabbrowser-tab > .tab-stack > .tab-content > .tab-reset-button {
+  --zen-tab-button-line-length: 10px !important;
+
+  @media (-moz-pref("zen.pinned-tab-manager.close-shortcut-behavior", "close")) {
+    --zen-tab-button-line-length: 12px !important;
+  }
+}
+
+.tabbrowser-tab > .tab-stack > .tab-content > :is(.tab-close-button, .tab-reset-button)::before,
+.tabbrowser-tab > .tab-stack > .tab-content > :is(.tab-close-button, .tab-reset-button)::after {
+  height: 1.2px !important;
+}
+
 #urlbar #identity-icon-label,
 #urlbar .identity-icon-label {
   display: none !important;
 }
-@media -moz-pref("layout.css.prefers-color-scheme.content-override", 1),
-       (-moz-pref("layout.css.prefers-color-scheme.content-override", 2)) and (not (-moz-system-dark-theme)) {
-  :root:not([privatebrowsingmode="temporary"]) #urlbar[breakout-extend]:not([zia-classic]),
-  :root[zia-site-light="true"]:not([privatebrowsingmode="temporary"]) #zen-appcontent-navbar-wrapper #urlbar[breakout-extend]:not([zia-classic]) {
+/* The pop-up is light in a light space and dark in a dark one, as the sidebar is
+   (23-light-spaces): it went by the setting for web pages' light or dark, so a dark space on
+   a light system got a white pop-up (#562) */
+:root[zen-should-be-dark-mode="false"]:not([privatebrowsingmode="temporary"]) #urlbar[breakout-extend]:not([zia-classic]),
+:root[zia-site-light="true"]:not([privatebrowsingmode="temporary"]) #zen-appcontent-navbar-wrapper #urlbar[breakout-extend]:not([zia-classic]) {
     color-scheme: light !important;
     color: rgb(28, 28, 30) !important;
     --zia-urlbar-open-bg: rgb(248, 249, 250) !important;
@@ -4340,7 +4376,6 @@ tooltip[default="true"] {
     & .urlbarView-row[selected] {
       background-color: rgba(28, 28, 30, 0.09) !important;
     }
-  }
 }
 
 #urlbar[breakout-extend]:not([zia-classic])[zen-floating-urlbar="true"] {
@@ -4456,7 +4491,8 @@ tooltip[default="true"] {
    behind it. Whichever colour it has (dark, light or the site's) comes
    from --zia-urlbar-open-bg, so this works with all of them. */
 @media -moz-pref("zia.urlbar.pop-up-blur") {
-  :root:not(#zia-none):not(#zia-none-2) #urlbar#urlbar[breakout-extend]:not([zia-classic]) > .urlbar-background {
+  /* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+  :root:not([zia-video]):not(#zia-none):not(#zia-none-2) #urlbar#urlbar[breakout-extend]:not([zia-classic]) > .urlbar-background {
     background: color-mix(in srgb, var(--zia-urlbar-open-bg) 78%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }
@@ -4464,8 +4500,10 @@ tooltip[default="true"] {
   /* On macOS a web page is handed to the system as a layer of its own,
      which a blur in Zen's window can't see through to, so the blur only
      worked over Zen's own pages. Drawn as a layer Firefox composites
-     itself, the page can be blurred too. (From Floaty UI, by moktavizen.) */
-  #tabbrowser-tabpanels .browserSidebarContainer {
+     itself, the page can be blurred too. (From Floaty UI, by moktavizen.) Only
+     while the pop-up is open: drawn that way, a video loses its HDR, washed
+     out (#561) */
+  :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
     will-change: transform !important;
     backface-visibility: hidden !important;
   }
@@ -5439,6 +5477,12 @@ tooltip[default="true"] {
       transition-duration: 0.01s !important;
     }
   }
+
+/* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+:root[zia-video] #zia-swipe {
+  background: rgb(36, 37, 39);
+  backdrop-filter: none;
+}
 /* Light spaces: a space whose colour is light (Zen marks the window
    zen-should-be-dark-mode="false" and gives its sidebar dark text). Zia
    drew the sidebar for dark spaces only, white text and white-tinted

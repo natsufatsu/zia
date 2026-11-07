@@ -1,7 +1,8 @@
-@media -moz-pref("layout.css.prefers-color-scheme.content-override", 1),
-       (-moz-pref("layout.css.prefers-color-scheme.content-override", 2)) and (not (-moz-system-dark-theme)) {
-  :root:not([privatebrowsingmode="temporary"]) #urlbar[breakout-extend]:not([zia-classic]),
-  :root[zia-site-light="true"]:not([privatebrowsingmode="temporary"]) #zen-appcontent-navbar-wrapper #urlbar[breakout-extend]:not([zia-classic]) {
+/* The pop-up is light in a light space and dark in a dark one, as the sidebar is
+   (23-light-spaces): it went by the setting for web pages' light or dark, so a dark space on
+   a light system got a white pop-up (#562) */
+:root[zen-should-be-dark-mode="false"]:not([privatebrowsingmode="temporary"]) #urlbar[breakout-extend]:not([zia-classic]),
+:root[zia-site-light="true"]:not([privatebrowsingmode="temporary"]) #zen-appcontent-navbar-wrapper #urlbar[breakout-extend]:not([zia-classic]) {
     color-scheme: light !important;
     color: rgb(28, 28, 30) !important;
     --zia-urlbar-open-bg: rgb(248, 249, 250) !important;
@@ -45,7 +46,6 @@
     & .urlbarView-row[selected] {
       background-color: rgba(28, 28, 30, 0.09) !important;
     }
-  }
 }
 
 #urlbar[breakout-extend]:not([zia-classic])[zen-floating-urlbar="true"] {
@@ -161,7 +161,8 @@
    behind it. Whichever colour it has (dark, light or the site's) comes
    from --zia-urlbar-open-bg, so this works with all of them. */
 @media -moz-pref("zia.urlbar.pop-up-blur") {
-  :root:not(#zia-none):not(#zia-none-2) #urlbar#urlbar[breakout-extend]:not([zia-classic]) > .urlbar-background {
+  /* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+  :root:not([zia-video]):not(#zia-none):not(#zia-none-2) #urlbar#urlbar[breakout-extend]:not([zia-classic]) > .urlbar-background {
     background: color-mix(in srgb, var(--zia-urlbar-open-bg) 78%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }
@@ -169,8 +170,10 @@
   /* On macOS a web page is handed to the system as a layer of its own,
      which a blur in Zen's window can't see through to, so the blur only
      worked over Zen's own pages. Drawn as a layer Firefox composites
-     itself, the page can be blurred too. (From Floaty UI, by moktavizen.) */
-  #tabbrowser-tabpanels .browserSidebarContainer {
+     itself, the page can be blurred too. (From Floaty UI, by moktavizen.) Only
+     while the pop-up is open: drawn that way, a video loses its HDR, washed
+     out (#561) */
+  :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
     will-change: transform !important;
     backface-visibility: hidden !important;
   }

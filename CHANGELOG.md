@@ -4,6 +4,42 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.13] - 2026-11-07
+
+### Fixed
+
+- Backport upstream bug fixes through Zia 2.121.4 while keeping the fork's
+  native groups/dragging, standalone player, split-drop and styling.
+- Firefox 159: the page's scroll reports never reached the window, so the
+  toolbar's site colour stopped following a page as it scrolled. The browser's
+  window is now found from its document when `ownerGlobal` is absent.
+- The toolbar's right-click menu no longer shows a separator beside another
+  one, or at either end, when Zen hides Set Profile (thanks Poumpky).
+- A tab's close (x) and unload (-) marks keep their icon size on Zen 1.24.1b,
+  which draws them from two lines.
+- Tucked picture-in-picture no longer shakes as it slides back in: a finished
+  glide keeps the place it was sent to instead of reading macOS's late move
+  report as a drag (#576). PiP screen boundary probes scale by the monitor's
+  scale factor on mixed-DPI displays.
+- The address bar pop-up stays positioned cleanly inside the window and aligned
+  with the closed bar when the toolbar is short or edge-to-edge (#450, #515).
+- The compact sidebar hover state is restored synchronously when dismissing a tab
+  hover card, eliminating flicker (#405).
+- The address pop-up is light in a light space and dark in a dark one, rather
+  than following the websites' light/dark setting (#562).
+- Over a video, the compact sidebar, hover cards, address pop-up, find bar and
+  swipe arrow are solid again, so the video keeps its colours and stays
+  readable (#564, #569, #573).
+
+### Changed
+
+- Fewer page layers are kept composited: the blur surfaces ask Firefox to draw
+  the page itself only while they are actually over it (the pop-up, a hover
+  card, the compact sidebar or toolbar), so idle pages no longer stay on a
+  composited layer and videos keep their HDR when nothing covers them (#561).
+- The site-colour scroll fallback now stands down as soon as Firefox 159's
+  scroll reports work, avoiding repeated sampling.
+
 ## [2.86.12] - 2026-10-07
 
 ### Fixed

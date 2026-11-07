@@ -159,5 +159,11 @@ findbar {
     }
   }
 }
+
+/* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+:root[zia-video] findbar {
+  background: rgb(38, 38, 38) !important;
+  backdrop-filter: none;
+}
 }
 

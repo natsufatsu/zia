@@ -636,6 +636,30 @@
         onInput();
       }
     });
+    watchVideoInView();
+  }
+
+  // The window marked zia-video while a tab in view (the open one, or a split's) shows a
+  // video: Zia's see-through surfaces go solid then, as to blur the page Zen draws it
+  // itself, and a video drawn that way comes out duller than macOS shows it (#564, #569,
+  // #573).
+  function watchVideoInView() {
+    const panels = document.getElementById("tabbrowser-tabpanels");
+    if (!panels) {
+      return;
+    }
+    const update = () =>
+      setFlag(
+        "zia-video",
+        !!panels.querySelector(
+          ':scope > .browserSidebarContainer:is(.deck-selected, [zen-split="true"]) browser[zia-video]'
+        )
+      );
+    new MutationObserver(update).observe(panels, {
+      subtree: true,
+      attributeFilter: ["class", "zen-split", "zia-video"],
+    });
+    update();
   }
 
   // PDFs in Dia's look (actors/ZiaPdfChild.sys.mjs). The query string
@@ -663,7 +687,39 @@
     }
   }
 
+  // Which tabs show a video on screen, in any of their frames, for Zia's see-through
+  // surfaces to go solid over them (actors/ZiaVideoChild.sys.mjs, watchVideoInView)
+  function registerVideoActor() {
+    const media = { capture: true, mozSystemGroup: true };
+    try {
+      ChromeUtils.registerWindowActor("ZiaVideo", {
+        parent: { esModuleURI: "chrome://sine/content/zia/actors/ZiaVideoParent.sys.mjs" },
+        child: {
+          esModuleURI: "chrome://sine/content/zia/actors/ZiaVideoChild.sys.mjs",
+          events: {
+            loadeddata: media,
+            playing: media,
+            pause: media,
+            emptied: media,
+            resize: media,
+            pagehide: {},
+          },
+        },
+        allFrames: true,
+        messageManagerGroups: ["browsers"],
+        // Firefox only starts a helper inside a website's process when told
+        // it's safe there; this one only reports whether a video shows.
+        safeForUntrustedWebProcess: true,
+      });
+    } catch (err) {
+      if (err?.name !== "NotSupportedError") {
+        console.error("[Zia] Could not register the video helper:", err);
+      }
+    }
+  }
+
   function registerScrollActor() {
+    registerVideoActor();
     try {
       ChromeUtils.registerWindowActor("Zia", {
         parent: { esModuleURI: "chrome://sine/content/zia/actors/ZiaParent.sys.mjs" },

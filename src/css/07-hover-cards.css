@@ -587,14 +587,15 @@
    see-through, with what's behind them blurred, like the compact sidebar
    and the address bar pop-up. */
 @media -moz-pref("zia.cards.blur") {
-  #zia-tab-card,
-  #zia-folder-card {
+  /* solid while the page shows a video, as the compact sidebar (16-compact-mode) */
+  :root:not([zia-video]) :is(#zia-tab-card, #zia-folder-card) {
     background-color: color-mix(in srgb, var(--zia-tab-card-bg) 76%, transparent) !important;
     backdrop-filter: blur(24px) saturate(1.6) !important;
   }
 
-  /* the page behind a card blurs too (the compositing trick from Floaty UI) */
-  #tabbrowser-tabpanels .browserSidebarContainer {
+  /* the page behind a card blurs too (the compositing trick from Floaty UI), only while
+     one is up: drawn that way, a video loses its HDR, washed out (#561) */
+  :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
     will-change: transform !important;
     backface-visibility: hidden !important;
   }

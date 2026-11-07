@@ -674,6 +674,30 @@
         onInput();
       }
     });
+    watchVideoInView();
+  }
+
+  // The window marked zia-video while a tab in view (the open one, or a split's) shows a
+  // video: Zia's see-through surfaces go solid then, as to blur the page Zen draws it
+  // itself, and a video drawn that way comes out duller than macOS shows it (#564, #569,
+  // #573).
+  function watchVideoInView() {
+    const panels = document.getElementById("tabbrowser-tabpanels");
+    if (!panels) {
+      return;
+    }
+    const update = () =>
+      setFlag(
+        "zia-video",
+        !!panels.querySelector(
+          ':scope > .browserSidebarContainer:is(.deck-selected, [zen-split="true"]) browser[zia-video]'
+        )
+      );
+    new MutationObserver(update).observe(panels, {
+      subtree: true,
+      attributeFilter: ["class", "zen-split", "zia-video"],
+    });
+    update();
   }
 
   // PDFs in Dia's look (actors/ZiaPdfChild.sys.mjs). The query string
@@ -701,7 +725,39 @@
     }
   }
 
+  // Which tabs show a video on screen, in any of their frames, for Zia's see-through
+  // surfaces to go solid over them (actors/ZiaVideoChild.sys.mjs, watchVideoInView)
+  function registerVideoActor() {
+    const media = { capture: true, mozSystemGroup: true };
+    try {
+      ChromeUtils.registerWindowActor("ZiaVideo", {
+        parent: { esModuleURI: "chrome://sine/content/zia/actors/ZiaVideoParent.sys.mjs" },
+        child: {
+          esModuleURI: "chrome://sine/content/zia/actors/ZiaVideoChild.sys.mjs",
+          events: {
+            loadeddata: media,
+            playing: media,
+            pause: media,
+            emptied: media,
+            resize: media,
+            pagehide: {},
+          },
+        },
+        allFrames: true,
+        messageManagerGroups: ["browsers"],
+        // Firefox only starts a helper inside a website's process when told
+        // it's safe there; this one only reports whether a video shows.
+        safeForUntrustedWebProcess: true,
+      });
+    } catch (err) {
+      if (err?.name !== "NotSupportedError") {
+        console.error("[Zia] Could not register the video helper:", err);
+      }
+    }
+  }
+
   function registerScrollActor() {
+    registerVideoActor();
     try {
       ChromeUtils.registerWindowActor("Zia", {
         parent: { esModuleURI: "chrome://sine/content/zia/actors/ZiaParent.sys.mjs" },
@@ -1295,19 +1351,50 @@
     const titleRect = title?.getBoundingClientRect();
     const rect = titleRect?.width ? titleRect : input?.getBoundingClientRect();
     if (rect?.width) {
-      closedTextRect = { left: rect.left, centerY: rect.top + rect.height / 2 };
+      closedTextRect = { left: rect.left, centerY: rect.top + rect.height / 2, at: Date.now() };
+    }
+  }
+
+  function setStyle(el, name, value) {
+    if (value === null || value === undefined) {
+      el.style.removeProperty(name);
+    } else {
+      el.style.setProperty(name, value);
     }
   }
 
   function alignOpenedUrlbar() {
     const urlbar = gURLBar.textbox || document.getElementById("urlbar");
-
-    if (urlbar?.getAttribute("zen-floating-urlbar") === "true" && !urlbarAtBottom()) {
+    // Opened as wide as the closed bar: Zen measures that as the layout changes, but not
+    // as compact mode takes the sidebar away, so it opened at its width beside the sidebar
+    const container = document.getElementById("urlbar-container");
+    const single = root.getAttribute("zen-single-toolbar") === "true";
+    if (urlbar?.hasAttribute("breakout-extend") && urlbar.getAttribute("zen-floating-urlbar") !== "true" && !single && container) {
+      const width = `${container.getBoundingClientRect().width}px`;
+      if (width !== "0px" && urlbar.style.getPropertyValue("--urlbar-width") !== width) {
+        urlbar.style.setProperty("--urlbar-width", width);
+      }
+    }
+    // (and in the sidebar, with Zen's single toolbar, it opens where Zen puts it: moved to
+    // keep the text where it was, it went past the window's left edge)
+    if (urlbar) {
+      setStyle(urlbar, "--zia-pop-reach-top", null);
+      setStyle(urlbar, "--zia-pop-trim-top", null);
+    }
+    if ((urlbar?.getAttribute("zen-floating-urlbar") === "true" && !urlbarAtBottom()) || single) {
+      openOffset = 0;
+      openOffsetX = 0;
       root.style.setProperty("--zia-urlbar-open-offset", "0px");
       root.style.setProperty("--zia-urlbar-open-offset-x", "0px");
       return;
     }
     if (!urlbar?.hasAttribute("breakout-extend")) {
+      return;
+    }
+    // Only while it's shown over the window: a modal dialog (Cmd+Q's quit or close, say)
+    // takes every pop-up down, the opened bar too, while it stays marked opened, and measured
+    // there, back in the toolbar, it was moved further out of place each time
+    if (urlbar.matches?.("[popover]") && !urlbar.matches(":popover-open")) {
       return;
     }
     if (root.getAttribute("zia-split") === "true") {
@@ -1318,13 +1405,22 @@
 
     // At the bottom the pop-up grows upwards from the bar, so the text always
     // stays where it was, however the bar was opened.
-    const openedByClick = urlbarAtBottom() || Date.now() - clickedUrlbarAt < 1500;
+    // (lined up only with where the text was at that click: taken earlier, say before compact
+    // mode moved the bar, or with Zen's new tab bar still open as it was clicked, the old
+    // spot sent the pop-up up and to the left)
+    const fresh = !!closedTextRect && (urlbarAtBottom() || clickedUrlbarAt - closedTextRect.at < 100);
+    const openedByClick = (urlbarAtBottom() || Date.now() - clickedUrlbarAt < 1500) && fresh;
+    // (with the text centred, it's kept where it was by its centring, watchCenteredAddress:
+    // lined up by the left of its box as well, the opened pop-up went off to the left, #515)
+    const centred =
+      Services.prefs.getBoolPref("zia.urlbar.center-text", false) &&
+      !Services.prefs.getBoolPref("zia.urlbar.center-text.pop-up-left", false);
     if (!openedByClick && openOffsetX) {
       openOffsetX = 0;
       root.style.setProperty("--zia-urlbar-open-offset-x", "0px");
     }
-    if (openedByClick && closedTextRect && inputRect?.width) {
-      const dx = closedTextRect.left - inputRect.left;
+    if (openedByClick && inputRect?.width) {
+      const dx = centred ? -openOffsetX : closedTextRect.left - inputRect.left;
       const dy = closedTextRect.centerY - (inputRect.top + inputRect.height / 2);
       if (Math.abs(dx) > 0.5) {
         openOffsetX += dx;
@@ -1334,6 +1430,10 @@
         openOffset += dy;
         root.style.setProperty("--zia-urlbar-open-offset", `${openOffset}px`);
       }
+      if (!urlbarAtBottom()) {
+        keepOpenedUrlbarInWindow(urlbar);
+      }
+      reachWindowTop(urlbar);
       return;
     }
 
@@ -1343,6 +1443,35 @@
       openOffset += diff;
       root.style.setProperty("--zia-urlbar-open-offset", `${openOffset}px`);
     }
+    reachWindowTop(urlbar);
+  }
+
+  // Moved to keep the text where it was, the pop-up stays inside the window: with the page
+  // edge to edge the bar sits against the window's edge, and the bigger pop-up round the
+  // same text went past it and was cut off. Past the top, only its background is cut back to
+  // the window's edge (--zia-pop-trim-top): moved down, the text came out a few pixels
+  // lower than in the closed bar
+  function keepOpenedUrlbarInWindow(urlbar) {
+    const box = urlbar.getBoundingClientRect();
+    if (!box.width) {
+      return;
+    }
+    const dy = box.top < 0 ? -box.top : 0;
+    const dx = box.left < 0 ? -box.left : box.right > window.innerWidth ? window.innerWidth - box.right : 0;
+    setStyle(urlbar, "--zia-pop-trim-top", dy > 0.5 ? `${dy}px` : null);
+    if (Math.abs(dx) > 0.5) {
+      openOffsetX += dx;
+      root.style.setProperty("--zia-urlbar-open-offset-x", `${openOffsetX}px`);
+    }
+  }
+
+  // The pop-up at the top of the window reaches up to its top edge, as Dia's does: it stopped
+  // the card's gap short of it. Its background grows up into that gap, so the address and
+  // the results stay where they are. Not at the bottom, in the sidebar or floating.
+  function reachWindowTop(urlbar) {
+    const top = urlbar.getBoundingClientRect().top;
+    const reach = !urlbarAtBottom() && top > 0 && top < 24 ? top : 0;
+    setStyle(urlbar, "--zia-pop-reach-top", reach ? `${reach}px` : null);
   }
 
   function alignOpenedUrlbarSoon() {
@@ -5010,6 +5139,38 @@
     } catch (err) {
       noteError("zen defaults: set (2)", err);
     }
+    tidyMenuSeparators();
+  }
+
+  // The toolbar's right-click menu without a separator next to another, or at either end:
+  // Zen hides Set Profile with no profiles to pick, but not the separator after it, so the
+  // sidebar's foot showed two in a row (thanks Poumpky). Run once Zen and Firefox have
+  // shown and hidden their items (the event bubbles to the window after them).
+  function tidyMenuSeparators() {
+    window.addEventListener("popupshowing", (event) => {
+      const menu = event.target;
+      if (menu.id !== "toolbar-context-menu") {
+        return;
+      }
+      for (const el of menu.querySelectorAll(":scope > menuseparator[zia-tidied]")) {
+        el.hidden = false;
+        el.removeAttribute("zia-tidied");
+      }
+      const shown = [...menu.children].filter((el) => !el.hidden && !el.collapsed && getComputedStyle(el).display !== "none");
+      let last = null;
+      for (const el of shown) {
+        if (el.localName === "menuseparator" && (!last || last.localName === "menuseparator")) {
+          el.hidden = true;
+          el.setAttribute("zia-tidied", "true");
+          continue;
+        }
+        last = el;
+      }
+      if (last?.localName === "menuseparator") {
+        last.hidden = true;
+        last.setAttribute("zia-tidied", "true");
+      }
+    });
   }
   // Options in Sine's settings. All on, except the favicon glow.
   const ZIA_OPTIONS = [
@@ -7324,18 +7485,26 @@
         return;
       }
       holding = false;
-      toolbox.removeAttribute("has-popup-menu");
       try {
         const manager = window.gZenCompactModeManager;
-        if (manager?.preference && !toolbox.matches(":hover")) {
-          const keep = Services.prefs.getIntPref("zen.view.compact.sidebar-keep-hover.duration", 0);
-          if (keep > 0) {
-            manager.flashElement(toolbox, keep, `has-hover${toolbox.id}`, "zen-has-hover");
+        if (manager?.preference) {
+          if (toolbox.matches(":hover")) {
+            // The card was inside the sidebar. Restore zen-has-hover synchronously
+            // before dropping has-popup-menu so there is no gap with zero attributes.
+            manager._setElementExpandAttribute?.(toolbox, true, "zen-has-hover");
+            toolbox.setAttribute("zen-has-hover", "true");
+            toolbox.setAttribute("zen-has-implicit-hover", "true");
+          } else {
+            const keep = Services.prefs.getIntPref("zen.view.compact.sidebar-keep-hover.duration", 0);
+            if (keep > 0) {
+              manager.flashElement(toolbox, keep, `has-hover${toolbox.id}`, "zen-has-hover");
+            }
           }
         }
       } catch (err) {
         noteError("hover cards: release sidebar", err);
       }
+      toolbox.removeAttribute("has-popup-menu");
     };
 
     const hide = (force = false) => {

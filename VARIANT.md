@@ -4,7 +4,39 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.12.
+- Current variant: 2.86.13.
+
+## Upstream fixes through 2.121.4 (2.86.13)
+
+Backport selected upstream bug fixes and performance improvements without
+importing later features, glass folders/groups, custom drag overrides or
+split-essentials. The fork keeps its native groups and dragging, standalone
+player, standalone split-drop and its own styling.
+
+- Firefox 159: find the browser's window from its document when `ownerGlobal`
+  is missing, so the toolbar's site colour follows scrolling again and the
+  scroll fallback stops sampling.
+- Tidy the toolbar's right-click menu so no separator sits beside another or
+  at either end.
+- Restore the icon-sized close/unload marks on Zen 1.24.1b in
+  `17-tab-buttons.css`.
+- Keep a finished picture-in-picture glide at the place it was sent to, so
+  macOS's late move report cannot make a tuck spring back and shake. Scale
+  screen boundary probes by the monitor's display scale factor on mixed-DPI
+  setups.
+- Align and contain the address bar pop-up inside the window when the toolbar is
+  short or edge-to-edge (#450, #515).
+- Synchronously restore the compact sidebar's hover attributes before dropping
+  `has-popup-menu` when dismissing a tab hover card (#405).
+- Take the address pop-up's light or dark look from the space, not from the
+  websites' light/dark setting.
+- Mark the window `zia-video` while the open tab or a split pane shows a video
+  (`actors/ZiaVideoChild.sys.mjs`, `ZiaVideoParent.sys.mjs`); the compact
+  sidebar, hover cards, address pop-up, find bar and swipe arrow go solid over
+  it, as before 2.118.0.
+- Ask Firefox to composite the page only while a blur surface is actually over
+  it (pop-up open, a hover card up, compact sidebar/toolbar out), reducing idle
+  layer promotion and keeping HDR video when nothing covers it.
 
 ## Blocked-media icon outline (2.86.12)
 
