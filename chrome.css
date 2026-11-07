@@ -1813,11 +1813,11 @@ zen-essentials-promo {
   line-height: 16px;
 }
 
-/* Windows text glyphs sit just below the center of their line box. */
+/* Windows text glyphs sit higher in their line box; shift icons upwards to align. */
 @media (-moz-platform: windows) {
   #zia-space-label[zia-has-icon]::before,
   #zia-space-label > .zia-space-svg svg {
-    translate: 0 1px;
+    translate: 0 -1px;
   }
 }
 #zia-tab-card,
