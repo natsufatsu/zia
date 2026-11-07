@@ -349,16 +349,15 @@
 }
 
 /* the page's picture, set in from the card's edge by a hair (TAB_THUMB_INSET, 27-hover-cards)
-   with its top corners curving with the card's and a fine dark edge, as in Dia. Its box clips
-   it to the card's squircle (!important, with the id, to beat the rule that rounds every other
-   corner, 00-variables: without it, the picture was round inside the card's squircle) */
+   with its top corners curving concentrically with the card's circular corners and a fine
+   dark edge, as in Dia. */
 #zia-tab-card .zia-tab-card-shot {
   --zia-thumb-inset: 2px;
   display: block;
   overflow: clip;
   margin: calc(var(--zia-thumb-inset) - 12px) calc(var(--zia-thumb-inset) - 14px) 10px;
-  border-radius: calc(var(--zia-tab-card-radius) * var(--zia-squircle-grow) - var(--zia-thumb-inset)) calc(var(--zia-tab-card-radius) * var(--zia-squircle-grow) - var(--zia-thumb-inset)) 0 0;
-  corner-shape: var(--zia-squircle) !important;
+  border-radius: calc(var(--zia-tab-card-radius) - var(--zia-thumb-inset)) calc(var(--zia-tab-card-radius) - var(--zia-thumb-inset)) 0 0;
+  corner-shape: round !important;
   background: rgba(255, 255, 255, 0.05);
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.55);
 }

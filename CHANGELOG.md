@@ -4,6 +4,15 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.15] - 2026-11-07
+
+### Fixed
+
+- Tab hover card preview corners: aligned webcontent thumbnail top corners
+  concentric with the tab preview popup by setting `corner-shape: round !important`
+  and `border-radius: calc(var(--zia-tab-card-radius) - var(--zia-thumb-inset))`,
+  fixing the overly rounded squircle corners that mismatched the card radius.
+
 ## [2.86.14] - 2026-11-07
 
 ### Fixed
