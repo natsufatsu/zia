@@ -8,11 +8,14 @@
 
 ## Upstream fixes through 2.121.4 (2.86.13)
 
-Backport selected upstream bug fixes and performance improvements without
-importing later features, glass folders/groups, custom drag overrides or
-split-essentials. The fork keeps its native groups and dragging, standalone
-player, standalone split-drop and its own styling.
+Backport selected upstream bug fixes, performance improvements, and rich tab
+hover card page picture previews without importing glass folders/groups,
+custom drag overrides or split-essentials. The fork keeps its native groups
+and dragging, standalone player, standalone split-drop, and its folder hover
+card preview controls as is.
 
+- Rich tab previews: display a high-resolution snapshot at the top of the tab
+  hover card with curved top corners and idle background capture.
 - Firefox 159: find the browser's window from its document when `ownerGlobal`
   is missing, so the toolbar's site colour follows scrolling again and the
   scroll fallback stops sampling.

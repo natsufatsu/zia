@@ -130,6 +130,21 @@
     "defaultValue": true
   },
   {
+    "type": "checkbox",
+    "label": "Hover cards show a picture of the tab's page at the top",
+    "property": "zia.cards.page-picture",
+    "since": "2.120.0",
+    "defaultValue": true,
+    "conditions": [
+      {
+        "if": {
+          "property": "zia.features.tab-hover-cards",
+          "value": true
+        }
+      }
+    ]
+  },
+  {
     "type": "separator",
     "label": "Tabs"
   },

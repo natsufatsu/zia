@@ -16,6 +16,7 @@
     "chrome.css",
     "preferences.json",
     "scripts/build.sh",
+    "src/css/00-variables.css",
     "src/css/01-page-card-and-toolbar.css",
     "src/css/02-address-bar.css",
     "src/css/11-find-bar.css",

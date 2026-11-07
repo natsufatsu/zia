@@ -80,6 +80,8 @@
   --zia-tab-card-sub: rgba(255, 255, 255, 0.55);
   --zia-tab-card-radius: 13px;
   --zia-tab-card-width: 230px;
+  --zia-squircle: superellipse(1.93);
+  --zia-squircle-grow: 1.5;
   --zia-media-card-base: light-dark(rgb(235, 235, 235), #1b1b1b);
   --zia-split-gap: 5px;
   --zia-split-backdrop: rgb(23, 23, 23);

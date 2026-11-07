@@ -6,6 +6,14 @@ Every release of Zia, newest first. The format follows
 
 ## [2.86.13] - 2026-11-07
 
+### Added
+
+- Rich tab hover card previews: show a picture of the tab's page at the top
+  of its hover card, curving with the card's corners and cached in the
+  background when tabs are idle. Controlled by the setting "Hover cards show
+  a picture of the tab's page at the top". Folder hover previews remain as is
+  with their fixed search and compact controls.
+
 ### Fixed
 
 - Backport upstream bug fixes through Zia 2.121.4 while keeping the fork's

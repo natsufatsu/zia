@@ -143,9 +143,10 @@ def check():
     for pref in expected_prefs:
         if pref.get('property') == 'zia.features.tab-hover-cards':
             pref['label'] = 'Tab and folder hover cards'
-    assert [p for p in new_prefs if p not in additions and p.get("property") != "zia.toolbar.realtime-tint"] == expected_prefs, "Unrelated options changed"
+    assert [p for p in new_prefs if p not in additions and p.get("property") not in ("zia.toolbar.realtime-tint", "zia.cards.page-picture")] == expected_prefs, "Unrelated options changed"
     assert [p for p in new_prefs if p in additions] == additions
     assert [p for p in new_prefs if p.get('property') == 'zia.toolbar.realtime-tint'][0]['defaultValue'] is False
+    assert [p for p in new_prefs if p.get('property') == 'zia.cards.page-picture'][0]['defaultValue'] is True
     assert len({p['property'] for p in new_prefs if 'property' in p}) == len([p for p in new_prefs if 'property' in p]), "Duplicate settings"
     for kind, extension, output in (("js", "js", "zia.uc.js"), ("css", "css", "chrome.css")):
         built = b"".join(p.read_bytes() for p in sorted((VARIANT / "src" / kind).glob(f"*.{extension}"), key=lambda p: p.name))
