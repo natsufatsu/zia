@@ -4,6 +4,14 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.14] - 2026-11-07
+
+### Fixed
+
+- Workspace indicator icons: shift icons in the workspace indicator pill
+  upwards by 2px on Windows (`translate: 0 -1px`) so they are cleanly
+  aligned and vertically centered with the workspace name text.
+
 ## [2.86.13] - 2026-11-07
 
 ### Added
