@@ -4,6 +4,17 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.16] - 2026-11-08
+
+### Fixed
+
+- In-page scroll isolation for pull-to-refresh: check scrollable containers and pierce
+  open/closed shadow DOM web components (e.g. Reddit chat) so inner component scrolling
+  is never misinterpreted as a page-level pull-to-refresh.
+- Actor cache versioning: register Zia window actors with dynamic query-string versioning
+  (`?v=${Date.now()}`) so Firefox's startup script cache never retains stale actor code
+  across updates and restarts.
+
 ## [2.86.15] - 2026-11-07
 
 ### Fixed

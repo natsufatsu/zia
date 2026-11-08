@@ -12,6 +12,7 @@
     ".gitignore",
     "CHANGELOG.md",
     "README.md",
+    "actors/ZiaChild.sys.mjs",
     "actors/ZiaParent.sys.mjs",
     "chrome.css",
     "preferences.json",

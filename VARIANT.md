@@ -4,7 +4,17 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.15.
+- Current variant: 2.86.16.
+
+## Upstream fixes through 2.121.6 (2.86.16)
+
+Backport upstream bug fixes from Zia 2.121.5 and 2.121.6:
+- Scroll & pull-refresh in-page isolation: Check scrollable containers and pierce
+  open/closed shadow DOM web components (e.g. Reddit chat) so pull-to-refresh
+  does not misinterpret inner-container scrolling as a page refresh.
+- Actor cache versioning: Attach dynamic query-string cache-busters (`?v=${Date.now()}`)
+  to Zia window actor registration (`ZiaChild.sys.mjs` and `ZiaParent.sys.mjs`) so
+  updated actor modules load cleanly without being blocked by Firefox's startup script cache.
 
 ## Tab preview corner radius alignment (2.86.15)
 

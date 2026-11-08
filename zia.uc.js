@@ -758,11 +758,12 @@
 
   function registerScrollActor() {
     registerVideoActor();
+    const version = `?v=${Date.now()}`;
     try {
       ChromeUtils.registerWindowActor("Zia", {
-        parent: { esModuleURI: "chrome://sine/content/zia/actors/ZiaParent.sys.mjs" },
+        parent: { esModuleURI: `chrome://sine/content/zia/actors/ZiaParent.sys.mjs${version}` },
         child: {
-          esModuleURI: "chrome://sine/content/zia/actors/ZiaChild.sys.mjs",
+          esModuleURI: `chrome://sine/content/zia/actors/ZiaChild.sys.mjs${version}`,
           events: {
             scroll: { capture: true, mozSystemGroup: true },
             DOMContentLoaded: {},
