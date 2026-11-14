@@ -4,6 +4,14 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.17] - 2026-11-14
+
+### Changed
+
+- Active tab styling: styled active tabs to match the minimal workspace button appearance,
+  using a translucent background (`rgba(255, 255, 255, 0.12)`), subtle 1px border
+  (`rgba(255, 255, 255, 0.08)`), and clean flat elevation without glow or shine mask overlays.
+
 ## [2.86.16] - 2026-11-08
 
 ### Fixed

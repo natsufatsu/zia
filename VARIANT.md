@@ -4,7 +4,14 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.16.
+- Current variant: 2.86.17.
+
+## Active tab styling matching minimal workspace button (2.86.17)
+
+Adopt minimal workspace button styling for active tabs:
+- Semi-transparent white background (`rgba(255, 255, 255, 0.12)`).
+- Subtle 1px solid border (`rgba(255, 255, 255, 0.08)`).
+- Clean flat elevation without outer box-shadow glow or shine mask overlay.
 
 ## Upstream fixes through 2.121.6 (2.86.16)
 
