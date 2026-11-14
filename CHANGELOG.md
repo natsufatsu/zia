@@ -4,6 +4,20 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.18] - 2026-11-14
+
+### Fixed
+
+- Compact sidebar performance on Windows and Linux: the page compositing layer
+  promotions (compact sidebar edge hover, tab and folder hover cards, address
+  pop-up, sidebar panel) now apply only on macOS, where a web page is a separate
+  native layer the blurs cannot see through. Elsewhere the page is already drawn
+  in the window Firefox composites, so the promotion only tore down and remade
+  the page's GPU layer on every hover in and out, which stalled the tuck-away.
+- Compact sidebar slide: while `zen-compact-animating` runs on Windows and Linux,
+  the toolbar's 28px `backdrop-filter` steps aside, so the slide no longer pays
+  for the blur shader on every frame. The blur returns once the sidebar settles.
+
 ## [2.86.17] - 2026-11-14
 
 ### Changed

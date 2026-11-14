@@ -172,10 +172,13 @@
      worked over Zen's own pages. Drawn as a layer Firefox composites
      itself, the page can be blurred too. (From Floaty UI, by moktavizen.) Only
      while the pop-up is open: drawn that way, a video loses its HDR, washed
-     out (#561) */
-  :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+     out (#561). Elsewhere the page is already drawn in the window Firefox
+     composites, so the promotion is left out rather than churned per open. */
+  @media (-moz-platform: macosx) {
+    :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
   }
 }
 

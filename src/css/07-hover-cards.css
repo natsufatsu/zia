@@ -621,9 +621,13 @@
   }
 
   /* the page behind a card blurs too (the compositing trick from Floaty UI), only while
-     one is up: drawn that way, a video loses its HDR, washed out (#561) */
-  :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+     one is up: drawn that way, a video loses its HDR, washed out (#561). macOS only:
+     elsewhere the page is drawn in the window Firefox composites, so the blur reaches
+     it already, and a promoted layer is only texture churn on each card in and out */
+  @media (-moz-platform: macosx) {
+    :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
   }
 }

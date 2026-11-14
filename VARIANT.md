@@ -4,7 +4,15 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.17.
+- Current variant: 2.86.18.
+
+## Compact sidebar performance gating (2.86.18)
+
+Gate the page compositing layers and the sliding blur to where they are needed:
+- The `will-change: transform` page promotions (compact sidebar edge hover, tab and
+  folder hover cards, address pop-up, sidebar panel) now apply only on macOS.
+- On Windows and Linux the compact toolbar's blur is dropped while
+  `zen-compact-animating` runs, so the sidebar slides at full frame rate.
 
 ## Active tab styling matching minimal workspace button (2.86.17)
 

@@ -96,9 +96,22 @@
      drawn as a layer Firefox composites itself, it can. (From Floaty UI.) Only
      while the sidebar or toolbar is out over it: drawn that way, a video loses
      its HDR, washed out (#561) */
-  :root[zen-compact-mode="true"]:not([zia-video]):is([zen-renaming-tab="true"], :has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active], [animate="true"])), :has(#zen-appcontent-navbar-wrapper:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+  @media (-moz-platform: macosx) {
+    :root[zen-compact-mode="true"]:not([zia-video]):is([zen-renaming-tab="true"], :has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active], [animate="true"])), :has(#zen-appcontent-navbar-wrapper:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
+  }
+
+  /* Elsewhere the page is drawn in the window Firefox composites itself, and
+     the blur reaches it without that layer. Promoted anyway, the page's layer
+     was torn down and remade on every hover in and out, the tuck-away stutter
+     Windows saw. The blur itself steps aside while the sidebar slides too: its
+     28px shader over the moving window was the other cost of those frames. */
+  @media (-moz-platform: windows), (-moz-platform: linux) {
+    :root[zen-compact-mode="true"][zen-compact-animating] .zen-toolbar-background {
+      backdrop-filter: none !important;
+    }
   }
 }
 

@@ -197,10 +197,14 @@
    which macOS would be handed to draw as a layer of its own: with it open,
    Zia's blurs (the compact sidebar, the hover cards, the address pop-up)
    stopped seeing through to the page. Drawn by Firefox itself, like the
-   page is for them (the compositing trick from Floaty UI). */
-#sidebar-box:not([hidden]) {
-  will-change: transform !important;
-  backface-visibility: hidden !important;
+   page is for them (the compositing trick from Floaty UI). Elsewhere the
+   panel is already drawn in the window Firefox composites, and a permanent
+   promoted layer only costs memory. */
+@media (-moz-platform: macosx) {
+  #sidebar-box:not([hidden]) {
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+  }
 }
 
 /* On the same side as the tab sidebar (both left, or both right), the two

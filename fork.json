@@ -32,6 +32,7 @@
     "src/css/16-compact-mode.css",
     "src/css/17-tab-buttons.css",
     "src/css/18-light-pop-up-and-late-overrides.css",
+    "src/css/21-sidebar-panels.css",
     "src/css/23-light-spaces.css",
     "src/js/01-site-colour.js",
     "src/js/03-address-bar.js",

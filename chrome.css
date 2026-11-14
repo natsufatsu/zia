@@ -2443,10 +2443,14 @@ zen-essentials-promo {
   }
 
   /* the page behind a card blurs too (the compositing trick from Floaty UI), only while
-     one is up: drawn that way, a video loses its HDR, washed out (#561) */
-  :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+     one is up: drawn that way, a video loses its HDR, washed out (#561). macOS only:
+     elsewhere the page is drawn in the window Firefox composites, so the blur reaches
+     it already, and a promoted layer is only texture churn on each card in and out */
+  @media (-moz-platform: macosx) {
+    :root:not([zia-video]):has(> :is(#zia-tab-card, #zia-folder-card):not([hidden])) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
   }
 }
 #urlbar:not([breakout-extend]) .urlbar-input {
@@ -4277,9 +4281,22 @@ tooltip[default="true"] {
      drawn as a layer Firefox composites itself, it can. (From Floaty UI.) Only
      while the sidebar or toolbar is out over it: drawn that way, a video loses
      its HDR, washed out (#561) */
-  :root[zen-compact-mode="true"]:not([zia-video]):is([zen-renaming-tab="true"], :has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active], [animate="true"])), :has(#zen-appcontent-navbar-wrapper:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+  @media (-moz-platform: macosx) {
+    :root[zen-compact-mode="true"]:not([zia-video]):is([zen-renaming-tab="true"], :has(#navigator-toolbox:is([zen-has-hover], [zen-user-show], [zen-has-empty-tab], [flash-popup], [has-popup-menu], [movingtab], [zen-compact-mode-active], [animate="true"])), :has(#zen-appcontent-navbar-wrapper:is([zen-has-hover], [has-popup-menu], [zen-compact-mode-active]))) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
+  }
+
+  /* Elsewhere the page is drawn in the window Firefox composites itself, and
+     the blur reaches it without that layer. Promoted anyway, the page's layer
+     was torn down and remade on every hover in and out, the tuck-away stutter
+     Windows saw. The blur itself steps aside while the sidebar slides too: its
+     28px shader over the moving window was the other cost of those frames. */
+  @media (-moz-platform: windows), (-moz-platform: linux) {
+    :root[zen-compact-mode="true"][zen-compact-animating] .zen-toolbar-background {
+      backdrop-filter: none !important;
+    }
   }
 }
 
@@ -4531,10 +4548,13 @@ tooltip[default="true"] {
      worked over Zen's own pages. Drawn as a layer Firefox composites
      itself, the page can be blurred too. (From Floaty UI, by moktavizen.) Only
      while the pop-up is open: drawn that way, a video loses its HDR, washed
-     out (#561) */
-  :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
-    will-change: transform !important;
-    backface-visibility: hidden !important;
+     out (#561). Elsewhere the page is already drawn in the window Firefox
+     composites, so the promotion is left out rather than churned per open. */
+  @media (-moz-platform: macosx) {
+    :root:has(#urlbar:is([breakout-extend], [zen-floating-urlbar="true"]):not([zia-classic])) #tabbrowser-tabpanels .browserSidebarContainer {
+      will-change: transform !important;
+      backface-visibility: hidden !important;
+    }
   }
 }
 
@@ -5312,10 +5332,14 @@ tooltip[default="true"] {
    which macOS would be handed to draw as a layer of its own: with it open,
    Zia's blurs (the compact sidebar, the hover cards, the address pop-up)
    stopped seeing through to the page. Drawn by Firefox itself, like the
-   page is for them (the compositing trick from Floaty UI). */
-#sidebar-box:not([hidden]) {
-  will-change: transform !important;
-  backface-visibility: hidden !important;
+   page is for them (the compositing trick from Floaty UI). Elsewhere the
+   panel is already drawn in the window Firefox composites, and a permanent
+   promoted layer only costs memory. */
+@media (-moz-platform: macosx) {
+  #sidebar-box:not([hidden]) {
+    will-change: transform !important;
+    backface-visibility: hidden !important;
+  }
 }
 
 /* On the same side as the tab sidebar (both left, or both right), the two
