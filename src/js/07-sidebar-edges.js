@@ -1,6 +1,9 @@
   let edgeFrame = null;
   let edgeRetryTimer = null;
   let edgeRetries = 0;
+  // the tab everything is measured against, kept between passes so a long
+  // strip isn't walked from the top every time
+  let edgeTab = null;
   const EDGE_MAX_FIX = 24;
   const EDGE_RETRY_MS = 100;
   const EDGE_MAX_RETRIES = 30;
@@ -40,10 +43,31 @@
 
   const halfPx = (value) => `${Math.round(value * 2) / 2}px`;
 
+  // The tab the edges are measured against, kept from the pass before: on a
+  // long strip, walking it from the top and reading each candidate's box is
+  // the expensive part of a pass, and the tab that qualifies rarely changes.
+  function edgeMeasureTab(space) {
+    const usable = (tab) =>
+      tab?.isConnected && !tab.closest("zen-folder, tab-group:not([split-view-group])");
+    if (usable(edgeTab) && visibleRect(edgeTab.querySelector(".tab-background"))) {
+      return edgeTab;
+    }
+    edgeTab = [...space.querySelectorAll(".tabbrowser-tab:not([zen-essential])")].find(
+      (tab) => usable(tab) && visibleRect(tab.querySelector(".tab-background"))
+    ) || null;
+    return edgeTab;
+  }
+
   function alignRightEdges() {
     edgeFrame = null;
     const sidebar = document.getElementById("navigator-toolbox");
     if (!sidebar || document.documentElement.getAttribute("zen-sidebar-expanded") !== "true") {
+      return;
+    }
+    // the slide is already relaying out every tab row; a pass of ours in the
+    // middle of it only adds another full-strip layout per frame
+    if (compactSliding()) {
+      retryEdgeAlignSoon();
       return;
     }
 
@@ -77,9 +101,7 @@
     const currentFix = (name) => parseFloat(root.style.getPropertyValue(name)) || 0;
     let suspicious = false;
 
-    const tab = [...space.querySelectorAll(".tabbrowser-tab:not([zen-essential])")].find(
-      (t) => !t.closest("zen-folder, tab-group:not([split-view-group])") && visibleRect(t.querySelector(".tab-background"))
-    );
+    const tab = edgeMeasureTab(space);
     // (a tab still opening is measured once it's in place: measured as it
     // came in, the tabs kept a wrong right edge until the sidebar was
     // resized)

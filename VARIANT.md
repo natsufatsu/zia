@@ -4,7 +4,20 @@
 - Player layout/settings: Zia Media Player 1.0.8, commit `8364994b7f6daeb983f0cc42881ff648717141c6`.
 - Previous variant: 2.80.18, commit `1bf9062`.
 - Split-drop implementation: Zia Split Tabs 1.0.7, commit `5738b6e44a76c29582024f2986c6547ace5d6879`.
-- Current variant: 2.86.18.
+- Current variant: 2.86.19.
+
+## Compact tuck-away under long tab strips (2.86.19)
+
+Zen marks `zen-compact-animating` for the whole sidebar slide and animates its
+margins, which reflows every tab row on every frame; on a strip of thousands of
+rows that is a full-strip layout per frame. Zia no longer adds passes of its own:
+- `compactSliding()` / `whenCompactSettled()` (00-core.js) defer per-frame
+  geometry work until the slide settles.
+- Edge alignment (07-sidebar-edges.js) bails before any layout read while the
+  slide runs, and remembers the tab it measures against instead of walking the
+  strip from the top on every pass.
+- Tab-number renumbering (28e) and the sidebar panel's width cap (28h) wait for
+  the slide to end; the panel's measurements now share one walk of the strip.
 
 ## Compact sidebar performance gating (2.86.18)
 

@@ -30,6 +30,40 @@
     }
   }
 
+  // Zen marks the sidebar while it slides in compact mode. Anything that reads
+  // the tab strip's geometry flushes the whole strip's layout, and a long strip
+  // (thousands of rows) makes that a frame's worth of work on its own: run on
+  // every frame of the slide, it is what made tucking the sidebar away stall.
+  function compactSliding() {
+    return root.hasAttribute("zen-compact-animating");
+  }
+
+  // ...so the work waits for the slide to settle instead. Bounded by a fallback,
+  // in case the attribute is left behind.
+  function whenCompactSettled(run) {
+    if (!compactSliding()) {
+      run();
+      return;
+    }
+    let done = false;
+    const finish = () => {
+      if (done) {
+        return;
+      }
+      done = true;
+      observer.disconnect();
+      clearTimeout(fallback);
+      run();
+    };
+    const observer = new MutationObserver(() => {
+      if (!compactSliding()) {
+        finish();
+      }
+    });
+    observer.observe(root, { attributes: true, attributeFilter: ["zen-compact-animating"] });
+    const fallback = setTimeout(finish, 1000);
+  }
+
   // Address bar position (an option): at the bottom of the page instead of the
   // top. Zen's single toolbar keeps its own layout.
   function urlbarAtBottom() {
@@ -2142,6 +2176,9 @@
   let edgeFrame = null;
   let edgeRetryTimer = null;
   let edgeRetries = 0;
+  // the tab everything is measured against, kept between passes so a long
+  // strip isn't walked from the top every time
+  let edgeTab = null;
   const EDGE_MAX_FIX = 24;
   const EDGE_RETRY_MS = 100;
   const EDGE_MAX_RETRIES = 30;
@@ -2181,10 +2218,31 @@
 
   const halfPx = (value) => `${Math.round(value * 2) / 2}px`;
 
+  // The tab the edges are measured against, kept from the pass before: on a
+  // long strip, walking it from the top and reading each candidate's box is
+  // the expensive part of a pass, and the tab that qualifies rarely changes.
+  function edgeMeasureTab(space) {
+    const usable = (tab) =>
+      tab?.isConnected && !tab.closest("zen-folder, tab-group:not([split-view-group])");
+    if (usable(edgeTab) && visibleRect(edgeTab.querySelector(".tab-background"))) {
+      return edgeTab;
+    }
+    edgeTab = [...space.querySelectorAll(".tabbrowser-tab:not([zen-essential])")].find(
+      (tab) => usable(tab) && visibleRect(tab.querySelector(".tab-background"))
+    ) || null;
+    return edgeTab;
+  }
+
   function alignRightEdges() {
     edgeFrame = null;
     const sidebar = document.getElementById("navigator-toolbox");
     if (!sidebar || document.documentElement.getAttribute("zen-sidebar-expanded") !== "true") {
+      return;
+    }
+    // the slide is already relaying out every tab row; a pass of ours in the
+    // middle of it only adds another full-strip layout per frame
+    if (compactSliding()) {
+      retryEdgeAlignSoon();
       return;
     }
 
@@ -2218,9 +2276,7 @@
     const currentFix = (name) => parseFloat(root.style.getPropertyValue(name)) || 0;
     let suspicious = false;
 
-    const tab = [...space.querySelectorAll(".tabbrowser-tab:not([zen-essential])")].find(
-      (t) => !t.closest("zen-folder, tab-group:not([split-view-group])") && visibleRect(t.querySelector(".tab-background"))
-    );
+    const tab = edgeMeasureTab(space);
     // (a tab still opening is measured once it's in place: measured as it
     // came in, the tabs kept a wrong right edge until the sidebar was
     // resized)
@@ -8898,6 +8954,7 @@
 
     // Kept up to date as tabs come and go, for when they show all the time
     let queued = false;
+    let settled = false;
     const renumber = () => {
       if (queued || !(root.hasAttribute("zia-tab-numbers") || Services.prefs.getBoolPref(TAB_NUMBERS_ALWAYS_PREF, false))) {
         return;
@@ -8905,6 +8962,19 @@
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
+        // every key is looked for and measured across the whole strip: not
+        // while the compact sidebar is sliding, which is already laying that
+        // strip out on every frame
+        if (compactSliding()) {
+          if (!settled) {
+            settled = true;
+            whenCompactSettled(() => {
+              settled = false;
+              renumber();
+            });
+          }
+          return;
+        }
         tabs = numberTabs();
       });
     };
@@ -9455,8 +9525,11 @@
   // The tabs' own measurements, read off a tab in the sidebar, for the
   // panels' rows to match: text size and weight, row height, the gap
   // between rows, the corner radius and the padding before the icon
-  function tabMeasurements() {
-    const tabs = gBrowser.visibleTabs.filter((tab) => !tab.hasAttribute("zen-essential") && !tab.hasAttribute("zen-glance-tab"));
+  function measurementTabs() {
+    return gBrowser.visibleTabs.filter((tab) => !tab.hasAttribute("zen-essential") && !tab.hasAttribute("zen-glance-tab"));
+  }
+
+  function tabMeasurements(tabs = measurementTabs()) {
     // one whose icon is showing (not hovered, where the close button takes
     // its place, nor loading), else any to be seen
     const shownIcon = (t) => {
@@ -9498,7 +9571,7 @@
       "--zia-row-inset": `${Math.max(0, Math.min(16, inset))}px`,
       "--zia-row-hover-bg": getComputedStyle(document.documentElement).getPropertyValue("--zia-tab-hover-bg").trim() || "rgba(255, 255, 255, 0.115)",
       "--zia-row-selected-bg": getComputedStyle(document.documentElement).getPropertyValue("--zia-active-tab-bg").trim() || "rgba(0, 0, 0, 0.1)",
-      "--zia-row-indent": `${folderIndent(tab)}px`,
+      "--zia-row-indent": `${folderIndent(tab, tabs)}px`,
       "--zia-row-icon-gap": `${within(icon ? label.getBoundingClientRect().left - icon.getBoundingClientRect().right : NaN, 2, 16, 8)}px`,
     };
   }
@@ -9514,8 +9587,8 @@
   }
 
   // How far a tab in a folder steps in from one that isn't
-  function folderIndent(tab) {
-    const inFolder = gBrowser.visibleTabs.find((t) => t.closest("zen-folder, tab-group:not([split-view-group])") && t.getBoundingClientRect().height > 0);
+  function folderIndent(tab, tabs = measurementTabs()) {
+    const inFolder = tabs.find((t) => t.closest("zen-folder, tab-group:not([split-view-group])") && t.getBoundingClientRect().height > 0);
     const outer = tab.closest("zen-folder, tab-group") ? null : tab;
     if (inFolder && outer) {
       const step = inFolder.querySelector(".tab-background").getBoundingClientRect().left - outer.querySelector(".tab-background").getBoundingClientRect().left;
@@ -9529,8 +9602,8 @@
   // The tab sidebar's own sides: from the window's edge to its tabs, and
   // from its tabs to the page's card. The panel takes the same, mirrored
   // (less the splitter, which is the gap on its card side).
-  function sidebarSides() {
-    const tab = gBrowser.visibleTabs.find((t) => !t.hasAttribute("zen-essential") && !t.closest("zen-folder, tab-group") && t.getBoundingClientRect().height > 0);
+  function sidebarSides(tabs = measurementTabs()) {
+    const tab = tabs.find((t) => !t.hasAttribute("zen-essential") && !t.closest("zen-folder, tab-group") && t.getBoundingClientRect().height > 0);
     const background = tab?.querySelector(".tab-background")?.getBoundingClientRect();
     const card = document.getElementById("zen-appcontent-wrapper")?.getBoundingClientRect();
     const splitter = document.getElementById("sidebar-splitter")?.getBoundingClientRect().width || 0;
@@ -9581,9 +9654,12 @@
   }
 
   function matchTabs(doc) {
-    safely("sidebar panels: sides", sidebarSides);
+    // one walk of the strip, shared by every measurement below: with a long
+    // strip, each pass of its own reads thousands of rows
+    const tabs = measurementTabs();
+    safely("sidebar panels: sides", () => sidebarSides(tabs));
     safely("sidebar panels: close colour", matchCloseToDownloads);
-    const sizes = tabMeasurements();
+    const sizes = tabMeasurements(tabs);
     if (sizes) {
       for (const [name, value] of Object.entries(sizes)) {
         doc.documentElement.style.setProperty(name, value);
@@ -9904,8 +9980,21 @@
       }
     };
     let clamping = false;
+    let capSettled = false;
     const cap = () => {
       if (clamping) {
+        return;
+      }
+      // the panel is watched for style changes too, and Zen writes one on every
+      // frame of the compact slide: measuring then costs a full-strip layout
+      if (compactSliding()) {
+        if (!capSettled) {
+          capSettled = true;
+          whenCompactSettled(() => {
+            capSettled = false;
+            cap();
+          });
+        }
         return;
       }
       const beside = Services.prefs.getBoolPref(SIDEBAR_BESIDE_PREF, true);

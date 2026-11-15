@@ -191,6 +191,7 @@
 
     // Kept up to date as tabs come and go, for when they show all the time
     let queued = false;
+    let settled = false;
     const renumber = () => {
       if (queued || !(root.hasAttribute("zia-tab-numbers") || Services.prefs.getBoolPref(TAB_NUMBERS_ALWAYS_PREF, false))) {
         return;
@@ -198,6 +199,19 @@
       queued = true;
       requestAnimationFrame(() => {
         queued = false;
+        // every key is looked for and measured across the whole strip: not
+        // while the compact sidebar is sliding, which is already laying that
+        // strip out on every frame
+        if (compactSliding()) {
+          if (!settled) {
+            settled = true;
+            whenCompactSettled(() => {
+              settled = false;
+              renumber();
+            });
+          }
+          return;
+        }
         tabs = numberTabs();
       });
     };

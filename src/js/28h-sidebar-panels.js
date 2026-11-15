@@ -10,8 +10,11 @@
   // The tabs' own measurements, read off a tab in the sidebar, for the
   // panels' rows to match: text size and weight, row height, the gap
   // between rows, the corner radius and the padding before the icon
-  function tabMeasurements() {
-    const tabs = gBrowser.visibleTabs.filter((tab) => !tab.hasAttribute("zen-essential") && !tab.hasAttribute("zen-glance-tab"));
+  function measurementTabs() {
+    return gBrowser.visibleTabs.filter((tab) => !tab.hasAttribute("zen-essential") && !tab.hasAttribute("zen-glance-tab"));
+  }
+
+  function tabMeasurements(tabs = measurementTabs()) {
     // one whose icon is showing (not hovered, where the close button takes
     // its place, nor loading), else any to be seen
     const shownIcon = (t) => {
@@ -53,7 +56,7 @@
       "--zia-row-inset": `${Math.max(0, Math.min(16, inset))}px`,
       "--zia-row-hover-bg": getComputedStyle(document.documentElement).getPropertyValue("--zia-tab-hover-bg").trim() || "rgba(255, 255, 255, 0.115)",
       "--zia-row-selected-bg": getComputedStyle(document.documentElement).getPropertyValue("--zia-active-tab-bg").trim() || "rgba(0, 0, 0, 0.1)",
-      "--zia-row-indent": `${folderIndent(tab)}px`,
+      "--zia-row-indent": `${folderIndent(tab, tabs)}px`,
       "--zia-row-icon-gap": `${within(icon ? label.getBoundingClientRect().left - icon.getBoundingClientRect().right : NaN, 2, 16, 8)}px`,
     };
   }
@@ -69,8 +72,8 @@
   }
 
   // How far a tab in a folder steps in from one that isn't
-  function folderIndent(tab) {
-    const inFolder = gBrowser.visibleTabs.find((t) => t.closest("zen-folder, tab-group:not([split-view-group])") && t.getBoundingClientRect().height > 0);
+  function folderIndent(tab, tabs = measurementTabs()) {
+    const inFolder = tabs.find((t) => t.closest("zen-folder, tab-group:not([split-view-group])") && t.getBoundingClientRect().height > 0);
     const outer = tab.closest("zen-folder, tab-group") ? null : tab;
     if (inFolder && outer) {
       const step = inFolder.querySelector(".tab-background").getBoundingClientRect().left - outer.querySelector(".tab-background").getBoundingClientRect().left;
@@ -84,8 +87,8 @@
   // The tab sidebar's own sides: from the window's edge to its tabs, and
   // from its tabs to the page's card. The panel takes the same, mirrored
   // (less the splitter, which is the gap on its card side).
-  function sidebarSides() {
-    const tab = gBrowser.visibleTabs.find((t) => !t.hasAttribute("zen-essential") && !t.closest("zen-folder, tab-group") && t.getBoundingClientRect().height > 0);
+  function sidebarSides(tabs = measurementTabs()) {
+    const tab = tabs.find((t) => !t.hasAttribute("zen-essential") && !t.closest("zen-folder, tab-group") && t.getBoundingClientRect().height > 0);
     const background = tab?.querySelector(".tab-background")?.getBoundingClientRect();
     const card = document.getElementById("zen-appcontent-wrapper")?.getBoundingClientRect();
     const splitter = document.getElementById("sidebar-splitter")?.getBoundingClientRect().width || 0;
@@ -136,9 +139,12 @@
   }
 
   function matchTabs(doc) {
-    safely("sidebar panels: sides", sidebarSides);
+    // one walk of the strip, shared by every measurement below: with a long
+    // strip, each pass of its own reads thousands of rows
+    const tabs = measurementTabs();
+    safely("sidebar panels: sides", () => sidebarSides(tabs));
     safely("sidebar panels: close colour", matchCloseToDownloads);
-    const sizes = tabMeasurements();
+    const sizes = tabMeasurements(tabs);
     if (sizes) {
       for (const [name, value] of Object.entries(sizes)) {
         doc.documentElement.style.setProperty(name, value);
@@ -459,8 +465,21 @@
       }
     };
     let clamping = false;
+    let capSettled = false;
     const cap = () => {
       if (clamping) {
+        return;
+      }
+      // the panel is watched for style changes too, and Zen writes one on every
+      // frame of the compact slide: measuring then costs a full-strip layout
+      if (compactSliding()) {
+        if (!capSettled) {
+          capSettled = true;
+          whenCompactSettled(() => {
+            capSettled = false;
+            cap();
+          });
+        }
         return;
       }
       const beside = Services.prefs.getBoolPref(SIDEBAR_BESIDE_PREF, true);

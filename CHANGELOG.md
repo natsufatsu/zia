@@ -4,6 +4,20 @@ Every release of Zia, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.86.19] - 2026-11-14
+
+### Fixed
+
+- Compact sidebar tuck-away with a long tab strip stalling the window: Zen marks
+  `zen-compact-animating` for the whole slide and animates the sidebar's margins,
+  which reflows every tab row on every frame. Zia's own per-frame geometry work
+  (edge alignment, the sidebar panel's width cap, tab-number renumbering) added
+  another full-strip layout pass per frame; it now waits for the slide to settle.
+- Sidebar edge alignment remembers the tab it measures against instead of walking
+  the strip from the top on every pass.
+- Sidebar panel styling walks the tab strip once per panel load instead of once
+  per measurement.
+
 ## [2.86.18] - 2026-11-14
 
 ### Fixed
